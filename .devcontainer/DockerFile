@@ -29,14 +29,18 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/* /var/tmp/*
 
+# golangci-lint をインストール。公式 install.sh でバージョン固定し /usr/local/bin に配置する。
+# USER 切替前 (root) のうちに /usr/local/bin へ書き込む必要がある。
+ARG GOLANGCI_LINT_VERSION=v2.12.2
+RUN curl -sSfL https://golangci-lint.run/install.sh \
+        | sh -s -- -b /usr/local/bin "${GOLANGCI_LINT_VERSION}" \
+    && golangci-lint --version
+
 # devcontainer.json の remoteUser に対応する非 root ユーザーを作成する。
 # ホスト側 UID/GID と揃えるため、ビルド時に ARG で差し替えられるようにする。
-RUN groupadd --gid ${GID} ${USERNAME} \
-    && useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash ${USERNAME} \
-    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
-    && chmod 0440 /etc/sudoers.d/${USERNAME} \
-    && mkdir -p /go /workspace \
-    && chown -R ${UID}:${GID} /go /workspace
+RUN groupadd --gid "${GID}" "${USERNAME}" \
+    && useradd --uid "${UID}" --gid "${GID}" -m -s /bin/bash "${USERNAME}"
+
 
 USER ${USERNAME}
 

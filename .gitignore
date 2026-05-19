@@ -5,3 +5,10 @@
 *.exe
 dist/
 project.zip
+
+# Go ビルド成果物 / テスト出力
+/bin/
+/out/
+*.test
+*.out
+coverage.txt
