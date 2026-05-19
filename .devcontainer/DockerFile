@@ -1,0 +1,45 @@
+# Go 開発用の devcontainer ベースイメージ。
+#
+# 用途: VS Code Dev Containers / GitHub Codespaces からアタッチして
+#       Go 1.26 + curl + git + bash の開発環境を再現するためのもの。
+#
+# ビルド例:
+#   docker build -f .devcontainer/DockerFile -t scraper-bot-dev .
+
+FROM golang:1.26-bookworm
+
+ARG USERNAME=vscode
+ARG UID=1000
+ARG GID=1000
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    GOPATH=/go \
+    PATH=/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    SHELL=/bin/bash
+
+# 開発で最低限必要なツールのみインストール。
+# apt のキャッシュとパッケージリストを削除してイメージサイズを削減する。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        curl \
+        git \
+        sudo \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/* /var/tmp/*
+
+# devcontainer.json の remoteUser に対応する非 root ユーザーを作成する。
+# ホスト側 UID/GID と揃えるため、ビルド時に ARG で差し替えられるようにする。
+RUN groupadd --gid ${GID} ${USERNAME} \
+    && useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash ${USERNAME} \
+    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
+    && chmod 0440 /etc/sudoers.d/${USERNAME} \
+    && mkdir -p /go /workspace \
+    && chown -R ${UID}:${GID} /go /workspace
+
+USER ${USERNAME}
+
+WORKDIR /workspace
+
+CMD ["bash"]
