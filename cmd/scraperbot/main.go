@@ -17,6 +17,7 @@ import (
 	_ "scraperbot/plugins/transformer-markdown"
 )
 
+// main は CLI を起動し、終了コードを os.Exit に渡す。
 func main() {
 	os.Exit(cli.Run())
 }
