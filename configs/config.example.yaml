@@ -1,47 +1,193 @@
+# scraperbot 設定ファイル例
+#
+# 使い方:
+#   cp configs/config.example.yaml my-config.yaml
+#   ./bin/scraperbot --config my-config.yaml
+#
+# 設定の優先順位: 組み込みデフォルト → この YAML → CLI フラグ（フラグが最優先）
+# 詳細: README.md / doc/03-設定詳細設計.md
+
+# -----------------------------------------------------------------------------
+# targets: スクレイピングの起点 URL（1 件以上必須）
+# -----------------------------------------------------------------------------
+# - http:// または https:// で始まる完全な URL を指定
+# - 単一 URL モード: 先頭 1 件のみ使用
+# - クロールモード (crawl.enabled: true): すべてがシード URL になる
 targets:
   - https://example.com/
 
+# -----------------------------------------------------------------------------
+# request: HTTP リクエストの制御
+# -----------------------------------------------------------------------------
 request:
+  # headers: 全リクエストに付与するカスタム HTTP ヘッダ（キー: 値）
+  # - キー・値ともに非空。改行は不可
+  # - User-Agent 未設定時はサーバー側の既定値が使われる
+  # - preprocessors に header を指定すると、ここで設定したヘッダが転写される
   headers:
     User-Agent: "scraperbot/0.1"
+
+  # timeout: 1 リクエストあたりのタイムアウト
+  # 範囲: 1s ～ 300s（既定: 60s）
   timeout: 60s
+
+  # retry_count: 失敗時の再試行回数（初回を除く追加試行数ではなく、合計試行は retry_count + 1）
+  # 対象: 5xx / ネットワークエラー / タイムアウト
+  # 範囲: 0 ～ 10（既定: 2）
   retry_count: 2
+
+  # retry_interval: 再試行前の待機時間
+  # 範囲: 100ms ～ 60s（既定: 1s）
   retry_interval: 1s
 
+# -----------------------------------------------------------------------------
+# content: 取得コンテンツの抽出・出力形式
+# -----------------------------------------------------------------------------
 content:
+  # formats: 出力する形式（複数指定可、重複不可）
+  # 選択肢:
+  #   - markdown   … HTML を Markdown に変換（既定）
+  #   - html       … フィルタ後の HTML
+  #   - raw_html   … 取得した生 HTML（フィルタ・変換を適用しない）
+  #   - json       … タイトル・メタデータ・本文を JSON 化
+  #   - links      … 抽出したリンク一覧（テキスト）
+  #   - metadata   … メタデータのみ（title / description / OGP 等）
   formats: [markdown, links]
+
+  # only_main_content: true のとき、ヘッダ・フッタ・ナビ等を除去して本文中心に抽出
+  # filter プラグイン maincontent と組み合わせて使用（既定: true）
+  # 注意: selector が指定されている場合は selector の方が優先される
   only_main_content: true
+
+  # include_tags: 残す HTML タグ名のホワイトリスト（空 = 制限なし）
+  # exclude_tags と同名タグは指定不可
   include_tags: []
+
+  # exclude_tags: 除去する HTML タグ名（既定: script, style, noscript）
   exclude_tags: [script, style, noscript]
+
+  # selector: 本文抽出用の CSS セレクタ（goquery 互換）
+  # - 空文字 = セレクタによる絞り込みなし
+  # - 指定時は filters に selector を含めること
   selector: ""
+
+  # extract_links: ページ内リンクを Result に含める（既定: true）
+  # クロール時はリンク抽出が実質必須
   extract_links: true
+
+  # extract_metadata: title / description / OGP 等を抽出する（既定: true）
   extract_metadata: true
 
+# -----------------------------------------------------------------------------
+# pdf: リンク先 PDF の処理
+# -----------------------------------------------------------------------------
 pdf:
+  # enabled: PDF リンクの追跡・取得を有効にする（既定: true）
+  # false のとき: クロールで PDF URL をスキップし、PDF を直接指定するとエラー
   enabled: true
+
+  # mode: PDF テキスト抽出の方式
+  # 選択肢:
+  #   - fast  … 埋め込みテキストのみ（高速）
+  #   - auto  … fast を試し、十分なテキストが取れないページは OCR にフォールバック（既定）
+  #   - ocr   … 全ページ強制 OCR（Tesseract 等の外部エンジンが必要）
   mode: auto
+
+  # max_pages: 処理する最大ページ数（0 = 無制限）
+  # 範囲: 0 ～ 10000
   max_pages: 0
+
+  # output: PDF 抽出結果の出力形式
+  # 選択肢:
+  #   - text      … プレーンテキスト（既定）
+  #   - markdown  … ページ見出し付き Markdown
+  #   - raw       … 元 PDF バイナリを Attachment として保持
   output: text
 
+# -----------------------------------------------------------------------------
+# crawl: 複数 URL の巡回（BFS クロール）
+# -----------------------------------------------------------------------------
 crawl:
+  # enabled: クロールモードの有効化（既定: false = 単一 URL のみ）
   enabled: false
+
+  # max_depth: 起点 URL からの最大リンク深度
+  # 範囲: 0 ～ 10（0 = シードのみ、リンクは辿らない）
   max_depth: 2
+
+  # max_pages: 訪問する最大ページ数（重複 URL は 1 回と数える）
+  # 範囲: 1 ～ 100000（既定: 100）
   max_pages: 100
+
+  # include_paths: クロール対象とする URL パス（Go 正規表現）のホワイトリスト
+  # 空 = すべて許可。評価対象は URL の path 部分（クエリは含まない）
   include_paths: []
+
+  # exclude_paths: クロールから除外する URL パス（Go 正規表現）
+  # 例: '.*\.zip$' で zip ファイルへのリンクを除外
   exclude_paths: []
+
+  # allow_external_links: 起点と異なる登録ドメインへのリンクを辿る（既定: false）
   allow_external_links: false
+
+  # allow_subdomains: 同一登録ドメインのサブドメインを許可（既定: false）
+  # allow_external_links: false のときのみ意味を持つ
   allow_subdomains: false
+
+  # request_delay: 各リクエスト完了後の待機時間（レート制限用）
+  # 範囲: 0s ～ 60s。0 より大きい場合、max_concurrency は自動的に 1 になる
   request_delay: 0s
+
+  # max_concurrency: 並行ワーカー数
+  # 範囲: 1 ～ 64（既定: 4）
   max_concurrency: 4
+
+  # respect_robots_txt: robots.txt に従う（既定: true）
+  # 取得失敗時は全許可として扱う（警告ログを出力）
   respect_robots_txt: true
 
+# -----------------------------------------------------------------------------
+# plugins: 使用するコンパイル時プラグイン名
+# -----------------------------------------------------------------------------
+# ビルドに含まれるプラグインは cmd/scraperbot/main.go の import で決まる。
+# ここでは「どれを有効にするか」だけを指定する。
 plugins:
+  # preprocessors (P2): リクエスト前処理（複数可、指定順に実行）
+  # 選択肢: header … request.headers をリクエストへ転写
   preprocessors: [header]
+
+  # parsers (P5): コンテンツ解析（複数登録可。実際の選択は Content-Type / 拡張子 / CanParse で決定）
+  # 選択肢:
+  #   - html … HTML ページ（goquery）
+  #   - pdf  … PDF レスポンス
   parsers: [html, pdf]
+
+  # transformer (P6): 最終出力への変換（単一指定）
+  # 選択肢: markdown … HTML → Markdown
   transformer: markdown
+
+  # filters (P7): コンテンツ絞り込み（複数可、指定順に実行）
+  # 選択肢:
+  #   - maincontent … ヘッダ・フッタ・ナビ・script/style/noscript 除去
+  #   - selector    … content.selector で指定範囲のみ残す（selector 設定時に使用）
   filters: [maincontent]
+
+  # link_extractor (P8): 次ページ候補リンクの抽出（単一指定）
+  # 選択肢: default … <a href> を抽出し base URL で解決
   link_extractor: default
 
+# -----------------------------------------------------------------------------
+# output: 結果のファイル出力先
+# -----------------------------------------------------------------------------
 output:
+  # dir: 出力ディレクトリ（存在しない場合は自動作成）
   dir: "./out"
+
+  # file_pattern: 出力ファイル名のテンプレート
+  # 使用可能なプレースホルダ:
+  #   {seq}  … 0 始まりの連番（5 桁ゼロ埋め）
+  #   {host} … URL のホスト名
+  #   {path} … URL パス（/ ? & = をサニタイズ）
+  #   {ext}  … フォーマットに応じた拡張子（md / html / json / txt 等）
+  # content.formats で複数指定した場合、フォーマットごとに別ファイルが生成される
   file_pattern: "{seq}-{host}-{path}.{ext}"
