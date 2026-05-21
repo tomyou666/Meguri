@@ -13,3 +13,7 @@ project.zip
 *.test
 *.out
 coverage.txt
+
+# ワーキングディレクトリトップのtmpが付くファイルorディレクトリは一時ファイルとして扱う
+/tmp*
+/tmp*/
