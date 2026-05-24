@@ -3,6 +3,7 @@ package robots
 
 import (
 	"context"
+	"log/slog"
 	"net/url"
 	"sync"
 
@@ -19,16 +20,13 @@ type Cache struct {
 	hosts map[string]*robotstxt.RobotsData
 	// fetcher は robots.txt 取得用 Fetcher。
 	fetcher plugin.Fetcher
-	// logger は取得・パース失敗時の警告出力先。
-	logger plugin.Logger
 }
 
-// NewCache は Fetcher とロガーから robots キャッシュを構築する。
-func NewCache(fetcher plugin.Fetcher, logger plugin.Logger) *Cache {
+// NewCache は Fetcher から robots キャッシュを構築する。
+func NewCache(fetcher plugin.Fetcher) *Cache {
 	return &Cache{
 		hosts:   map[string]*robotstxt.RobotsData{},
 		fetcher: fetcher,
-		logger:  logger,
 	}
 }
 
@@ -61,9 +59,7 @@ func (c *Cache) get(ctx context.Context, u *url.URL) *robotstxt.RobotsData {
 	}
 	res, err := c.fetcher.Get(ctx, robotsURL, nil)
 	if err != nil {
-		if c.logger != nil {
-			c.logger.Warn("robots.txt fetch failed (treat as allow)", "host", host, "err", err.Error())
-		}
+		slog.Warn("robots.txt fetch failed (treat as allow)", "host", host, "err", err.Error())
 		c.hosts[host] = nil
 		return nil
 	}
@@ -73,9 +69,7 @@ func (c *Cache) get(ctx context.Context, u *url.URL) *robotstxt.RobotsData {
 	}
 	data, err := robotstxt.FromBytes(res.Body)
 	if err != nil {
-		if c.logger != nil {
-			c.logger.Warn("robots.txt parse failed (treat as allow)", "host", host, "err", err.Error())
-		}
+		slog.Warn("robots.txt parse failed (treat as allow)", "host", host, "err", err.Error())
 		c.hosts[host] = nil
 		return nil
 	}

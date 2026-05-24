@@ -9,22 +9,22 @@ import (
 	"scraperbot/internal/domain/model"
 )
 
+// CrawlerFactory は実行時の ResultSink を受け取り Crawler を生成する。
+type CrawlerFactory func(sink core.ResultSink) *core.Crawler
+
 // Crawl はクローリングシナリオを束ねるユースケース。
 type Crawl struct {
-	// Kernel は初期化済みプラグインを束ねるカーネル。
-	Kernel *core.Kernel
-	// Robots は robots.txt 判定（nil 可）。
-	Robots core.RobotsChecker
+	// Factory は実行時 sink 付きの Crawler を生成する。
+	Factory CrawlerFactory
 	// Sink は各ページの Result 受け取り先（nil 可）。
 	Sink core.ResultSink
 }
 
 // NewCrawl はクロール用ユースケースを構築する。
 //
-// robots は nil の場合 robots 判定をスキップする。
 // sink は nil の場合、収集した Result は戻り値のスライスにのみ格納される。
-func NewCrawl(k *core.Kernel, robots core.RobotsChecker, sink core.ResultSink) *Crawl {
-	return &Crawl{Kernel: k, Robots: robots, Sink: sink}
+func NewCrawl(factory CrawlerFactory, sink core.ResultSink) *Crawl {
+	return &Crawl{Factory: factory, Sink: sink}
 }
 
 // Run はシード URL 一覧からクロールを実行し、統計と収集結果を返す。
@@ -53,7 +53,7 @@ func (c *Crawl) Run(ctx context.Context, targets []string) (*core.CrawlStats, []
 		}
 	}
 
-	crawler := core.NewCrawler(c.Kernel, c.Robots, sink)
+	crawler := c.Factory(sink)
 	stats, err := crawler.Run(ctx, seeds)
 	return stats, collected, err
 }

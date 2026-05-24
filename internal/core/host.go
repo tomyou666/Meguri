@@ -10,19 +10,14 @@ import (
 
 // hostImpl は plugin.Host の具象実装。
 type hostImpl struct {
-	// logger は構造化ログ出力先。
-	logger plugin.Logger
 	// cfg はフラットキー参照用の設定スナップショット。
 	cfg *model.Config
 }
 
 // NewHost はプラグインに渡す Host 実装を構築する。
-func NewHost(logger plugin.Logger, cfg *model.Config) plugin.Host {
-	return &hostImpl{logger: logger, cfg: cfg}
+func NewHost(cfg *model.Config) plugin.Host {
+	return &hostImpl{cfg: cfg}
 }
-
-// Logger は plugin.Host.Logger の実装。
-func (h *hostImpl) Logger() plugin.Logger { return h.logger }
 
 // RequestConfig は plugin.Host.RequestConfig の実装。
 func (h *hostImpl) RequestConfig() model.RequestConfig {

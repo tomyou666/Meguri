@@ -2,6 +2,8 @@ package core_test
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"net/url"
 	"strings"
 	"testing"
@@ -10,7 +12,7 @@ import (
 
 	"scraperbot/internal/core"
 	"scraperbot/internal/domain/model"
-	"scraperbot/internal/infrastructure/logging"
+	"scraperbot/internal/logger"
 
 	// プラグイン副作用 import: 実装プラグインをレジストリへ登録する
 	_ "scraperbot/plugins/fetcher-chromium"
@@ -27,8 +29,8 @@ import (
 // setupKernel はテスト用に初期化済みカーネルを組み立てる共通関数。
 func setupKernel(t *testing.T, cfg *model.Config) *core.Kernel {
 	t.Helper()
-	logger := logging.NewDefault()
-	host := core.NewHost(logger, cfg)
+	logger.Init(io.Discard, slog.LevelInfo)
+	host := core.NewHost(cfg)
 	k := core.NewKernel(cfg, host, core.Default())
 	if err := k.Init(context.Background()); err != nil {
 		t.Fatalf("kernel init: %v", err)

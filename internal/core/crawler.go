@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
@@ -237,7 +238,7 @@ func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int)
 	req := model.NewRequest(j.url, j.depth)
 	out, err := c.pipeline.Run(ctx, req)
 	if err != nil {
-		c.kernel.Host().Logger().Warn("pipeline failed", "url", j.url.String(), "err", err.Error())
+		slog.Warn("pipeline failed", "url", j.url.String(), "err", err.Error())
 		return false
 	}
 	if c.sink != nil && out.Result != nil {

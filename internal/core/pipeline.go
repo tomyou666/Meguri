@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 
@@ -74,7 +75,7 @@ func (p *Pipeline) Run(ctx context.Context, req *model.Request) (*PipelineOutput
 	// P8: LinkExtractor（失敗してもページは成功扱い）
 	links, lerr := p.kernel.LinkExtractor().Extract(ctx, content, req.URL)
 	if lerr != nil {
-		p.kernel.Host().Logger().Warn("link extractor failed", "url", req.URL.String(), "err", lerr.Error())
+		slog.Warn("link extractor failed", "url", req.URL.String(), "err", lerr.Error())
 		links = nil
 	}
 	if result.Links == nil {

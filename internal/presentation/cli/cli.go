@@ -5,17 +5,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"scraperbot/internal/core"
+	"scraperbot/internal/app"
 	"scraperbot/internal/domain/model"
 	"scraperbot/internal/infrastructure/configloader"
-	"scraperbot/internal/infrastructure/logging"
-	"scraperbot/internal/infrastructure/robots"
-	"scraperbot/internal/infrastructure/storage"
-	"scraperbot/internal/usecase"
+	"scraperbot/internal/logger"
 )
 
 // App は CLI 実行に必要な I/O 依存をまとめる。テスト時はここを差し替える。
@@ -39,9 +37,11 @@ func Run() int {
 
 // RunApp は設定読み込み・Kernel 初期化・単一 URL またはクロールを実行する。
 func (a *App) RunApp() int {
+	logger.Init(a.Stderr, slog.LevelInfo)
+
 	flags, err := ParseArgs(a.Args)
 	if err != nil {
-		fmt.Fprintln(a.Stderr, "引数エラー:", err)
+		slog.Error("引数エラー", "err", err)
 		return 2
 	}
 
@@ -49,7 +49,7 @@ func (a *App) RunApp() int {
 	if flags.ConfigPath != "" {
 		loaded, err := configloader.LoadYAMLFile(flags.ConfigPath)
 		if err != nil {
-			fmt.Fprintln(a.Stderr, "設定読み込みエラー:", err)
+			slog.Error("設定読み込みエラー", "err", err)
 			return 2
 		}
 		cfg = *loaded
@@ -57,66 +57,57 @@ func (a *App) RunApp() int {
 	Merge(&cfg, flags)
 
 	if err := cfg.Validate(); err != nil {
-		fmt.Fprintln(a.Stderr, "設定検証エラー:", err)
+		slog.Error("設定検証エラー", "err", err)
 		return 2
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	logger := logging.NewDefault()
-	host := core.NewHost(logger, &cfg)
-	kernel := core.NewKernel(&cfg, host, core.Default())
-	if err := kernel.Init(ctx); err != nil {
-		fmt.Fprintln(a.Stderr, "Kernel初期化エラー:", err)
+	application, cleanup, err := app.Initialize(ctx, &cfg)
+	if err != nil {
+		slog.Error("Kernel初期化エラー", "err", err)
 		return 1
 	}
-	defer kernel.Close(ctx)
+	defer cleanup()
 
 	if cfg.Crawl.Enabled {
-		return a.runCrawl(ctx, &cfg, kernel, logger)
+		return a.runCrawl(ctx, &cfg, application)
 	}
-	return a.runSingle(ctx, &cfg, kernel, flags)
+	return a.runSingle(ctx, &cfg, application, flags)
 }
 
 // runSingle は単一 URL モードでスクレイプしファイルまたは標準出力へ出す。
-func (a *App) runSingle(ctx context.Context, cfg *model.Config, k *core.Kernel, flags *Flags) int {
-	uc := usecase.NewScrape(k)
-	res, err := uc.Run(ctx, cfg.Targets[0])
+func (a *App) runSingle(ctx context.Context, cfg *model.Config, application *app.Application, flags *Flags) int {
+	res, err := application.Scrape.Run(ctx, cfg.Targets[0])
 	if err != nil {
-		fmt.Fprintln(a.Stderr, "スクレイピング失敗:", err)
+		slog.Error("スクレイピング失敗", "err", err)
 		return 1
 	}
 	if flags.Stdout {
 		fmt.Fprintln(a.Stdout, res.Markdown)
 		return 0
 	}
-	w := storage.NewFileWriter(cfg.Output, cfg.Content.Formats)
-	if err := w.Write(res); err != nil {
-		fmt.Fprintln(a.Stderr, "出力書き込み失敗:", err)
+	if err := application.FileWriter.Write(res); err != nil {
+		slog.Error("出力書き込み失敗", "err", err)
 		return 1
 	}
-	fmt.Fprintf(a.Stdout, "保存: %s (formats=%v)\n", cfg.Output.Dir, cfg.Content.Formats)
+	slog.Info("保存完了", "dir", cfg.Output.Dir, "formats", cfg.Content.Formats)
 	return 0
 }
 
 // runCrawl はクロールモードで複数 URL を巡回し結果を出力ディレクトリへ保存する。
-func (a *App) runCrawl(ctx context.Context, cfg *model.Config, k *core.Kernel, logger *logging.SlogAdapter) int {
-	w := storage.NewFileWriter(cfg.Output, cfg.Content.Formats)
-	robotsCache := robots.NewCache(k.Fetcher(), logger)
-
-	uc := usecase.NewCrawl(k, robotsCache, func(r *model.Result) {
-		if err := w.Write(r); err != nil {
-			logger.Warn("出力書き込み失敗", "url", r.URL.String(), "err", err.Error())
-		}
-	})
-
-	stats, _, err := uc.Run(ctx, cfg.Targets)
+func (a *App) runCrawl(ctx context.Context, cfg *model.Config, application *app.Application) int {
+	stats, _, err := application.Crawl.Run(ctx, cfg.Targets)
 	if err != nil {
-		fmt.Fprintln(a.Stderr, "クロール失敗:", err)
+		slog.Error("クロール失敗", "err", err)
 		return 1
 	}
-	fmt.Fprintf(a.Stdout, "クロール完了: enqueued=%d succeeded=%d failed=%d skipped=%d\n",
-		stats.Enqueued, stats.Succeeded, stats.Failed, stats.Skipped)
+	slog.Info("クロール完了",
+		"enqueued", stats.Enqueued,
+		"succeeded", stats.Succeeded,
+		"failed", stats.Failed,
+		"skipped", stats.Skipped,
+	)
 	return 0
 }

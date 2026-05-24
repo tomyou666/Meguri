@@ -44,18 +44,8 @@ type Plugin interface {
 }
 
 // Host はプラグインに渡される最小の依存集合。
-// グローバル変数を介さずにここから取得する。
 type Host interface {
-	Logger() Logger
 	Config(key string) (string, bool)
 	RequestConfig() model.RequestConfig
 	FetcherConfig() model.FetcherConfig
-}
-
-// Logger は構造化ログ出力の最小インタフェース。
-type Logger interface {
-	Debug(msg string, kv ...any)
-	Info(msg string, kv ...any)
-	Warn(msg string, kv ...any)
-	Error(msg string, kv ...any)
 }

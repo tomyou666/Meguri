@@ -343,7 +343,10 @@ make vet      # go vet
 make lint     # golangci-lint run
 make test     # go test -race
 make tidy     # go mod tidy
+make wire     # internal/app/wire_gen.go を再生成
 ```
+
+`internal/app/providers.go` または `wire.go` を変更した場合は **`make wire` を実行** して `wire_gen.go` を再生成してください。通常の clone / build では `wire_gen.go` がコミット済みのため **`make wire` は不要** です。
 
 テストは `httptest` でテスト用 Web サーバーを起動し、`[testdata/html/](testdata/html/)` の HTML を返して検証しています。
 
@@ -352,6 +355,7 @@ make tidy     # go mod tidy
 ```text
 cmd/scraperbot/          # CLI エントリ（プラグインの副作用 import）
 internal/
+  app/                  # Wire composition root（依存グラフ組み立て）
   domain/               # エンティティ・プラグイン抽象
   core/                 # カーネル・パイプライン・クローラ
   usecase/              # シナリオ（単一 URL / クロール）

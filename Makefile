@@ -1,4 +1,4 @@
-.PHONY: fmt vet lint test build all check tidy
+.PHONY: fmt vet lint test build all check tidy wire
 
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
@@ -25,3 +25,6 @@ build:
 
 tidy:
 	$(GO) mod tidy
+
+wire:
+	cd internal/app && $(GO) run github.com/google/wire/cmd/wire
