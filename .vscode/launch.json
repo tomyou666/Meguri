@@ -30,7 +30,7 @@
             "processId": "${command:pickProcess}"
         },
         {
-            "name": "Wails3: Debug Front App",
+            "name": "Wails3: Debug Front App (embed dist)",
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -40,6 +40,53 @@
                 "CGO_CFLAGS": "-O0 -g",
                 "CGO_CXXFLAGS": "-O0 -g",
                 "CGO_LDFLAGS": "-O0 -g"
+            }
+        },
+        {
+            "name": "Wails3: Attach Go (after wails3 dev)",
+            "type": "go",
+            "request": "attach",
+            "mode": "local",
+            "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Wails3: Debug Frontend TSX (Chrome, Vite only)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://127.0.0.1:9245",
+            "webRoot": "${workspaceFolder}/front/frontend",
+            "sourceMaps": true,
+            "preLaunchTask": "vite: dev"
+        },
+        {
+            "name": "Wails3: Debug Frontend TSX (Chrome)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://127.0.0.1:9245",
+            "webRoot": "${workspaceFolder}/front/frontend",
+            "sourceMaps": true
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Wails3: Dev + TSX (Chrome)",
+            "configurations": [
+                "Wails3: Debug Frontend TSX (Chrome)"
+            ],
+            "preLaunchTask": "wails3: dev",
+            "presentation": {
+                "order": 1
+            }
+        },
+        {
+            "name": "Wails3: Dev + TSX + Attach Go",
+            "configurations": [
+                "Wails3: Debug Frontend TSX (Chrome)",
+                "Wails3: Attach Go (after wails3 dev)"
+            ],
+            "preLaunchTask": "wails3: dev",
+            "presentation": {
+                "order": 1
             }
         }
     ]

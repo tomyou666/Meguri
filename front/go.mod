@@ -1,4 +1,4 @@
-module changeme
+module scraperbot-front
 
 go 1.25.0
 

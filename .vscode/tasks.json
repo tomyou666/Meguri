@@ -1,0 +1,61 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "vite: dev",
+            "type": "shell",
+            "command": "npm run dev -- --port 9245 --strictPort",
+            "options": {
+                "cwd": "${workspaceFolder}/front/frontend",
+                "env": {
+                    "WAILS_VITE_PORT": "9245"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "vite",
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".",
+                    "endsPattern": "(127\\.0\\.0\\.1:9245|Local:\\s+http://127\\.0\\.0\\.1:9245)"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": false
+            }
+        },
+        {
+            "label": "wails3: dev",
+            "type": "shell",
+            "command": "wails3 dev -config ./build/config.yml -port 9245",
+            "options": {
+                "cwd": "${workspaceFolder}/front",
+                "env": {
+                    "WAILS_VITE_PORT": "9245"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "wails",
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".",
+                    "endsPattern": "(devServerURL|127\\.0\\.0\\.1:9245|Local:\\s+http://127\\.0\\.0\\.1:9245|ready in \\d+ ms)"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": false
+            }
+        }
+    ]
+}
