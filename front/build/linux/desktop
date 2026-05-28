@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
 Name=My Product
-Comment=A hellowails application
+Comment=A scraperbot application
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/hellowails.exe %u
+Exec=/usr/local/bin/scraperbot.exe %u
 Terminal=false
 Type=Application
-Icon=hellowails.exe
+Icon=scraperbot.exe
 Categories=Utility;
-StartupWMClass=hellowails.exe
+StartupWMClass=scraperbot.exe
 
  

@@ -8,7 +8,7 @@
         AllowPromptForPassword="false">
     </Settings>
     <Installer
-        Path="hellowails.exe"
+        Path="scraperbot.exe"
         Arguments=""
         InstallLocation="C:\Program Files\My Company\My Product">
     </Installer>
@@ -18,17 +18,17 @@
         PublisherName="CN=My Company"
         PublisherDisplayName="My Company"
         Version="0.1.0.0"
-        PackageDescription="A hellowails application">
+        PackageDescription="A scraperbot application">
         <Capabilities>
             <Capability Name="runFullTrust" />
             
         </Capabilities>
         <Applications>
             <Application
-                Id="com.example.hellowails"
-                Description="A hellowails application"
+                Id="com.example.scraperbot"
+                Description="A scraperbot application"
                 DisplayName="My Product"
-                ExecutableName="hellowails.exe"
+                ExecutableName="scraperbot.exe"
                 EntryPoint="Windows.FullTrustApplication">
                 
             </Application>
@@ -43,11 +43,11 @@
             <Framework>false</Framework>
             <DisplayName>My Product</DisplayName>
             <PublisherDisplayName>My Company</PublisherDisplayName>
-            <Description>A hellowails application</Description>
+            <Description>A scraperbot application</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>
-    <SaveLocation PackagePath="hellowails.msix" />
+    <SaveLocation PackagePath="scraperbot.msix" />
     <PackageIntegrity>
         <CertificatePath></CertificatePath>
     </PackageIntegrity>

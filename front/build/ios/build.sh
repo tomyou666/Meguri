@@ -2,8 +2,8 @@
 set -e
 
 # Build configuration
-APP_NAME="hellowails.exe"
-BUNDLE_ID="com.example.hellowails"
+APP_NAME="scraperbot.exe"
+BUNDLE_ID="com.example.scraperbot"
 VERSION="0.1.0"
 BUILD_NUMBER="0.1.0"
 BUILD_DIR="build/ios"
