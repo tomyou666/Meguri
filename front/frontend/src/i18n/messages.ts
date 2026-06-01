@@ -54,6 +54,14 @@ export const messages = {
 		crawlFailed: 'クロールエラー',
 		nodeFailed: 'ノードエラー',
 	},
+	graph: {
+		layout: 'レイアウト',
+		layoutVertical: '縦方向に自動配置',
+		layoutHorizontal: '横方向に自動配置',
+		zoomIn: 'ズームイン',
+		zoomOut: 'ズームアウト',
+		fitView: '全体表示',
+	},
 	status: {
 		idle: '未訪問',
 		running: '実行中',

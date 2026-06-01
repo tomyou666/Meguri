@@ -1,10 +1,12 @@
 import { create } from 'zustand';
-import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
 import {
-	collectDescendantUrls,
-	getDescendantNodeIds,
-	placeNearParent,
-} from '@/lib/graph';
+	computeDagrePositions,
+	type DagreLayoutDirection,
+	fallbackNearParent,
+	positionForDiscoveredNode,
+} from '@/lib/dagreLayout';
+import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
+import { collectDescendantUrls, getDescendantNodeIds } from '@/lib/graph';
 import { hostFromUrl, normalizeUrl } from '@/lib/normalizeUrl';
 import { runCrawlStub } from '@/services/crawlStub';
 import type { PartialConfig } from '@/types/config';
@@ -44,6 +46,7 @@ function emptyWorkspace(name: string, seedUrl: string): Workspace {
 			},
 		],
 		edges: [],
+		graphLayoutDirection: 'LR',
 		domainSettings: {},
 	};
 }
@@ -79,6 +82,8 @@ interface AppState {
 	selectDomain: (host: string | null) => void;
 	setRunMode: (mode: RunMode) => void;
 	updateNodePosition: (id: string, position: { x: number; y: number }) => void;
+	layoutWorkspaceGraph: () => void;
+	setGraphLayoutDirection: (direction: DagreLayoutDirection) => void;
 	removeEdges: (edgeIds: string[]) => void;
 	openAddNodeDialog: (screenPos?: { x: number; y: number }) => void;
 	closeAddNodeDialog: () => void;
@@ -188,10 +193,43 @@ export const useAppStore = create<AppState>((set, get) => ({
 					? w
 					: {
 							...w,
-							nodes: w.nodes.map((n) => (n.id === id ? { ...n, position } : n)),
+							nodes: w.nodes.map((n) =>
+								n.id === id ? { ...n, position, userPositioned: true } : n,
+							),
 						},
 			),
 		}));
+	},
+
+	layoutWorkspaceGraph: () => {
+		const ws = get().getActiveWorkspace();
+		if (!ws || ws.nodes.length === 0) return;
+		const direction = ws.graphLayoutDirection ?? 'LR';
+		const positions = computeDagrePositions(ws.nodes, ws.edges, direction);
+		set((s) => ({
+			workspaces: s.workspaces.map((w) =>
+				w.id !== ws.id
+					? w
+					: {
+							...w,
+							nodes: w.nodes.map((n) => {
+								const pos = positions.get(n.id);
+								return pos ? { ...n, position: pos, userPositioned: false } : n;
+							}),
+						},
+			),
+		}));
+	},
+
+	setGraphLayoutDirection: (direction) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		set((s) => ({
+			workspaces: s.workspaces.map((w) =>
+				w.id === ws.id ? { ...w, graphLayoutDirection: direction } : w,
+			),
+		}));
+		get().layoutWorkspaceGraph();
 	},
 
 	removeEdges: (edgeIds) => {
@@ -231,6 +269,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				urlNormalized: normalized,
 				label: normalized,
 				position: pos,
+				userPositioned: true,
 				nodeSettings: {},
 				crawlExclude: false,
 				status: 'idle',
@@ -462,24 +501,45 @@ export const useAppStore = create<AppState>((set, get) => ({
 					const targetExists = current.nodes.some((n) => n.id === targetId);
 					const nodes = [...current.nodes];
 					const edges = [...current.edges];
+					const edgeId = `e-${sourceId}-${targetId}`;
+					const edgeIsNew = !edges.some((e) => e.id === edgeId);
+					if (edgeIsNew) {
+						edges.push({ id: edgeId, source: sourceId, target: targetId });
+					}
 					if (!targetExists) {
 						const parent = nodes.find((n) => n.id === sourceId);
-						const idx = nodes.length;
+						const direction = current.graphLayoutDirection ?? 'LR';
+						const fallback = parent
+							? fallbackNearParent(parent, direction)
+							: { x: 400, y: 300 };
+						const position = positionForDiscoveredNode(
+							[
+								...nodes,
+								{
+									id: targetId,
+									urlNormalized: targetUrl,
+									label: targetUrl,
+									position: fallback,
+									nodeSettings: {},
+									crawlExclude: false,
+									status: 'idle' as const,
+								},
+							],
+							edges,
+							targetId,
+							fallback,
+							direction,
+						);
 						nodes.push({
 							id: targetId,
 							urlNormalized: targetUrl,
 							label: targetUrl,
-							position: parent
-								? placeNearParent(parent, idx)
-								: { x: 400, y: 300 },
+							position,
+							userPositioned: false,
 							nodeSettings: {},
 							crawlExclude: false,
 							status: 'idle',
 						});
-					}
-					const edgeId = `e-${sourceId}-${targetId}`;
-					if (!edges.some((e) => e.id === edgeId)) {
-						edges.push({ id: edgeId, source: sourceId, target: targetId });
 					}
 					set((s) => ({
 						workspaces: s.workspaces.map((w) =>

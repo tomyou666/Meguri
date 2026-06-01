@@ -4,6 +4,13 @@ GO ?= go
 GOLANGCI_LINT ?= golangci-lint
 PKG := ./...
 
+# -race requires CGO; Windows disables CGO by default.
+ifeq ($(OS),Windows_NT)
+GO_TEST_FLAGS ?= -count=1
+else
+GO_TEST_FLAGS ?= -race -count=1
+endif
+
 all: check
 
 check: fmt vet lint test
@@ -18,7 +25,7 @@ lint:
 	$(GOLANGCI_LINT) run $(PKG)
 
 test:
-	$(GO) test -race -count=1 $(PKG)
+	$(GO) test $(GO_TEST_FLAGS) $(PKG)
 
 build:
 	$(GO) build -o bin/scraperbot ./cmd/scraperbot

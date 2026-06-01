@@ -128,3 +128,50 @@
 		@apply font-sans;
 	}
 }
+
+/* React Flow: 右下コントロール + ミニマップの重なり解消 */
+.react-flow__controls.graph-controls {
+	margin: 0;
+	border-radius: var(--radius);
+	border: 1px solid var(--border);
+	background: color-mix(in oklch, var(--card) 92%, transparent);
+	box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 8%, transparent);
+	overflow: hidden;
+}
+
+.react-flow__controls.graph-controls button {
+	min-width: 2rem;
+	min-height: 2rem;
+	border-right: 1px solid var(--border);
+	border-radius: 0;
+	background: transparent;
+	color: var(--foreground);
+}
+
+.react-flow__controls.graph-controls button:hover {
+	background: var(--accent);
+	color: var(--accent-foreground);
+}
+
+.react-flow__controls.graph-controls button.graph-controls-active {
+	background: var(--primary);
+	color: var(--primary-foreground);
+}
+
+.react-flow__controls.graph-controls button.graph-controls-active:hover {
+	background: var(--primary);
+	color: var(--primary-foreground);
+}
+
+.react-flow__controls.graph-controls button svg {
+	max-width: 1rem;
+	max-height: 1rem;
+}
+
+.react-flow__minimap.graph-minimap {
+	margin: 0;
+	border-radius: var(--radius);
+	border: 1px solid var(--border);
+	background: color-mix(in oklch, var(--card) 92%, transparent);
+	box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 8%, transparent);
+}

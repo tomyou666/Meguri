@@ -40,7 +40,7 @@ run:
 	$(WAILS) run
 
 build:
-	$(WAILS) build
+	$(WAILS) build -ldflags="-s -w" 
 
 generate:
 	$(WAILS) generate bindings -ts

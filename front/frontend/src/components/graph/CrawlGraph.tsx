@@ -1,9 +1,7 @@
 import {
 	applyNodeChanges,
 	Background,
-	Controls,
 	type Edge,
-	MiniMap,
 	type Node,
 	type OnEdgesDelete,
 	type OnNodesChange,
@@ -12,13 +10,16 @@ import {
 	useNodesState,
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo } from 'react';
+import { handlePositionsForDirection } from '@/lib/dagreLayout';
 import '@xyflow/react/dist/style.css';
 import { useAppStore } from '@/stores/appStore';
+import { GraphCanvasControls } from './GraphCanvasControls';
 import { UrlNode, type UrlNodeData } from './UrlNode';
 
 const nodeTypes = { urlNode: UrlNode };
 
 export function CrawlGraph() {
+	const proOptions = { hideAttribution: true };
 	const ws = useAppStore((s) => s.getActiveWorkspace());
 	const selectedNodeId = useAppStore((s) => s.selectedNodeId);
 	const selectedDomain = useAppStore((s) => s.selectedDomain);
@@ -29,14 +30,19 @@ export function CrawlGraph() {
 
 	const flowNodes: Node<UrlNodeData>[] = useMemo(() => {
 		if (!ws) return [];
+		const direction = ws.graphLayoutDirection ?? 'LR';
+		const handles = handlePositionsForDirection(direction);
 		return ws.nodes.map((n) => ({
 			id: n.id,
 			type: 'urlNode',
 			position: n.position,
+			sourcePosition: handles.source,
+			targetPosition: handles.target,
 			data: {
 				label: n.label,
 				status: n.status,
 				selected: n.id === selectedNodeId,
+				layoutDirection: direction,
 			},
 		}));
 	}, [ws, selectedNodeId]);
@@ -112,18 +118,10 @@ export function CrawlGraph() {
 				onPaneContextMenu={onPaneContextMenu}
 				fitView
 				className='bg-background'
+				proOptions={proOptions}
 			>
 				<Background gap={16} />
-				<Controls />
-				<MiniMap
-					nodeColor={(n) => {
-						const st = (n.data as UrlNodeData).status;
-						if (st === 'error') return '#ef4444';
-						if (st === 'success') return '#22c55e';
-						if (st === 'running') return '#3b82f6';
-						return '#6b7280';
-					}}
-				/>
+				<GraphCanvasControls />
 			</ReactFlow>
 			{selectedDomain && (
 				<div className='pointer-events-none absolute bottom-2 left-2 rounded bg-card/90 px-2 py-1 text-xs text-muted-foreground'>

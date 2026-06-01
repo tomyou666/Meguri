@@ -13,6 +13,18 @@ export default defineConfig(({ mode }) => ({
 	},
 	build: {
 		sourcemap: mode === 'development',
+		rolldownOptions: {
+			output: {
+				codeSplitting: {
+					groups: [
+						{
+							name: 'vendor',
+							entries: ['react', 'react-dom'],
+						},
+					],
+				},
+			},
+		},
 	},
 	plugins: [react(), tailwindcss(), wails('./bindings')],
 	resolve: {

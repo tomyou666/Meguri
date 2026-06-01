@@ -66,15 +66,3 @@ export function collectDescendantUrls(
 	}
 	return urls;
 }
-
-export function placeNearParent(
-	parent: GraphNode,
-	index: number,
-): { x: number; y: number } {
-	const col = index % 3;
-	const row = Math.floor(index / 3);
-	return {
-		x: parent.position.x + 220 + col * 40,
-		y: parent.position.y + row * 100,
-	};
-}

@@ -8,6 +8,8 @@ export interface GraphNode {
 	urlNormalized: string;
 	label: string;
 	position: { x: number; y: number };
+	/** ユーザーがドラッグで配置した場合 true（再生時の自動配置対象外） */
+	userPositioned?: boolean;
 	nodeSettings: PartialConfig;
 	crawlExclude: boolean;
 	status: NodeStatus;
