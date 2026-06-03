@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { ConfigField } from '@/components/settings/ConfigField';
 import {
 	type FieldErrors,
@@ -28,6 +28,36 @@ type FieldsProps<T> = {
 	onChange: (v: T) => void;
 	fieldErrors: FieldErrors;
 };
+
+function configCheckboxId(path: string): string {
+	return `cfg-${path.replace(/\./g, '-')}`;
+}
+
+function ConfigCheckboxRow({
+	inputId,
+	checked,
+	onCheckedChange,
+	children,
+	className = 'flex items-start gap-2 text-xs',
+}: {
+	inputId: string;
+	checked: boolean;
+	onCheckedChange: (checked: boolean) => void;
+	children: ReactNode;
+	className?: string;
+}) {
+	return (
+		<label htmlFor={inputId} className={className}>
+			<Checkbox
+				id={inputId}
+				className='mt-0.5'
+				checked={checked}
+				onCheckedChange={onCheckedChange}
+			/>
+			{children}
+		</label>
+	);
+}
 
 function StringListEditor({
 	path,
@@ -169,32 +199,39 @@ export function ContentConfigFields({
 					<div
 						className={`mt-1 flex flex-wrap gap-2 rounded-lg p-1 ${formatsInvalid ? 'border border-destructive bg-destructive/5' : ''}`}
 					>
-						{FORMATS.map((f) => (
-							<label key={f} className='flex items-center gap-1 text-xs'>
-								<Checkbox
-									checked={v.formats?.includes(f) ?? false}
-									onCheckedChange={(checked) => {
-										const cur = v.formats ?? [];
-										const next = checked
-											? [...cur, f]
-											: cur.filter((x) => x !== f);
-										onChange({ ...v, formats: next });
-									}}
-								/>
-								{f}
-							</label>
-						))}
+						{FORMATS.map((f) => {
+							const formatId = configCheckboxId(`content.formats.${f}`);
+							return (
+								<label
+									key={f}
+									htmlFor={formatId}
+									className='flex items-center gap-1 text-xs'
+								>
+									<Checkbox
+										id={formatId}
+										checked={v.formats?.includes(f) ?? false}
+										onCheckedChange={(checked) => {
+											const cur = v.formats ?? [];
+											const next = checked
+												? [...cur, f]
+												: cur.filter((x) => x !== f);
+											onChange({ ...v, formats: next });
+										}}
+									/>
+									{f}
+								</label>
+							);
+						})}
 					</div>
 				</ConfigField>
 			)}
-			<label className='flex items-start gap-2 text-xs'>
-				<Checkbox
-					className='mt-0.5'
-					checked={v.only_main_content ?? false}
-					onCheckedChange={(c) => onChange({ ...v, only_main_content: !!c })}
-				/>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('content.only_main_content')}
+				checked={v.only_main_content ?? false}
+				onCheckedChange={(c) => onChange({ ...v, only_main_content: !!c })}
+			>
 				<FieldLabel label='only_main_content' help={h.only_main_content} />
-			</label>
+			</ConfigCheckboxRow>
 			<StringListEditor
 				path='content.include_tags'
 				label='include_tags'
@@ -225,22 +262,20 @@ export function ContentConfigFields({
 					onChange={(e) => onChange({ ...v, selector: e.target.value })}
 				/>
 			</ConfigField>
-			<label className='flex items-start gap-2 text-xs'>
-				<Checkbox
-					className='mt-0.5'
-					checked={v.extract_links ?? true}
-					onCheckedChange={(c) => onChange({ ...v, extract_links: !!c })}
-				/>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('content.extract_links')}
+				checked={v.extract_links ?? true}
+				onCheckedChange={(c) => onChange({ ...v, extract_links: !!c })}
+			>
 				<FieldLabel label='extract_links' help={h.extract_links} />
-			</label>
-			<label className='flex items-start gap-2 text-xs'>
-				<Checkbox
-					className='mt-0.5'
-					checked={v.extract_metadata ?? true}
-					onCheckedChange={(c) => onChange({ ...v, extract_metadata: !!c })}
-				/>
+			</ConfigCheckboxRow>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('content.extract_metadata')}
+				checked={v.extract_metadata ?? true}
+				onCheckedChange={(c) => onChange({ ...v, extract_metadata: !!c })}
+			>
 				<FieldLabel label='extract_metadata' help={h.extract_metadata} />
-			</label>
+			</ConfigCheckboxRow>
 		</div>
 	);
 }
@@ -253,14 +288,13 @@ export function PdfConfigFields({
 	const v = value ?? {};
 	return (
 		<div className='space-y-3'>
-			<label className='flex items-start gap-2 text-xs'>
-				<Checkbox
-					className='mt-0.5'
-					checked={v.enabled ?? true}
-					onCheckedChange={(c) => onChange({ ...v, enabled: !!c })}
-				/>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('pdf.enabled')}
+				checked={v.enabled ?? true}
+				onCheckedChange={(c) => onChange({ ...v, enabled: !!c })}
+			>
 				<FieldLabel label='enabled' help={h.pdf_enabled} />
-			</label>
+			</ConfigCheckboxRow>
 			<ConfigField
 				path='pdf.mode'
 				errors={fieldErrors}
@@ -330,14 +364,13 @@ export function CrawlConfigFields({
 	const v = value ?? {};
 	return (
 		<div className='space-y-3'>
-			<label className='flex items-start gap-2 text-xs'>
-				<Checkbox
-					className='mt-0.5'
-					checked={v.enabled ?? false}
-					onCheckedChange={(c) => onChange({ ...v, enabled: !!c })}
-				/>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('crawl.enabled')}
+				checked={v.enabled ?? false}
+				onCheckedChange={(c) => onChange({ ...v, enabled: !!c })}
+			>
 				<FieldLabel label='enabled' help={h.crawl_enabled} />
-			</label>
+			</ConfigCheckboxRow>
 			<ConfigField
 				path='crawl.max_depth'
 				errors={fieldErrors}
@@ -388,25 +421,23 @@ export function CrawlConfigFields({
 				onChange={(exclude_paths) => onChange({ ...v, exclude_paths })}
 				fieldErrors={fieldErrors}
 			/>
-			<label className='flex items-start gap-2 text-xs'>
-				<Checkbox
-					className='mt-0.5'
-					checked={v.allow_external_links ?? false}
-					onCheckedChange={(c) => onChange({ ...v, allow_external_links: !!c })}
-				/>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('crawl.allow_external_links')}
+				checked={v.allow_external_links ?? false}
+				onCheckedChange={(c) => onChange({ ...v, allow_external_links: !!c })}
+			>
 				<FieldLabel
 					label='allow_external_links'
 					help={h.allow_external_links}
 				/>
-			</label>
-			<label className='flex items-start gap-2 text-xs'>
-				<Checkbox
-					className='mt-0.5'
-					checked={v.allow_subdomains ?? false}
-					onCheckedChange={(c) => onChange({ ...v, allow_subdomains: !!c })}
-				/>
+			</ConfigCheckboxRow>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('crawl.allow_subdomains')}
+				checked={v.allow_subdomains ?? false}
+				onCheckedChange={(c) => onChange({ ...v, allow_subdomains: !!c })}
+			>
 				<FieldLabel label='allow_subdomains' help={h.allow_subdomains} />
-			</label>
+			</ConfigCheckboxRow>
 			<ConfigField
 				path='crawl.request_delay'
 				errors={fieldErrors}
@@ -441,14 +472,13 @@ export function CrawlConfigFields({
 					}
 				/>
 			</ConfigField>
-			<label className='flex items-start gap-2 text-xs'>
-				<Checkbox
-					className='mt-0.5'
-					checked={v.respect_robots_txt ?? true}
-					onCheckedChange={(c) => onChange({ ...v, respect_robots_txt: !!c })}
-				/>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('crawl.respect_robots_txt')}
+				checked={v.respect_robots_txt ?? true}
+				onCheckedChange={(c) => onChange({ ...v, respect_robots_txt: !!c })}
+			>
 				<FieldLabel label='respect_robots_txt' help={h.respect_robots_txt} />
-			</label>
+			</ConfigCheckboxRow>
 		</div>
 	);
 }
@@ -505,19 +535,18 @@ export function PluginsConfigFields({
 					}
 				/>
 			</ConfigField>
-			<label className='flex items-start gap-2'>
-				<Checkbox
-					className='mt-0.5'
-					checked={(fc.headless as boolean) ?? true}
-					onCheckedChange={(c) =>
-						onChange({
-							...v,
-							fetcher_config: { ...fc, headless: !!c },
-						})
-					}
-				/>
+			<ConfigCheckboxRow
+				inputId={configCheckboxId('plugins.fetcher_config.headless')}
+				checked={(fc.headless as boolean) ?? true}
+				onCheckedChange={(c) =>
+					onChange({
+						...v,
+						fetcher_config: { ...fc, headless: !!c },
+					})
+				}
+			>
 				<FieldLabel label='headless' help={h.headless} />
-			</label>
+			</ConfigCheckboxRow>
 		</div>
 	);
 }

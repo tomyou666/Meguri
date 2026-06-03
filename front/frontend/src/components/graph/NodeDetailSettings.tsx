@@ -34,8 +34,6 @@ export function NodeDetailSettings({ node }: NodeDetailSettingsProps) {
 		<div
 			ref={scrollRef}
 			className='nodrag nopan nowheel max-h-[280px] overflow-y-auto overscroll-contain border-t border-border pt-2'
-			onClick={(e) => e.stopPropagation()}
-			onWheelCapture={(e) => e.stopPropagation()}
 		>
 			<p className='mb-2 text-[10px] font-semibold text-muted-foreground'>
 				{messages.graph.nodeSettingsTitle}

@@ -1,12 +1,5 @@
 import type { PartialConfig } from '@/types/config';
-import type {
-	DbDomainSetting,
-	DbGraphEdge,
-	DbGraphNode,
-	DbGraphUiState,
-	DbWorkspace,
-	WorkspaceBundle,
-} from '@/types/db';
+import type { DbGraphEdge, DbGraphNode, WorkspaceBundle } from '@/types/db';
 import { parseSettingsJson, stringifySettings } from '@/types/db';
 import type { GraphEdge, GraphNode } from '@/types/graph';
 import type { Workspace } from '@/types/workspace';

@@ -13,8 +13,6 @@ import {
 	collectDescendantUrls,
 	getBfsNodeOrder,
 	getDescendantNodeIds,
-	getHiddenDescendantIds,
-	isExcludedSubtree,
 } from '@/lib/graph';
 import { hostFromUrl, normalizeUrl } from '@/lib/normalizeUrl';
 import {
@@ -52,7 +50,7 @@ function syncHistory(
 
 function patchWorkspaces(
 	set: (fn: (s: AppState) => Partial<AppState>) => void,
-	get: () => AppState,
+	_get: () => AppState,
 	updater: (workspaces: Workspace[]) => Workspace[],
 	recordHistory = true,
 ) {
