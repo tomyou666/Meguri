@@ -171,12 +171,9 @@ export async function runCrawlStub(
 		return;
 	}
 
-	const { nodeIds, startId } = buildVisitOrder(
-		mode,
-		workspace,
-		startNodeId,
-		seedUrl,
-	);
+	const { nodeIds, startId } = options.nodeIds?.length
+		? { nodeIds: options.nodeIds, startId: options.nodeIds[0] ?? null }
+		: buildVisitOrder(mode, workspace, startNodeId, seedUrl);
 
 	if (mode !== 1 && !startId) {
 		handlers.onCrawlError('開始ノードが選択されていません');

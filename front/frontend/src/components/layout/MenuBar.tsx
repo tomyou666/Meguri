@@ -1,45 +1,20 @@
 import { useState } from 'react';
+import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
 	DialogContent,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
-import { parsePartialConfig } from '@/schemas/config';
 import { useAppStore } from '@/stores/appStore';
 
 export function MenuBar() {
-	const setAppDefaults = useAppStore((s) => s.setAppDefaults);
 	const appDefaults = useAppStore((s) => s.appDefaults);
+	const persistAppDefaults = useAppStore((s) => s.persistAppDefaults);
 	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [jsonText, setJsonText] = useState('');
-	const [jsonError, setJsonError] = useState<string | null>(null);
-
-	const openSettings = () => {
-		setJsonText(JSON.stringify(appDefaults, null, 2));
-		setJsonError(null);
-		setSettingsOpen(true);
-	};
-
-	const saveSettings = () => {
-		try {
-			const parsed = JSON.parse(jsonText);
-			const result = parsePartialConfig(parsed);
-			if (!result.success) {
-				setJsonError(result.error.message);
-				return;
-			}
-			setAppDefaults(result.data);
-			setSettingsOpen(false);
-		} catch {
-			setJsonError('JSON の解析に失敗しました');
-		}
-	};
 
 	return (
 		<>
@@ -53,39 +28,23 @@ export function MenuBar() {
 				</Button>
 				<span className='mx-1 text-muted-foreground'>|</span>
 				<span className='px-2 font-medium'>{messages.menu.settings}</span>
-				<Button variant='ghost' size='xs' onClick={openSettings}>
+				<Button variant='ghost' size='xs' onClick={() => setSettingsOpen(true)}>
 					{messages.menu.appDefaults}
 				</Button>
 			</div>
 
 			<Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-				<DialogContent className='max-h-[80vh]'>
+				<DialogContent className='max-h-[85vh] max-w-lg'>
 					<DialogHeader>
 						<DialogTitle>{messages.menu.appDefaults}</DialogTitle>
 					</DialogHeader>
-					<Label>JSON</Label>
-					<ScrollArea className='max-h-96'>
-						<textarea
-							className='mt-1 min-h-64 w-full rounded-lg border border-input bg-background p-2 font-mono text-xs'
-							value={jsonText}
-							onChange={(e) => setJsonText(e.target.value)}
+					<ScrollArea className='max-h-[60vh] pr-2'>
+						<ConfigEditor
+							layer='app'
+							settings={appDefaults}
+							onSave={(config) => persistAppDefaults(config)}
 						/>
 					</ScrollArea>
-					{jsonError && (
-						<p className='mt-2 text-xs text-destructive'>{jsonError}</p>
-					)}
-					<DialogFooter>
-						<Button
-							variant='outline'
-							size='sm'
-							onClick={() => setSettingsOpen(false)}
-						>
-							{messages.dialog.cancel}
-						</Button>
-						<Button size='sm' onClick={saveSettings}>
-							{messages.dialog.confirm}
-						</Button>
-					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 		</>

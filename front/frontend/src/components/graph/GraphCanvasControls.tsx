@@ -2,10 +2,13 @@ import { ControlButton, Controls, MiniMap, useReactFlow } from '@xyflow/react';
 import {
 	ArrowDownUp,
 	ArrowLeftRight,
-	LayoutGrid,
+	Hand,
+	ListCollapse,
+	ListTree,
 	Maximize2,
 	Minus,
 	Plus,
+	SquareDashedMousePointer,
 } from 'lucide-react';
 import { useCallback } from 'react';
 import { messages } from '@/i18n/messages';
@@ -18,6 +21,10 @@ export function GraphCanvasControls() {
 	const ws = useAppStore((s) => s.getActiveWorkspace());
 	const layoutWorkspaceGraph = useAppStore((s) => s.layoutWorkspaceGraph);
 	const setGraphLayoutDirection = useAppStore((s) => s.setGraphLayoutDirection);
+	const expandAllNodes = useAppStore((s) => s.expandAllNodes);
+	const collapseAllNodes = useAppStore((s) => s.collapseAllNodes);
+	const graphToolMode = useAppStore((s) => s.graphToolMode);
+	const setGraphToolMode = useAppStore((s) => s.setGraphToolMode);
 	const { fitView, zoomIn, zoomOut } = useReactFlow();
 
 	const direction = ws?.graphLayoutDirection ?? 'LR';
@@ -28,26 +35,26 @@ export function GraphCanvasControls() {
 		});
 	}, [fitView]);
 
-	const onLayout = useCallback(() => {
-		layoutWorkspaceGraph();
-		fitAfterLayout();
-	}, [layoutWorkspaceGraph, fitAfterLayout]);
-
 	const onFitView = useCallback(() => {
 		fitView({ padding: 0.2, duration: 100 });
 	}, [fitView]);
 
-	const onDirection = useCallback(
-		(next: DagreLayoutDirection) => {
-			if (direction === next) {
-				layoutWorkspaceGraph();
-			} else {
-				setGraphLayoutDirection(next);
-			}
-			fitAfterLayout();
-		},
-		[direction, setGraphLayoutDirection, layoutWorkspaceGraph, fitAfterLayout],
-	);
+	const onCycleLayout = useCallback(() => {
+		const next: DagreLayoutDirection = direction === 'LR' ? 'TB' : 'LR';
+		setGraphLayoutDirection(next);
+		layoutWorkspaceGraph();
+		fitAfterLayout();
+	}, [
+		direction,
+		setGraphLayoutDirection,
+		layoutWorkspaceGraph,
+		fitAfterLayout,
+	]);
+
+	const layoutTitle =
+		direction === 'LR'
+			? `${messages.graph.layoutHorizontal} — クリックで縦方向へ切替・自動配置`
+			: `${messages.graph.layoutVertical} — クリックで横方向へ切替・自動配置`;
 
 	return (
 		<>
@@ -72,6 +79,24 @@ export function GraphCanvasControls() {
 				className='graph-controls'
 			>
 				<ControlButton
+					onClick={() => setGraphToolMode('pan')}
+					title={messages.graph.toolPan}
+					aria-label={messages.graph.toolPan}
+					aria-pressed={graphToolMode === 'pan'}
+					className={cn(graphToolMode === 'pan' && 'graph-controls-active')}
+				>
+					<Hand className='size-4' strokeWidth={2} />
+				</ControlButton>
+				<ControlButton
+					onClick={() => setGraphToolMode('select')}
+					title={messages.graph.toolSelect}
+					aria-label={messages.graph.toolSelect}
+					aria-pressed={graphToolMode === 'select'}
+					className={cn(graphToolMode === 'select' && 'graph-controls-active')}
+				>
+					<SquareDashedMousePointer className='size-4' strokeWidth={2} />
+				</ControlButton>
+				<ControlButton
 					onClick={() => zoomIn({ duration: 150 })}
 					title={messages.graph.zoomIn}
 					aria-label={messages.graph.zoomIn}
@@ -93,29 +118,29 @@ export function GraphCanvasControls() {
 					<Maximize2 className='size-4' strokeWidth={2} />
 				</ControlButton>
 				<ControlButton
-					onClick={() => onDirection('TB')}
-					title={messages.graph.layoutVertical}
-					aria-label={messages.graph.layoutVertical}
-					aria-pressed={direction === 'TB'}
-					className={cn(direction === 'TB' && 'graph-controls-active')}
+					onClick={onCycleLayout}
+					title={layoutTitle}
+					aria-label={layoutTitle}
 				>
-					<ArrowDownUp className='size-4' strokeWidth={2} />
+					{direction === 'LR' ? (
+						<ArrowLeftRight className='size-4' strokeWidth={2} />
+					) : (
+						<ArrowDownUp className='size-4' strokeWidth={2} />
+					)}
 				</ControlButton>
 				<ControlButton
-					onClick={() => onDirection('LR')}
-					title={messages.graph.layoutHorizontal}
-					aria-label={messages.graph.layoutHorizontal}
-					aria-pressed={direction === 'LR'}
-					className={cn(direction === 'LR' && 'graph-controls-active')}
+					onClick={expandAllNodes}
+					title={messages.graph.expandAll}
+					aria-label={messages.graph.expandAll}
 				>
-					<ArrowLeftRight className='size-4' strokeWidth={2} />
+					<ListTree className='size-4' strokeWidth={2} />
 				</ControlButton>
 				<ControlButton
-					onClick={onLayout}
-					title={messages.graph.layout}
-					aria-label={messages.graph.layout}
+					onClick={collapseAllNodes}
+					title={messages.graph.collapseAll}
+					aria-label={messages.graph.collapseAll}
 				>
-					<LayoutGrid className='size-4' strokeWidth={2} />
+					<ListCollapse className='size-4' strokeWidth={2} />
 				</ControlButton>
 			</Controls>
 		</>

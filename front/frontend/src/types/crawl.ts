@@ -57,6 +57,8 @@ export interface CrawlEventHandlers {
 export interface CrawlStubOptions {
 	mode: RunMode;
 	startNodeId?: string;
+	/** 一括スクレイプ: 訪問するノード ID の明示リスト */
+	nodeIds?: string[];
 	workspaceId: string;
 	getWorkspace: () => Workspace;
 	signal: AbortSignal;

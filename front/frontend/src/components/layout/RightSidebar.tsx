@@ -1,26 +1,35 @@
+import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
+import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { messages } from '@/i18n/messages';
 import { useAppStore } from '@/stores/appStore';
 import type { ContentFormat } from '@/types/config';
+import type { CrawlResultPreview } from '@/types/crawl';
 import { getActiveFormats } from '@/types/crawl';
-import type { GraphNode } from '@/types/graph';
 
-export function RightSidebar() {
+export function RightSidebarContent() {
 	const ws = useAppStore((s) => s.getActiveWorkspace());
 	const node = useAppStore((s) => s.getSelectedNode());
+	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const selectedDomain = useAppStore((s) => s.selectedDomain);
+	const rightCollapsed = useAppStore((s) => s.rightSidebarCollapsed);
 	const runHistory = useAppStore((s) => s.runHistory);
 	const crawlError = useAppStore((s) => s.crawlError);
+	const loadedNodeResult = useAppStore((s) => s.loadedNodeResult);
+	const resultPreview = useAppStore((s) => s.resultPreview);
 	const clearCrawlError = useAppStore((s) => s.clearCrawlError);
 	const appDefaults = useAppStore((s) => s.appDefaults);
-	const setNodeCrawlExclude = useAppStore((s) => s.setNodeCrawlExclude);
-	const updateDomainSettings = useAppStore((s) => s.updateDomainSettings);
+	const persistDomainSettings = useAppStore((s) => s.persistDomainSettings);
+	const previewSelectedResults = useAppStore((s) => s.previewSelectedResults);
+	const saveSelectedResults = useAppStore((s) => s.saveSelectedResults);
+	const deleteSelectedResults = useAppStore((s) => s.deleteSelectedResults);
+	const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
 
 	const formats = useMemo(
 		() =>
@@ -32,41 +41,88 @@ export function RightSidebar() {
 
 	const [tab, setTab] = useState<ContentFormat>(formats[0] ?? 'markdown');
 
+	if (rightCollapsed) {
+		return (
+			<CollapsedSidebarRail
+				icon={PanelRightOpen}
+				label={messages.sidebar.openRight}
+				onClick={toggleRightSidebar}
+				borderSide='right'
+				className='bg-card hover:bg-muted/50'
+			/>
+		);
+	}
+
+	const shellClass =
+		'flex h-full w-full min-w-[16rem] flex-col overflow-hidden border-l border-border bg-card';
+
+	const resultForDisplay: CrawlResultPreview | null =
+		selectedNodeIds.length === 1 ? loadedNodeResult : null;
+
 	if (selectedDomain && ws) {
 		const domainCfg = ws.domainSettings[selectedDomain] ?? {};
 		return (
-			<aside className='flex w-72 shrink-0 flex-col border-l border-border bg-card'>
-				<div className='border-b border-border px-3 py-2 text-xs font-semibold'>
-					{messages.right.domainSettings}: {selectedDomain}
+			<aside className={shellClass}>
+				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
+					<span className='text-xs font-semibold'>
+						{messages.right.domainSettings}: {selectedDomain}
+					</span>
+					<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
+						<PanelRightClose className='size-3.5' />
+					</Button>
 				</div>
 				<ScrollArea className='flex-1 p-3'>
-					<Label className='flex items-center gap-2'>
-						<Checkbox
-							checked={domainCfg.crawl?.respect_robots_txt ?? true}
-							onCheckedChange={(checked) =>
-								updateDomainSettings(selectedDomain, {
-									crawl: { respect_robots_txt: checked },
-								})
-							}
-						/>
-						robots.txt に従う
-					</Label>
-					<p className='mt-4 text-xs text-muted-foreground'>
-						max_depth: {domainCfg.crawl?.max_depth ?? '—'}
-					</p>
-					<textarea
-						className='mt-2 min-h-32 w-full rounded-lg border border-input bg-background p-2 font-mono text-xs'
-						placeholder='{"crawl":{"max_depth":2}}'
-						defaultValue={JSON.stringify(domainCfg, null, 2)}
-						onBlur={(e) => {
-							try {
-								const parsed = JSON.parse(e.target.value);
-								updateDomainSettings(selectedDomain, parsed);
-							} catch {
-								/* ignore invalid json on blur */
-							}
-						}}
+					<ConfigEditor
+						layer='domain'
+						settings={domainCfg}
+						onSave={(settings) =>
+							persistDomainSettings(selectedDomain, settings)
+						}
 					/>
+				</ScrollArea>
+			</aside>
+		);
+	}
+
+	if (selectedNodeIds.length > 1) {
+		return (
+			<aside className={shellClass}>
+				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
+					<p className='text-xs font-semibold'>
+						{messages.right.multiSelectCount(selectedNodeIds.length)}
+					</p>
+					<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
+						<PanelRightClose className='size-3.5' />
+					</Button>
+				</div>
+				<div className='flex flex-wrap gap-1 p-3'>
+					<Button size='xs' onClick={() => previewSelectedResults()}>
+						{messages.right.preview}
+					</Button>
+					<Button
+						size='xs'
+						variant='outline'
+						onClick={() => saveSelectedResults()}
+					>
+						{messages.right.save}
+					</Button>
+					<Button
+						size='xs'
+						variant='destructive'
+						onClick={() => deleteSelectedResults()}
+					>
+						{messages.right.delete}
+					</Button>
+				</div>
+				<ScrollArea className='flex-1 p-3'>
+					{resultPreview?.map((r) => (
+						<div key={r.url} className='mb-3 rounded border p-2 text-xs'>
+							<p className='font-medium'>{r.url}</p>
+							<pre className='mt-1 whitespace-pre-wrap text-[10px]'>
+								{r.markdown?.slice(0, 200) ?? '—'}
+							</pre>
+						</div>
+					))}
 				</ScrollArea>
 			</aside>
 		);
@@ -74,31 +130,27 @@ export function RightSidebar() {
 
 	if (node) {
 		return (
-			<aside className='flex w-72 shrink-0 flex-col border-l border-border bg-card'>
-				<div className='border-b border-border px-3 py-2'>
-					<p className='text-xs font-semibold'>{messages.right.nodeResult}</p>
-					<p className='truncate text-xs text-muted-foreground'>
-						{node.urlNormalized}
-					</p>
-					{node.status === 'error' && node.lastError && (
-						<Alert variant='destructive' className='mt-2 text-xs'>
-							{messages.error.nodeFailed}: {node.lastError}
-						</Alert>
-					)}
+			<aside className={shellClass}>
+				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
+					<div className='min-w-0'>
+						<p className='text-xs font-semibold'>{messages.right.nodeResult}</p>
+						<p className='truncate text-xs text-muted-foreground'>
+							{node.urlNormalized}
+						</p>
+					</div>
+					<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
+						<PanelRightClose className='size-3.5' />
+					</Button>
 				</div>
-				<div className='border-b border-border px-3 py-2'>
-					<Label className='flex items-center gap-2 text-xs'>
-						<Checkbox
-							checked={node.crawlExclude}
-							onCheckedChange={(c) => setNodeCrawlExclude(node.id, c)}
-						/>
-						{messages.right.crawlExclude}
-					</Label>
-				</div>
+				{node.status === 'error' && node.lastError && (
+					<Alert variant='destructive' className='m-2 text-xs'>
+						{messages.error.nodeFailed}: {node.lastError}
+					</Alert>
+				)}
 				<Tabs
 					value={tab}
 					onValueChange={(v) => setTab(v as ContentFormat)}
-					className='flex flex-1 flex-col px-3'
+					className='flex min-h-0 flex-1 flex-col px-3'
 				>
 					<TabsList>
 						{formats.map((f) => (
@@ -110,7 +162,10 @@ export function RightSidebar() {
 					<ScrollArea className='flex-1 pb-3'>
 						{formats.map((f) => (
 							<TabsContent key={f} value={f}>
-								<NodeFormatContent format={f} node={node} />
+								<NodeFormatContent
+									format={f}
+									result={resultForDisplay ?? node.lastResult}
+								/>
 							</TabsContent>
 						))}
 					</ScrollArea>
@@ -120,9 +175,12 @@ export function RightSidebar() {
 	}
 
 	return (
-		<aside className='flex w-72 shrink-0 flex-col border-l border-border bg-card'>
-			<div className='border-b border-border px-3 py-2 text-xs font-semibold'>
+		<aside className={shellClass}>
+			<div className='flex items-center justify-between border-b border-border px-3 py-2 text-xs font-semibold'>
 				{messages.right.runSummary}
+				<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
+					<PanelRightClose className='size-3.5' />
+				</Button>
 			</div>
 			{crawlError && (
 				<Alert variant='destructive' className='m-2 text-xs'>
@@ -130,11 +188,7 @@ export function RightSidebar() {
 						<span>
 							{messages.error.crawlFailed}: {crawlError.message}
 						</span>
-						<button
-							type='button'
-							onClick={clearCrawlError}
-							className='shrink-0'
-						>
+						<button type='button' onClick={clearCrawlError}>
 							×
 						</button>
 					</div>
@@ -156,7 +210,9 @@ export function RightSidebar() {
 								className='rounded-lg border border-border p-2 text-xs'
 							>
 								<div className='flex items-center justify-between'>
-									<Badge variant='secondary'>モード {run.mode}</Badge>
+									<Badge variant='secondary'>
+										{messages.right.runModeBadge(run.mode)}
+									</Badge>
 									<span className='text-muted-foreground'>
 										{run.stoppedReason ?? '—'}
 									</span>
@@ -165,8 +221,11 @@ export function RightSidebar() {
 									{new Date(run.startedAt).toLocaleString()}
 								</p>
 								<p className='mt-1'>
-									成功 {run.succeeded} / 失敗 {run.failed} / スキップ{' '}
-									{run.skipped}
+									{messages.right.runStats(
+										run.succeeded,
+										run.failed,
+										run.skipped,
+									)}
 								</p>
 							</div>
 						))}
@@ -177,26 +236,34 @@ export function RightSidebar() {
 	);
 }
 
+/** @deprecated AppShell 内の Panel でラップするため RightSidebarContent を使用 */
+export const RightSidebar = RightSidebarContent;
+
 function NodeFormatContent({
 	format,
-	node,
+	result,
 }: {
 	format: string;
-	node: GraphNode;
+	result?: CrawlResultPreview;
 }) {
-	const r = node.lastResult;
-	if (!r) {
-		return <p className='text-xs text-muted-foreground'>結果がありません</p>;
+	if (!result) {
+		return (
+			<p className='text-xs text-muted-foreground'>
+				{messages.right.noResultApi}
+			</p>
+		);
 	}
 	if (format === 'markdown') {
 		return (
-			<pre className='whitespace-pre-wrap text-xs'>{r.markdown ?? '—'}</pre>
+			<pre className='whitespace-pre-wrap text-xs'>
+				{result.markdown ?? '—'}
+			</pre>
 		);
 	}
 	if (format === 'links') {
 		return (
 			<ul className='list-inside list-disc text-xs'>
-				{(r.links ?? []).map((l) => (
+				{(result.links ?? []).map((l) => (
 					<li key={l} className='truncate'>
 						{l}
 					</li>
@@ -207,7 +274,7 @@ function NodeFormatContent({
 	if (format === 'metadata') {
 		return (
 			<dl className='space-y-1 text-xs'>
-				{Object.entries(r.metadata ?? {}).map(([k, v]) => (
+				{Object.entries(result.metadata ?? {}).map(([k, v]) => (
 					<div key={k}>
 						<dt className='text-muted-foreground'>{k}</dt>
 						<dd>{v}</dd>
@@ -217,6 +284,8 @@ function NodeFormatContent({
 		);
 	}
 	return (
-		<p className='text-xs text-muted-foreground'>（モック未対応: {format}）</p>
+		<p className='text-xs text-muted-foreground'>
+			{messages.right.formatUnsupported(format)}
+		</p>
 	);
 }

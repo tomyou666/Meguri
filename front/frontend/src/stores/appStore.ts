@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { mockScraperAdapter, scraperPort } from '@/adapters';
+import { messages } from '@/i18n/messages';
+import { validatePartialConfig } from '@/lib/configValidation';
 import {
 	computeDagrePositions,
 	type DagreLayoutDirection,
@@ -6,9 +9,20 @@ import {
 	positionForDiscoveredNode,
 } from '@/lib/dagreLayout';
 import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
-import { collectDescendantUrls, getDescendantNodeIds } from '@/lib/graph';
+import {
+	collectDescendantUrls,
+	getBfsNodeOrder,
+	getDescendantNodeIds,
+	getHiddenDescendantIds,
+	isExcludedSubtree,
+} from '@/lib/graph';
 import { hostFromUrl, normalizeUrl } from '@/lib/normalizeUrl';
-import { runCrawlStub } from '@/services/crawlStub';
+import {
+	redoGraph,
+	syncGraphHistory,
+	undoGraph,
+} from '@/stores/graphHistoryStore';
+import type { WorkspaceDiff } from '@/types/adapter';
 import type { PartialConfig } from '@/types/config';
 import type {
 	CrawlError,
@@ -23,6 +37,32 @@ import type { Workspace } from '@/types/workspace';
 
 function uid(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function syncHistory(
+	workspaces: Workspace[],
+	activeWorkspaceId: string | null,
+) {
+	syncGraphHistory(workspaces, activeWorkspaceId);
+	for (const ws of workspaces) {
+		void mockScraperAdapter.saveWorkspace(ws);
+	}
+	mockScraperAdapter.syncFromUi(workspaces, useAppStore.getState().appDefaults);
+}
+
+function patchWorkspaces(
+	set: (fn: (s: AppState) => Partial<AppState>) => void,
+	get: () => AppState,
+	updater: (workspaces: Workspace[]) => Workspace[],
+	recordHistory = true,
+) {
+	set((s) => {
+		const workspaces = updater(s.workspaces);
+		if (recordHistory) {
+			syncHistory(workspaces, s.activeWorkspaceId);
+		}
+		return { workspaces };
+	});
 }
 
 function emptyWorkspace(name: string, seedUrl: string): Workspace {
@@ -48,6 +88,9 @@ function emptyWorkspace(name: string, seedUrl: string): Workspace {
 		edges: [],
 		graphLayoutDirection: 'LR',
 		domainSettings: {},
+		collapsedNodeIds: [],
+		expandedDetailNodeIds: [],
+		createdAt: new Date().toISOString(),
 	};
 }
 
@@ -57,7 +100,23 @@ interface AppState {
 	workspaces: Workspace[];
 	activeWorkspaceId: string | null;
 	selectedNodeId: string | null;
+	selectedNodeIds: string[];
+	selectionAnchorId: string | null;
 	selectedDomain: string | null;
+	/** クリック選択時に useOnSelectionChange による上書きを防ぐ */
+	_suppressSelectionSync: boolean;
+	graphToolMode: 'pan' | 'select';
+	leftSidebarCollapsed: boolean;
+	rightSidebarCollapsed: boolean;
+	clipboard: {
+		nodes: GraphNode[];
+		edges: { source: string; target: string }[];
+	} | null;
+	loadedNodeResult: CrawlResultPreview | null;
+	resultPreview: CrawlResultPreview[] | null;
+	workspaceDiffCache: Record<string, WorkspaceDiff>;
+	mergeSheetOpen: boolean;
+	mergeSheetContent: string | null;
 	runMode: RunMode;
 	crawlStatus: CrawlRunStatus;
 	runHistory: CrawlRunSummary[];
@@ -67,19 +126,65 @@ interface AppState {
 	showAddNodeDialog: boolean;
 	showDeleteNodeDialog: boolean;
 	addNodeContextPosition: { x: number; y: number } | null;
+	saveNotification: {
+		type: 'success' | 'error';
+		detail?: string;
+	} | null;
 
 	_abortController: AbortController | null;
 	_paused: boolean;
 
 	bootstrap: () => Promise<void>;
 	setAppDefaults: (config: PartialConfig) => void;
+	clearSaveNotification: () => void;
+	persistAppDefaults: (config: PartialConfig) => Promise<boolean>;
+	persistWorkspaceSettings: (settings: PartialConfig) => Promise<boolean>;
+	persistDomainSettings: (
+		domain: string,
+		settings: PartialConfig,
+	) => Promise<boolean>;
+	persistNodeSettings: (
+		nodeId: string,
+		settings: PartialConfig,
+	) => Promise<boolean>;
 	openNewWorkspaceDialog: () => void;
 	closeNewWorkspaceDialog: () => void;
 	createWorkspace: (name: string, seedUrl: string) => void;
 	setActiveWorkspace: (id: string) => void;
 	deleteWorkspace: (id: string) => void;
-	selectNode: (id: string | null) => void;
+	selectNode: (
+		id: string | null,
+		opts?: { additive?: boolean; range?: boolean },
+	) => void;
+	selectNodes: (ids: string[]) => void;
+	setGraphToolMode: (mode: 'pan' | 'select') => void;
+	selectAllNodes: () => void;
+	clearNodeSelection: () => void;
 	selectDomain: (host: string | null) => void;
+	toggleLeftSidebar: () => void;
+	toggleRightSidebar: () => void;
+	undo: () => void;
+	redo: () => void;
+	copySelectedNodes: () => void;
+	pasteNodes: () => void;
+	addEdge: (source: string, target: string) => boolean;
+	collapseNodes: (nodeIds: string[]) => void;
+	expandNodes: (nodeIds: string[]) => void;
+	toggleNodeDetailExpand: (nodeId: string) => void;
+	toggleNodeSubtreeCollapse: (nodeId: string) => void;
+	expandAllNodes: () => void;
+	collapseAllNodes: () => void;
+	deleteSelectedNodes: () => void;
+	duplicateWorkspace: (id: string) => Promise<void>;
+	fetchSelectedNodeResult: () => Promise<void>;
+	previewSelectedResults: () => Promise<void>;
+	mergeAllResults: () => Promise<void>;
+	mergeSelectedResults: () => Promise<void>;
+	saveSelectedResults: () => Promise<void>;
+	deleteSelectedResults: () => Promise<void>;
+	bulkScrapeSelected: () => Promise<void>;
+	fetchWorkspaceDiff: (workspaceId: string) => Promise<WorkspaceDiff>;
+	closeMergeSheet: () => void;
 	setRunMode: (mode: RunMode) => void;
 	updateNodePosition: (id: string, position: { x: number; y: number }) => void;
 	layoutWorkspaceGraph: () => void;
@@ -114,7 +219,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 	workspaces: [],
 	activeWorkspaceId: null,
 	selectedNodeId: null,
+	selectedNodeIds: [],
+	selectionAnchorId: null,
 	selectedDomain: null,
+	_suppressSelectionSync: false,
+	graphToolMode: 'pan',
+	leftSidebarCollapsed: false,
+	rightSidebarCollapsed: false,
+	clipboard: null,
+	loadedNodeResult: null,
+	resultPreview: null,
+	workspaceDiffCache: {},
+	mergeSheetOpen: false,
+	mergeSheetContent: null,
 	runMode: 1,
 	crawlStatus: 'idle',
 	runHistory: [],
@@ -124,20 +241,143 @@ export const useAppStore = create<AppState>((set, get) => ({
 	showAddNodeDialog: false,
 	showDeleteNodeDialog: false,
 	addNodeContextPosition: null,
+	saveNotification: null,
 	_abortController: null,
 	_paused: false,
 
 	bootstrap: async () => {
 		const start = Date.now();
+		const defaults = await scraperPort.getAppDefaults();
 		await new Promise((r) => setTimeout(r, 150));
 		const elapsed = Date.now() - start;
 		if (elapsed < 400) {
 			await new Promise((r) => setTimeout(r, 400 - elapsed));
 		}
-		set({ bootstrapped: true });
+		set({ bootstrapped: true, appDefaults: defaults });
+		mockScraperAdapter.syncFromUi(get().workspaces, defaults);
 	},
 
-	setAppDefaults: (config) => set({ appDefaults: config }),
+	setAppDefaults: (config) => {
+		set({ appDefaults: config });
+		void scraperPort.setAppDefaults(config);
+		mockScraperAdapter.syncFromUi(get().workspaces, config);
+	},
+
+	clearSaveNotification: () => set({ saveNotification: null }),
+
+	persistAppDefaults: async (config) => {
+		const validated = validatePartialConfig(config);
+		if (!validated.ok) {
+			set({
+				saveNotification: {
+					type: 'error',
+					detail: messages.settings.validationFailed,
+				},
+			});
+			return false;
+		}
+		try {
+			await scraperPort.saveAppDefaults(validated.data);
+			get().setAppDefaults(validated.data);
+			set({ saveNotification: { type: 'success' } });
+			return true;
+		} catch (err) {
+			set({
+				saveNotification: {
+					type: 'error',
+					detail: err instanceof Error ? err.message : undefined,
+				},
+			});
+			return false;
+		}
+	},
+
+	persistWorkspaceSettings: async (settings) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return false;
+		const validated = validatePartialConfig(settings);
+		if (!validated.ok) {
+			set({
+				saveNotification: {
+					type: 'error',
+					detail: messages.settings.validationFailed,
+				},
+			});
+			return false;
+		}
+		try {
+			await scraperPort.saveWorkspaceSettings(ws.id, validated.data);
+			get().updateWorkspaceSettings(validated.data);
+			set({ saveNotification: { type: 'success' } });
+			return true;
+		} catch (err) {
+			set({
+				saveNotification: {
+					type: 'error',
+					detail: err instanceof Error ? err.message : undefined,
+				},
+			});
+			return false;
+		}
+	},
+
+	persistDomainSettings: async (domain, settings) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return false;
+		const validated = validatePartialConfig(settings);
+		if (!validated.ok) {
+			set({
+				saveNotification: {
+					type: 'error',
+					detail: messages.settings.validationFailed,
+				},
+			});
+			return false;
+		}
+		try {
+			await scraperPort.saveDomainSettings(ws.id, domain, validated.data);
+			get().updateDomainSettings(domain, validated.data);
+			set({ saveNotification: { type: 'success' } });
+			return true;
+		} catch (err) {
+			set({
+				saveNotification: {
+					type: 'error',
+					detail: err instanceof Error ? err.message : undefined,
+				},
+			});
+			return false;
+		}
+	},
+
+	persistNodeSettings: async (nodeId, settings) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return false;
+		const validated = validatePartialConfig(settings);
+		if (!validated.ok) {
+			set({
+				saveNotification: {
+					type: 'error',
+					detail: messages.settings.validationFailed,
+				},
+			});
+			return false;
+		}
+		try {
+			await scraperPort.saveNodeSettings(ws.id, nodeId, validated.data);
+			get().updateNodeSettings(nodeId, validated.data);
+			set({ saveNotification: { type: 'success' } });
+			return true;
+		} catch (err) {
+			set({
+				saveNotification: {
+					type: 'error',
+					detail: err instanceof Error ? err.message : undefined,
+				},
+			});
+			return false;
+		}
+	},
 
 	openNewWorkspaceDialog: () => set({ showNewWorkspaceDialog: true }),
 	closeNewWorkspaceDialog: () => set({ showNewWorkspaceDialog: false }),
@@ -145,12 +385,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 	createWorkspace: (name, seedUrl) => {
 		try {
 			const ws = emptyWorkspace(name, seedUrl);
-			set((s) => ({
-				workspaces: [...s.workspaces, ws],
-				activeWorkspaceId: ws.id,
-				selectedNodeId: ws.nodes[0]?.id ?? null,
-				showNewWorkspaceDialog: false,
-			}));
+			set((s) => {
+				const workspaces = [...s.workspaces, ws];
+				syncHistory(workspaces, ws.id);
+				void mockScraperAdapter.saveWorkspace(ws);
+				return {
+					workspaces,
+					activeWorkspaceId: ws.id,
+					selectedNodeId: ws.nodes[0]?.id ?? null,
+					selectedNodeIds: ws.nodes[0]?.id ? [ws.nodes[0].id] : [],
+					showNewWorkspaceDialog: false,
+				};
+			});
 		} catch (e) {
 			set({
 				globalError: {
@@ -180,15 +426,137 @@ export const useAppStore = create<AppState>((set, get) => ({
 			return { workspaces, activeWorkspaceId };
 		}),
 
-	selectNode: (id) => set({ selectedNodeId: id, selectedDomain: null }),
-	selectDomain: (host) => set({ selectedDomain: host, selectedNodeId: null }),
+	selectNode: (id, opts) => {
+		const ws = get().getActiveWorkspace();
+		if (!id) {
+			set({
+				selectedNodeId: null,
+				selectedNodeIds: [],
+				selectionAnchorId: null,
+				selectedDomain: null,
+				loadedNodeResult: null,
+				resultPreview: null,
+			});
+			return;
+		}
+		if (!ws) return;
+
+		const seedId = ws.nodes.find((n) => n.urlNormalized === ws.seedUrl)?.id;
+		const order = getBfsNodeOrder(seedId, ws.nodes, ws.edges);
+		let selectedNodeIds = [id];
+		let selectionAnchorId = get().selectionAnchorId;
+
+		if (opts?.range) {
+			const anchor =
+				selectionAnchorId ??
+				get().selectedNodeId ??
+				get().selectedNodeIds[0] ??
+				null;
+			if (anchor) {
+				const a = order.indexOf(anchor);
+				const b = order.indexOf(id);
+				if (a >= 0 && b >= 0) {
+					const [lo, hi] = a < b ? [a, b] : [b, a];
+					selectedNodeIds = order.slice(lo, hi + 1);
+				}
+			}
+			selectionAnchorId = anchor ?? id;
+		} else if (opts?.additive) {
+			const cur = get().selectedNodeIds;
+			selectedNodeIds = cur.includes(id)
+				? cur.filter((x) => x !== id)
+				: [...cur, id];
+			if (!selectionAnchorId) selectionAnchorId = id;
+		} else {
+			selectionAnchorId = id;
+			selectedNodeIds = [id];
+		}
+
+		const primary = selectedNodeIds[selectedNodeIds.length - 1] ?? id;
+		set({
+			selectedNodeId: primary,
+			selectedNodeIds,
+			selectionAnchorId,
+			selectedDomain: null,
+			loadedNodeResult: null,
+			resultPreview: null,
+		});
+		if (selectedNodeIds.length === 1) {
+			const node = ws.nodes.find((n) => n.id === primary);
+			if (node?.status === 'success') {
+				void get().fetchSelectedNodeResult();
+			}
+		}
+	},
+
+	selectNodes: (ids) => {
+		const primary = ids[ids.length - 1] ?? null;
+		set({
+			selectedNodeIds: ids,
+			selectedNodeId: primary,
+			selectionAnchorId: primary,
+			selectedDomain: null,
+			loadedNodeResult: null,
+			resultPreview: null,
+		});
+		if (ids.length === 1) {
+			const ws = get().getActiveWorkspace();
+			const node = ws?.nodes.find((n) => n.id === ids[0]);
+			if (node?.status === 'success') {
+				void get().fetchSelectedNodeResult();
+			}
+		}
+	},
+
+	setGraphToolMode: (mode) => set({ graphToolMode: mode }),
+
+	selectAllNodes: () => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		const ids = ws.nodes.map((n) => n.id);
+		const primary = ids[ids.length - 1] ?? null;
+		set({
+			selectedNodeIds: ids,
+			selectedNodeId: primary,
+			selectionAnchorId: primary,
+		});
+	},
+
+	clearNodeSelection: () =>
+		set({
+			selectedNodeId: null,
+			selectedNodeIds: [],
+			selectionAnchorId: null,
+		}),
+
+	selectDomain: (host) =>
+		set({
+			selectedDomain: host,
+			selectedNodeId: null,
+			selectedNodeIds: [],
+		}),
+
+	toggleLeftSidebar: () =>
+		set((s) => ({ leftSidebarCollapsed: !s.leftSidebarCollapsed })),
+	toggleRightSidebar: () =>
+		set((s) => ({ rightSidebarCollapsed: !s.rightSidebarCollapsed })),
+
+	undo: () => {
+		const { workspaces, activeWorkspaceId } = undoGraph();
+		set({ workspaces, activeWorkspaceId });
+	},
+
+	redo: () => {
+		const { workspaces, activeWorkspaceId } = redoGraph();
+		set({ workspaces, activeWorkspaceId });
+	},
 	setRunMode: (mode) => set({ runMode: mode }),
 
 	updateNodePosition: (id, position) => {
 		const ws = get().getActiveWorkspace();
 		if (!ws) return;
-		set((s) => ({
-			workspaces: s.workspaces.map((w) =>
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
 				w.id !== ws.id
 					? w
 					: {
@@ -198,7 +566,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 							),
 						},
 			),
-		}));
+		);
 	},
 
 	layoutWorkspaceGraph: () => {
@@ -274,14 +642,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 				crawlExclude: false,
 				status: 'idle',
 			};
-			set((s) => ({
-				workspaces: s.workspaces.map((w) =>
+			patchWorkspaces(set, get, (workspaces) =>
+				workspaces.map((w) =>
 					w.id === ws.id ? { ...w, nodes: [...w.nodes, node] } : w,
 				),
+			);
+			set({
 				selectedNodeId: id,
+				selectedNodeIds: [id],
 				showAddNodeDialog: false,
 				addNodeContextPosition: null,
-			}));
+			});
 		} catch (e) {
 			set({
 				globalError: {
@@ -475,118 +846,371 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 		const getWs = () => get().getActiveWorkspace()!;
 
-		await runCrawlStub(
-			getWs(),
-			state.appDefaults,
-			ws.seedUrl,
-			{
-				onNodeStarted: (nodeId, url) => {
-					patchNode(nodeId, { status: 'running' as NodeStatus, label: url });
-				},
-				onNodeSucceeded: (nodeId, result: CrawlResultPreview) => {
-					patchNode(nodeId, {
-						status: 'success',
-						lastResult: result,
-						lastError: undefined,
-					});
-				},
-				onNodeFailed: (nodeId, _url, error) => {
-					patchNode(nodeId, { status: 'error', lastError: error });
-				},
-				onNodeSkipped: (nodeId) => {
-					patchNode(nodeId, { status: 'skipped', lastError: undefined });
-				},
-				onEdgeDiscovered: (sourceId, targetId, targetUrl) => {
-					const current = getWs();
-					const targetExists = current.nodes.some((n) => n.id === targetId);
-					const nodes = [...current.nodes];
-					const edges = [...current.edges];
-					const edgeId = `e-${sourceId}-${targetId}`;
-					const edgeIsNew = !edges.some((e) => e.id === edgeId);
-					if (edgeIsNew) {
-						edges.push({ id: edgeId, source: sourceId, target: targetId });
-					}
-					if (!targetExists) {
-						const parent = nodes.find((n) => n.id === sourceId);
-						const direction = current.graphLayoutDirection ?? 'LR';
-						const fallback = parent
-							? fallbackNearParent(parent, direction)
-							: { x: 400, y: 300 };
-						const position = positionForDiscoveredNode(
-							[
-								...nodes,
-								{
-									id: targetId,
-									urlNormalized: targetUrl,
-									label: targetUrl,
-									position: fallback,
-									nodeSettings: {},
-									crawlExclude: false,
-									status: 'idle' as const,
-								},
-							],
-							edges,
-							targetId,
-							fallback,
-							direction,
-						);
-						nodes.push({
-							id: targetId,
-							urlNormalized: targetUrl,
-							label: targetUrl,
-							position,
-							userPositioned: false,
-							nodeSettings: {},
-							crawlExclude: false,
-							status: 'idle',
-						});
-					}
-					set((s) => ({
-						workspaces: s.workspaces.map((w) =>
-							w.id === ws.id ? { ...w, nodes, edges } : w,
-						),
-					}));
-				},
-				onCrawlCompleted: (summary) => {
-					const full: CrawlRunSummary = {
-						id: runId,
-						startedAt,
-						...summary,
-					};
-					set((s) => ({
-						crawlStatus: 'idle',
-						_abortController: null,
-						runHistory: [full, ...s.runHistory].slice(0, 20),
-					}));
-				},
-				onCrawlError: (message) => {
-					set({
-						crawlStatus: 'idle',
-						_abortController: null,
-						crawlError: {
-							type: 'crawl',
-							message,
-							runId,
-							at: new Date().toISOString(),
-						},
-					});
-				},
+		const bulkIds =
+			state.selectedNodeIds.length > 1 && state.runMode === 2
+				? state.selectedNodeIds
+				: undefined;
+
+		await scraperPort.startCrawl({
+			workspaceId: ws.id,
+			mode: state.runMode,
+			startNodeId: state.selectedNodeId ?? undefined,
+			nodeIds: bulkIds,
+			appDefaults: state.appDefaults,
+			signal: ac.signal,
+			isPaused: () => get()._paused,
+			waitWhilePaused: async () => {
+				while (get()._paused && !ac.signal.aborted) {
+					await new Promise((r) => setTimeout(r, 100));
+				}
 			},
-			{
-				mode: state.runMode,
-				startNodeId: state.selectedNodeId ?? undefined,
-				workspaceId: ws.id,
-				getWorkspace: () => get().getActiveWorkspace()!,
-				signal: ac.signal,
-				isPaused: () => get()._paused,
-				waitWhilePaused: async () => {
-					while (get()._paused && !ac.signal.aborted) {
-						await new Promise((r) => setTimeout(r, 100));
-					}
-				},
+			getWorkspace: () => get().getActiveWorkspace()!,
+			onNodeStarted: (nodeId, url) => {
+				patchNode(nodeId, { status: 'running' as NodeStatus, label: url });
 			},
+			onNodeSucceeded: (nodeId, result: CrawlResultPreview) => {
+				patchNode(nodeId, {
+					status: 'success',
+					lastResult: result,
+					lastError: undefined,
+				});
+			},
+			onNodeFailed: (nodeId, _url, error) => {
+				patchNode(nodeId, { status: 'error', lastError: error });
+			},
+			onNodeSkipped: (nodeId) => {
+				patchNode(nodeId, { status: 'skipped', lastError: undefined });
+			},
+			onEdgeDiscovered: (sourceId, targetId, targetUrl) => {
+				const current = getWs();
+				const targetExists = current.nodes.some((n) => n.id === targetId);
+				const nodes = [...current.nodes];
+				const edges = [...current.edges];
+				const edgeId = `e-${sourceId}-${targetId}`;
+				const edgeIsNew = !edges.some((e) => e.id === edgeId);
+				if (edgeIsNew) {
+					edges.push({ id: edgeId, source: sourceId, target: targetId });
+				}
+				if (!targetExists) {
+					const parent = nodes.find((n) => n.id === sourceId);
+					const direction = current.graphLayoutDirection ?? 'LR';
+					const fallback = parent
+						? fallbackNearParent(parent, direction)
+						: { x: 400, y: 300 };
+					const position = positionForDiscoveredNode(
+						[
+							...nodes,
+							{
+								id: targetId,
+								urlNormalized: targetUrl,
+								label: targetUrl,
+								position: fallback,
+								nodeSettings: {},
+								crawlExclude: false,
+								status: 'idle' as const,
+							},
+						],
+						edges,
+						targetId,
+						fallback,
+						direction,
+					);
+					nodes.push({
+						id: targetId,
+						urlNormalized: targetUrl,
+						label: targetUrl,
+						position,
+						userPositioned: false,
+						nodeSettings: {},
+						crawlExclude: false,
+						status: 'idle',
+					});
+				}
+				set((s) => ({
+					workspaces: s.workspaces.map((w) =>
+						w.id === ws.id ? { ...w, nodes, edges } : w,
+					),
+				}));
+			},
+			onCrawlCompleted: (summary) => {
+				const full: CrawlRunSummary = {
+					id: runId,
+					startedAt,
+					...summary,
+				};
+				set((s) => ({
+					crawlStatus: 'idle',
+					_abortController: null,
+					runHistory: [full, ...s.runHistory].slice(0, 20),
+				}));
+			},
+			onCrawlError: (message) => {
+				set({
+					crawlStatus: 'idle',
+					_abortController: null,
+					crawlError: {
+						type: 'crawl',
+						message,
+						runId,
+						at: new Date().toISOString(),
+					},
+				});
+			},
+		});
+	},
+
+	copySelectedNodes: () => {
+		const ws = get().getActiveWorkspace();
+		const ids = new Set(get().selectedNodeIds);
+		if (!ws || ids.size === 0) return;
+		const nodes = ws.nodes.filter((n) => ids.has(n.id));
+		const edges = ws.edges
+			.filter((e) => ids.has(e.source) && ids.has(e.target))
+			.map((e) => ({ source: e.source, target: e.target }));
+		set({ clipboard: { nodes, edges } });
+	},
+
+	pasteNodes: () => {
+		const ws = get().getActiveWorkspace();
+		const clip = get().clipboard;
+		if (!ws || !clip?.nodes.length) return;
+		const idMap = new Map<string, string>();
+		for (const n of clip.nodes) {
+			idMap.set(n.id, uid());
+		}
+		const offset = 40;
+		const newNodes = clip.nodes.map((n) => ({
+			...n,
+			id: idMap.get(n.id)!,
+			position: { x: n.position.x + offset, y: n.position.y + offset },
+			status: 'idle' as const,
+			lastResult: undefined,
+			lastError: undefined,
+			userPositioned: true,
+		}));
+		const newEdges = clip.edges.map((e) => ({
+			id: `e-${idMap.get(e.source)}-${idMap.get(e.target)}`,
+			source: idMap.get(e.source)!,
+			target: idMap.get(e.target)!,
+		}));
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
+				w.id === ws.id
+					? {
+							...w,
+							nodes: [...w.nodes, ...newNodes],
+							edges: [...w.edges, ...newEdges],
+						}
+					: w,
+			),
+		);
+		set({
+			selectedNodeIds: newNodes.map((n) => n.id),
+			selectedNodeId: newNodes[0]?.id ?? null,
+		});
+	},
+
+	addEdge: (source, target) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws || source === target) return false;
+		const edgeId = `e-${source}-${target}`;
+		if (ws.edges.some((e) => e.id === edgeId)) return false;
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
+				w.id === ws.id
+					? { ...w, edges: [...w.edges, { id: edgeId, source, target }] }
+					: w,
+			),
+		);
+		return true;
+	},
+
+	collapseNodes: (nodeIds) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		const collapsed = new Set(ws.collapsedNodeIds ?? []);
+		for (const id of nodeIds) collapsed.add(id);
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
+				w.id === ws.id ? { ...w, collapsedNodeIds: [...collapsed] } : w,
+			),
 		);
 	},
+
+	expandNodes: (nodeIds) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		const remove = new Set(nodeIds);
+		const collapsed = (ws.collapsedNodeIds ?? []).filter(
+			(id) => !remove.has(id),
+		);
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
+				w.id === ws.id ? { ...w, collapsedNodeIds: collapsed } : w,
+			),
+		);
+	},
+
+	toggleNodeDetailExpand: (nodeId) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		const expanded = new Set(ws.expandedDetailNodeIds ?? []);
+		if (expanded.has(nodeId)) expanded.delete(nodeId);
+		else expanded.add(nodeId);
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
+				w.id === ws.id ? { ...w, expandedDetailNodeIds: [...expanded] } : w,
+			),
+		);
+	},
+
+	toggleNodeSubtreeCollapse: (nodeId) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		const collapsed = new Set(ws.collapsedNodeIds ?? []);
+		if (collapsed.has(nodeId)) collapsed.delete(nodeId);
+		else collapsed.add(nodeId);
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
+				w.id === ws.id ? { ...w, collapsedNodeIds: [...collapsed] } : w,
+			),
+		);
+	},
+
+	expandAllNodes: () => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
+				w.id === ws.id ? { ...w, collapsedNodeIds: [] } : w,
+			),
+		);
+	},
+
+	collapseAllNodes: () => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		const roots = ws.nodes
+			.filter((n) => !ws.edges.some((e) => e.target === n.id))
+			.map((n) => n.id);
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) =>
+				w.id === ws.id ? { ...w, collapsedNodeIds: roots } : w,
+			),
+		);
+	},
+
+	deleteSelectedNodes: () => {
+		const ws = get().getActiveWorkspace();
+		const ids = get().selectedNodeIds;
+		if (!ws || ids.length === 0) return;
+		const removeIds = new Set<string>();
+		for (const id of ids) {
+			removeIds.add(id);
+			for (const d of getDescendantNodeIds(id, ws.edges)) {
+				removeIds.add(d);
+			}
+		}
+		const removeUrls = new Set(
+			ws.nodes.filter((n) => removeIds.has(n.id)).map((n) => n.urlNormalized),
+		);
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) => {
+				if (w.id !== ws.id) return w;
+				return {
+					...w,
+					nodes: w.nodes.filter((n) => !removeIds.has(n.id)),
+					edges: w.edges.filter(
+						(e) => !removeIds.has(e.source) && !removeIds.has(e.target),
+					),
+					exclude_urls: w.exclude_urls.filter((u) => !removeUrls.has(u)),
+				};
+			}),
+		);
+		set({
+			selectedNodeId: null,
+			selectedNodeIds: [],
+			showDeleteNodeDialog: false,
+		});
+	},
+
+	duplicateWorkspace: async (id) => {
+		const copy = await scraperPort.duplicateWorkspace(id);
+		set((s) => {
+			const workspaces = [...s.workspaces, copy];
+			syncHistory(workspaces, copy.id);
+			return {
+				workspaces,
+				activeWorkspaceId: copy.id,
+				selectedNodeId: copy.nodes[0]?.id ?? null,
+				selectedNodeIds: copy.nodes[0]?.id ? [copy.nodes[0].id] : [],
+			};
+		});
+	},
+
+	fetchSelectedNodeResult: async () => {
+		const ws = get().getActiveWorkspace();
+		const nodeId = get().selectedNodeId;
+		if (!ws || !nodeId) return;
+		const result = await scraperPort.getNodeResult(ws.id, nodeId);
+		set({ loadedNodeResult: result });
+	},
+
+	previewSelectedResults: async () => {
+		const ws = get().getActiveWorkspace();
+		const ids = get().selectedNodeIds;
+		if (!ws || ids.length === 0) return;
+		const previews = await scraperPort.getNodeResults(ws.id, ids);
+		set({ resultPreview: previews });
+	},
+
+	mergeAllResults: async () => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		const res = await scraperPort.mergeResults(ws.id, null);
+		set({ mergeSheetOpen: true, mergeSheetContent: res.merged });
+	},
+
+	mergeSelectedResults: async () => {
+		const ws = get().getActiveWorkspace();
+		const ids = get().selectedNodeIds;
+		if (!ws || ids.length === 0) return;
+		const res = await scraperPort.mergeResults(ws.id, ids);
+		set({ mergeSheetOpen: true, mergeSheetContent: res.merged });
+	},
+
+	saveSelectedResults: async () => {
+		const ws = get().getActiveWorkspace();
+		const ids = get().selectedNodeIds;
+		if (!ws || ids.length === 0) return;
+		await scraperPort.saveResults(ws.id, ids);
+	},
+
+	deleteSelectedResults: async () => {
+		const ws = get().getActiveWorkspace();
+		const ids = get().selectedNodeIds;
+		if (!ws || ids.length === 0) return;
+		await scraperPort.deleteResults(ws.id, ids);
+		set({ loadedNodeResult: null, resultPreview: null });
+	},
+
+	bulkScrapeSelected: async () => {
+		const ids = get().selectedNodeIds;
+		if (ids.length === 0) return;
+		set({ runMode: 2 });
+		await get().startCrawl();
+	},
+
+	fetchWorkspaceDiff: async (workspaceId) => {
+		const diff = await scraperPort.getWorkspaceDiff(workspaceId);
+		set((s) => ({
+			workspaceDiffCache: { ...s.workspaceDiffCache, [workspaceId]: diff },
+		}));
+		return diff;
+	},
+
+	closeMergeSheet: () =>
+		set({ mergeSheetOpen: false, mergeSheetContent: null }),
 
 	getActiveWorkspace: () => {
 		const { workspaces, activeWorkspaceId } = get();

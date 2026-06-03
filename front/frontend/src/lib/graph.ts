@@ -1,5 +1,9 @@
 import type { GraphEdge, GraphNode } from '@/types/graph';
 
+export function hasChildNodes(nodeId: string, edges: GraphEdge[]): boolean {
+	return edges.some((e) => e.source === nodeId);
+}
+
 export function getOutgoingEdges(
 	nodeId: string,
 	edges: GraphEdge[],
@@ -50,6 +54,67 @@ export function getForwardReachableExisting(
 		}
 	}
 	return order;
+}
+
+/** 全ノードを BFS 順（seed から到達可能な順 + 孤立は末尾） */
+export function getBfsNodeOrder(
+	seedNodeId: string | undefined,
+	nodes: GraphNode[],
+	edges: GraphEdge[],
+): string[] {
+	if (!nodes.length) return [];
+	const start =
+		seedNodeId && nodes.some((n) => n.id === seedNodeId)
+			? seedNodeId
+			: nodes[0].id;
+	const order: string[] = [];
+	const visited = new Set<string>();
+	const queue = [start];
+	visited.add(start);
+	while (queue.length > 0) {
+		const id = queue.shift()!;
+		order.push(id);
+		for (const e of getOutgoingEdges(id, edges)) {
+			if (!visited.has(e.target)) {
+				visited.add(e.target);
+				queue.push(e.target);
+			}
+		}
+	}
+	for (const n of nodes) {
+		if (!visited.has(n.id)) order.push(n.id);
+	}
+	return order;
+}
+
+/** 折りたたみルートの子孫 ID（ルート自身は含まない） */
+export function getHiddenDescendantIds(
+	collapsedRootIds: string[],
+	edges: GraphEdge[],
+): Set<string> {
+	const hidden = new Set<string>();
+	for (const rootId of collapsedRootIds) {
+		for (const id of getDescendantNodeIds(rootId, edges)) {
+			hidden.add(id);
+		}
+	}
+	return hidden;
+}
+
+export function isExcludedSubtree(
+	nodeId: string,
+	nodes: GraphNode[],
+	edges: GraphEdge[],
+): boolean {
+	const n = nodes.find((x) => x.id === nodeId);
+	if (!n) return false;
+	if (n.crawlExclude) return true;
+	for (const e of edges) {
+		if (e.target === nodeId) {
+			if (isExcludedSubtree(e.source, nodes, edges)) return true;
+		}
+	}
+	return false;
 }
 
 export function collectDescendantUrls(

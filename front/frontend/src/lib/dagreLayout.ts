@@ -6,6 +6,8 @@ export type DagreLayoutDirection = 'TB' | 'LR';
 
 /** UrlNode の固定サイズ（表示と dagre レイアウトで共有） */
 export const DAGRE_NODE_WIDTH = 260;
+/** 詳細展開時のノード表示幅（レイアウト計算は DAGRE_NODE_WIDTH のまま） */
+export const NODE_DETAIL_EXPANDED_WIDTH = 300;
 export const DAGRE_NODE_HEIGHT = 40;
 const RANK_SEP = 24;
 const NODE_SEP = 8;

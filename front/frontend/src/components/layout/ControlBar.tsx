@@ -32,6 +32,10 @@ export function ControlBar() {
 	const stopCrawl = useAppStore((s) => s.stopCrawl);
 	const ws = useAppStore((s) => s.getActiveWorkspace());
 	const setWorkspaceFormats = useAppStore((s) => s.setWorkspaceFormats);
+	const bulkScrapeSelected = useAppStore((s) => s.bulkScrapeSelected);
+	const mergeAllResults = useAppStore((s) => s.mergeAllResults);
+	const mergeSelectedResults = useAppStore((s) => s.mergeSelectedResults);
+	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const [modeMenuOpen, setModeMenuOpen] = useState(false);
 
 	const formats = ws?.settings.content?.formats ?? ['markdown', 'links'];
@@ -48,15 +52,15 @@ export function ControlBar() {
 	const isPaused = crawlStatus === 'paused';
 
 	return (
-		<div className='flex h-12 items-center justify-between border-b border-border bg-card px-3'>
-			<div className='flex items-center gap-2 text-sm font-semibold'>
+		<div className='flex h-12 items-center justify-between gap-2 border-b border-border bg-card px-3'>
+			<div className='flex shrink-0 items-center gap-2 text-sm font-semibold'>
 				<span className='text-primary'>{messages.appName}</span>
 				<span className='text-xs font-normal text-muted-foreground'>
 					v{messages.version}
 				</span>
 			</div>
 
-			<div className='flex items-center gap-2'>
+			<div className='flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2'>
 				<div className='relative'>
 					<div className='flex'>
 						<Button
@@ -81,7 +85,7 @@ export function ControlBar() {
 						<>
 							<button
 								type='button'
-								aria-label='Close mode menu'
+								aria-label={messages.control.closeModeMenu}
 								className='fixed inset-0 z-40'
 								onClick={() => setModeMenuOpen(false)}
 							/>
@@ -126,7 +130,7 @@ export function ControlBar() {
 					</Button>
 				)}
 
-				<span className='mx-2 text-muted-foreground'>|</span>
+				<span className='text-muted-foreground'>|</span>
 				<span className='text-xs text-muted-foreground'>
 					{messages.control.formats}
 				</span>
@@ -140,9 +144,40 @@ export function ControlBar() {
 						{f}
 					</Button>
 				))}
+
+				{selectedNodeIds.length > 1 && (
+					<>
+						<span className='text-muted-foreground'>|</span>
+						<Button
+							size='xs'
+							variant='outline'
+							disabled={crawlStatus !== 'idle'}
+							onClick={() => bulkScrapeSelected()}
+						>
+							{messages.control.bulkScrapeSelected}
+						</Button>
+					</>
+				)}
 			</div>
 
-			<div className='w-8' />
+			<div className='flex shrink-0 items-center gap-2'>
+				<Button
+					variant='outline'
+					size='xs'
+					disabled={!ws}
+					onClick={() => mergeAllResults()}
+				>
+					{messages.menu.mergeAll}
+				</Button>
+				<Button
+					variant='outline'
+					size='xs'
+					disabled={selectedNodeIds.length === 0}
+					onClick={() => mergeSelectedResults()}
+				>
+					{messages.menu.mergeSelected}
+				</Button>
+			</div>
 		</div>
 	);
 }
