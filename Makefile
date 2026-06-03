@@ -15,7 +15,7 @@ help:
 	@echo "  build         Build backend and front app"
 	@echo "  test          Run backend and front tests"
 	@echo "  lint          Run backend and front lint"
-	@echo "  fmt           Run backend fmt and front format"
+	@echo "  fmt           Run backend fmt and front lint:fix"
 	@echo "  tidy          Run backend go mod tidy"
 	@echo "  wire          Regenerate backend wire_gen.go"
 	@echo ""
@@ -40,7 +40,7 @@ lint:
 
 fmt:
 	$(MAKE) -C $(BACKEND_DIR) fmt
-	$(MAKE) -C $(FRONT_DIR) format
+	$(MAKE) -C $(FRONT_DIR) fmt
 
 tidy: backend-tidy
 

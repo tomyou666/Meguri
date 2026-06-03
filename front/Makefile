@@ -21,7 +21,7 @@ help:
 	@echo "Quality targets:"
 	@echo "  check     lint + test"
 	@echo "  lint      Run frontend lint"
-	@echo "  fmt    Run frontend formatter"
+	@echo "  fmt       Run frontend format + lint auto-fix (biome check --write)"
 	@echo "  generate    Generate frontend bindings"
 	@echo "  test      Run Go + frontend tests"
 	@echo ""
@@ -54,7 +54,9 @@ test: go-test frontend-test
 
 lint: frontend-lint
 
-fmt: frontend-format
+fmt: frontend-lint-fix
+
+format: frontend-format
 
 lint-fix: frontend-lint-fix
 
