@@ -1,5 +1,16 @@
+import {
+	canonicalizeLinksJson,
+	contentHashFromMarkdown,
+} from '@/lib/contentHash';
 import { workspaceFromDb, workspaceToDb } from '@/lib/dbMappers';
 import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
+import {
+	appendNodeResult,
+	deleteLatestResults,
+	latestSuccessByNode,
+	MAX_CRAWL_RUN_HISTORY,
+	rowsForRun,
+} from '@/lib/nodeResultStore';
 import { runCrawlStub } from '@/services/crawlStub';
 import type {
 	MergeResultsResponse,
@@ -9,28 +20,20 @@ import type {
 	WorkspaceDiff,
 } from '@/types/adapter';
 import type { PartialConfig } from '@/types/config';
-import type { CrawlResultPreview } from '@/types/crawl';
-import type { DbNodeResult } from '@/types/db';
+import type { CrawlResultPreview, CrawlRunSummary } from '@/types/crawl';
+import type { DbCrawlRun, DbNodeResult } from '@/types/db';
 import type { Workspace } from '@/types/workspace';
 
 function uid(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function contentHash(text: string): string {
-	let h = 0;
-	for (let i = 0; i < text.length; i++) {
-		h = (Math.imul(31, h) + text.charCodeAt(i)) | 0;
-	}
-	return `h${(h >>> 0).toString(16)}`;
-}
-
-function resultToDb(
+async function resultToDb(
 	runId: string,
 	workspaceId: string,
 	nodeId: string,
 	result: CrawlResultPreview,
-): DbNodeResult {
+): Promise<DbNodeResult> {
 	const markdown = result.markdown ?? null;
 	return {
 		id: uid(),
@@ -46,7 +49,32 @@ function resultToDb(
 		metadata_json: result.metadata ? JSON.stringify(result.metadata) : null,
 		error: null,
 		fetched_at: new Date().toISOString(),
-		content_hash: markdown ? contentHash(markdown) : null,
+		content_hash: markdown ? await contentHashFromMarkdown(markdown) : null,
+	};
+}
+
+function failureToDb(
+	runId: string,
+	workspaceId: string,
+	nodeId: string,
+	url: string,
+	error: string,
+): DbNodeResult {
+	return {
+		id: uid(),
+		run_id: runId,
+		workspace_id: workspaceId,
+		node_id: nodeId,
+		url,
+		markdown: null,
+		html: null,
+		raw_html: null,
+		json_body: null,
+		links_json: null,
+		metadata_json: null,
+		error,
+		fetched_at: new Date().toISOString(),
+		content_hash: null,
 	};
 }
 
@@ -63,12 +91,36 @@ function dbToPreview(row: DbNodeResult): CrawlResultPreview {
 	};
 }
 
+function trimCrawlRuns(runs: DbCrawlRun[]): DbCrawlRun[] {
+	return [...runs]
+		.sort((a, b) => b.started_at.localeCompare(a.started_at))
+		.slice(0, MAX_CRAWL_RUN_HISTORY);
+}
+
+function upsertBaselineRow(
+	rows: DbNodeResult[],
+	baselineRunId: string,
+	source: DbNodeResult,
+): DbNodeResult[] {
+	const without = rows.filter(
+		(r) => !(r.run_id === baselineRunId && r.node_id === source.node_id),
+	);
+	return [
+		...without,
+		{
+			...source,
+			id: uid(),
+			run_id: baselineRunId,
+			fetched_at: new Date().toISOString(),
+		},
+	];
+}
+
 export class MockScraperAdapter implements ScraperPort {
 	private appDefaults: PartialConfig = { ...DEFAULT_APP_CONFIG };
 	private workspaces = new Map<string, Workspace>();
 	private results = new Map<string, DbNodeResult[]>();
-	private baselineResults = new Map<string, Map<string, DbNodeResult>>();
-	private runs = new Map<string, string>();
+	private crawlRuns = new Map<string, DbCrawlRun[]>();
 
 	async getAppDefaults(): Promise<PartialConfig> {
 		return structuredClone(this.appDefaults);
@@ -130,24 +182,37 @@ export class MockScraperAdapter implements ScraperPort {
 	}
 
 	private hydrateWorkspace(ws: Workspace): Workspace {
-		const hydrated = new Map<string, CrawlResultPreview>();
 		const rows = this.results.get(ws.id) ?? [];
-		const latestByNode = new Map<string, DbNodeResult>();
-		for (const row of rows) {
-			const prev = latestByNode.get(row.node_id);
-			if (!prev || row.fetched_at > prev.fetched_at) {
-				latestByNode.set(row.node_id, row);
-			}
-		}
-		for (const [nodeId, row] of latestByNode) {
-			hydrated.set(nodeId, dbToPreview(row));
+		const hydrated = latestSuccessByNode(rows);
+		const previewMap = new Map<string, CrawlResultPreview>();
+		for (const [nodeId, row] of hydrated) {
+			previewMap.set(nodeId, dbToPreview(row));
 		}
 		const bundle = workspaceToDb(ws);
-		return workspaceFromDb(bundle, hydrated);
+		return workspaceFromDb(bundle, previewMap);
 	}
 
 	async saveWorkspace(ws: Workspace): Promise<void> {
 		this.workspaces.set(ws.id, structuredClone(ws));
+	}
+
+	private ensureBaselineRun(workspaceId: string, ws: Workspace): string {
+		if (ws.baselineRunId) return ws.baselineRunId;
+		const runId = uid();
+		const run: DbCrawlRun = {
+			id: runId,
+			workspace_id: workspaceId,
+			mode: 1,
+			status: 'completed',
+			started_at: new Date().toISOString(),
+			finished_at: new Date().toISOString(),
+			summary_json: null,
+			error_message: null,
+		};
+		const runs = this.crawlRuns.get(workspaceId) ?? [];
+		this.crawlRuns.set(workspaceId, trimCrawlRuns([run, ...runs]));
+		ws.baselineRunId = runId;
+		return runId;
 	}
 
 	async duplicateWorkspace(id: string): Promise<Workspace> {
@@ -179,6 +244,7 @@ export class MockScraperAdapter implements ScraperPort {
 		};
 		this.workspaces.set(newId, copy);
 		this.results.set(newId, []);
+		this.crawlRuns.set(newId, []);
 		return copy;
 	}
 
@@ -187,10 +253,8 @@ export class MockScraperAdapter implements ScraperPort {
 		nodeId: string,
 	): Promise<CrawlResultPreview | null> {
 		const rows = this.results.get(workspaceId) ?? [];
-		const nodeRows = rows
-			.filter((r) => r.node_id === nodeId)
-			.sort((a, b) => b.fetched_at.localeCompare(a.fetched_at));
-		return nodeRows[0] ? dbToPreview(nodeRows[0]) : null;
+		const row = latestSuccessByNode(rows).get(nodeId);
+		return row ? dbToPreview(row) : null;
 	}
 
 	async getNodeResults(
@@ -230,56 +294,66 @@ export class MockScraperAdapter implements ScraperPort {
 	}
 
 	async saveResults(workspaceId: string, nodeIds: string[]): Promise<void> {
-		const rows = this.results.get(workspaceId) ?? [];
-		const snapshot = new Map<string, DbNodeResult>();
+		const ws = this.workspaces.get(workspaceId);
+		if (!ws) return;
+		const baselineRunId = this.ensureBaselineRun(workspaceId, ws);
+		let rows = this.results.get(workspaceId) ?? [];
+		const latest = latestSuccessByNode(rows);
 		for (const nodeId of nodeIds) {
-			const latest = rows
-				.filter((r) => r.node_id === nodeId)
-				.sort((a, b) => b.fetched_at.localeCompare(a.fetched_at))[0];
-			if (latest) snapshot.set(nodeId, { ...latest });
+			const source = latest.get(nodeId);
+			if (source) {
+				rows = upsertBaselineRow(rows, baselineRunId, source);
+			}
 		}
-		this.baselineResults.set(workspaceId, snapshot);
+		this.results.set(workspaceId, rows);
 	}
 
 	async deleteResults(workspaceId: string, nodeIds: string[]): Promise<void> {
 		const rows = this.results.get(workspaceId) ?? [];
-		const set = new Set(nodeIds);
-		this.results.set(
-			workspaceId,
-			rows.filter((r) => !set.has(r.node_id)),
-		);
+		this.results.set(workspaceId, deleteLatestResults(rows, nodeIds));
 	}
 
 	async saveResultsSnapshot(
 		workspaceId: string,
 		runId?: string,
 	): Promise<string> {
-		const rid = runId ?? this.runs.get(workspaceId) ?? uid();
 		const ws = this.workspaces.get(workspaceId);
-		if (ws) {
-			ws.baselineRunId = rid;
-			const snapshot = new Map<string, DbNodeResult>();
-			const rows = this.results.get(workspaceId) ?? [];
-			for (const nodeId of new Set(rows.map((r) => r.node_id))) {
-				const latest = rows
-					.filter((r) => r.node_id === nodeId)
-					.sort((a, b) => b.fetched_at.localeCompare(a.fetched_at))[0];
-				if (latest) snapshot.set(nodeId, { ...latest });
-			}
-			this.baselineResults.set(workspaceId, snapshot);
+		if (!ws) return runId ?? uid();
+
+		const rid = runId ?? uid();
+		const runs = this.crawlRuns.get(workspaceId) ?? [];
+		if (!runs.some((r) => r.id === rid)) {
+			const run: DbCrawlRun = {
+				id: rid,
+				workspace_id: workspaceId,
+				mode: 1,
+				status: 'completed',
+				started_at: new Date().toISOString(),
+				finished_at: new Date().toISOString(),
+				summary_json: null,
+				error_message: null,
+			};
+			this.crawlRuns.set(workspaceId, trimCrawlRuns([run, ...runs]));
 		}
+
+		let rows = this.results.get(workspaceId) ?? [];
+		const latest = latestSuccessByNode(rows);
+		for (const source of latest.values()) {
+			rows = upsertBaselineRow(rows, rid, source);
+		}
+		this.results.set(workspaceId, rows);
+		ws.baselineRunId = rid;
 		return rid;
 	}
 
 	async getWorkspaceDiff(workspaceId: string): Promise<WorkspaceDiff> {
 		const ws = this.workspaces.get(workspaceId);
-		const baseline = this.baselineResults.get(workspaceId);
 		const nodes: WorkspaceDiff['nodes'] = [];
 		let content = 0;
 		let links = 0;
 		let fetch = 0;
 
-		if (!ws) {
+		if (!ws?.baselineRunId) {
 			return {
 				workspaceId,
 				hasDiff: false,
@@ -289,53 +363,44 @@ export class MockScraperAdapter implements ScraperPort {
 			};
 		}
 
-		const currentRows = this.results.get(workspaceId) ?? [];
-		const latestCurrent = new Map<string, DbNodeResult>();
-		for (const row of currentRows) {
-			const prev = latestCurrent.get(row.node_id);
-			if (!prev || row.fetched_at > prev.fetched_at) {
-				latestCurrent.set(row.node_id, row);
-			}
-		}
+		const rows = this.results.get(workspaceId) ?? [];
+		const baseline = rowsForRun(rows, ws.baselineRunId);
+		const current = latestSuccessByNode(rows);
 
 		for (const node of ws.nodes) {
 			const kinds: WorkspaceDiff['nodes'][0]['kinds'] = [];
-			const base = baseline?.get(node.id);
-			const cur = latestCurrent.get(node.id);
+			const base = baseline.get(node.id);
+			const cur = current.get(node.id);
 
 			if (base?.content_hash !== cur?.content_hash) {
 				kinds.push('content');
 				content++;
 			}
 
-			const baseLinks = base?.links_json ? JSON.parse(base.links_json) : [];
-			const curLinks = cur?.links_json ? JSON.parse(cur.links_json) : [];
-			const outEdges = ws.edges
-				.filter((e) => e.source === node.id)
-				.map((e) => e.target)
-				.sort()
-				.join(',');
-			const baseOut = ws.edges
-				.filter((e) => e.source === node.id)
-				.map((e) => e.target)
-				.sort()
-				.join(',');
+			const baseLinks = base?.links_json
+				? (JSON.parse(base.links_json) as string[])
+				: [];
+			const curLinks = cur?.links_json
+				? (JSON.parse(cur.links_json) as string[])
+				: [];
 			if (
-				JSON.stringify(baseLinks) !== JSON.stringify(curLinks) ||
-				(!base && cur && outEdges)
+				canonicalizeLinksJson(baseLinks) !== canonicalizeLinksJson(curLinks)
 			) {
-				if (
-					baseOut !== outEdges ||
-					JSON.stringify(baseLinks) !== JSON.stringify(curLinks)
-				) {
-					kinds.push('links');
-					links++;
-				}
+				kinds.push('links');
+				links++;
 			}
 
-			const baseStatus = base ? 'success' : 'idle';
-			const curStatus = node.status;
-			if (baseStatus !== curStatus || (base && !cur) || (!base && cur)) {
+			const baseOk = base != null && !base.error;
+			const curOk = cur != null && !cur.error;
+			const baseFetch = baseOk ? 'success' : base ? 'error' : 'none';
+			const curFetch = curOk
+				? 'success'
+				: cur
+					? 'error'
+					: node.status === 'skipped'
+						? 'skipped'
+						: 'none';
+			if (baseFetch !== curFetch) {
 				kinds.push('fetch');
 				fetch++;
 			}
@@ -348,7 +413,7 @@ export class MockScraperAdapter implements ScraperPort {
 		return {
 			workspaceId,
 			hasDiff: nodes.length > 0,
-			baselineRunId: ws.baselineRunId ?? null,
+			baselineRunId: ws.baselineRunId,
 			nodes,
 			summary: { content, links, fetch },
 		};
@@ -357,8 +422,38 @@ export class MockScraperAdapter implements ScraperPort {
 	async startCrawl(params: StartCrawlParams): Promise<void> {
 		const ws = params.getWorkspace();
 		const runId = uid();
-		this.runs.set(params.workspaceId, runId);
-		const rows = this.results.get(params.workspaceId) ?? [];
+		const startedAt = new Date().toISOString();
+		const run: DbCrawlRun = {
+			id: runId,
+			workspace_id: params.workspaceId,
+			mode: params.mode,
+			status: 'running',
+			started_at: startedAt,
+			finished_at: null,
+			summary_json: null,
+			error_message: null,
+		};
+		const runs = this.crawlRuns.get(params.workspaceId) ?? [];
+		this.crawlRuns.set(params.workspaceId, trimCrawlRuns([run, ...runs]));
+
+		const finishRun = (
+			status: DbCrawlRun['status'],
+			summary?: Omit<CrawlRunSummary, 'id' | 'startedAt'>,
+			errorMessage?: string,
+		) => {
+			const list = this.crawlRuns.get(params.workspaceId) ?? [];
+			const idx = list.findIndex((r) => r.id === runId);
+			if (idx >= 0) {
+				list[idx] = {
+					...list[idx],
+					status,
+					finished_at: new Date().toISOString(),
+					summary_json: summary ? JSON.stringify(summary) : null,
+					error_message: errorMessage ?? null,
+				};
+				this.crawlRuns.set(params.workspaceId, list);
+			}
+		};
 
 		await runCrawlStub(
 			ws,
@@ -367,15 +462,39 @@ export class MockScraperAdapter implements ScraperPort {
 			{
 				onNodeStarted: params.onNodeStarted,
 				onNodeSucceeded: (nodeId, result) => {
-					rows.push(resultToDb(runId, params.workspaceId, nodeId, result));
-					this.results.set(params.workspaceId, rows);
-					params.onNodeSucceeded(nodeId, result);
+					void resultToDb(runId, params.workspaceId, nodeId, result).then(
+						(row) => {
+							const current = this.results.get(params.workspaceId) ?? [];
+							this.results.set(
+								params.workspaceId,
+								appendNodeResult(current, row),
+							);
+							params.onNodeSucceeded(nodeId, result);
+						},
+					);
 				},
-				onNodeFailed: params.onNodeFailed,
+				onNodeFailed: (nodeId, url, error) => {
+					const row = failureToDb(
+						runId,
+						params.workspaceId,
+						nodeId,
+						url,
+						error,
+					);
+					const current = this.results.get(params.workspaceId) ?? [];
+					this.results.set(params.workspaceId, appendNodeResult(current, row));
+					params.onNodeFailed(nodeId, url, error);
+				},
 				onNodeSkipped: params.onNodeSkipped,
 				onEdgeDiscovered: params.onEdgeDiscovered,
-				onCrawlCompleted: params.onCrawlCompleted,
-				onCrawlError: params.onCrawlError,
+				onCrawlCompleted: (summary) => {
+					finishRun('completed', summary);
+					params.onCrawlCompleted(summary);
+				},
+				onCrawlError: (message) => {
+					finishRun('error', undefined, message);
+					params.onCrawlError(message);
+				},
 			},
 			{
 				mode: params.mode,
@@ -399,11 +518,23 @@ export class MockScraperAdapter implements ScraperPort {
 			if (!this.results.has(ws.id)) {
 				this.results.set(ws.id, []);
 			}
+			if (!this.crawlRuns.has(ws.id)) {
+				this.crawlRuns.set(ws.id, []);
+			}
 		}
 	}
 
 	getWorkspaces(): Workspace[] {
 		return [...this.workspaces.values()];
+	}
+
+	/** テスト・デバッグ用 */
+	getCrawlRuns(workspaceId: string): DbCrawlRun[] {
+		return [...(this.crawlRuns.get(workspaceId) ?? [])];
+	}
+
+	getNodeResultsRows(workspaceId: string): DbNodeResult[] {
+		return [...(this.results.get(workspaceId) ?? [])];
 	}
 }
 
