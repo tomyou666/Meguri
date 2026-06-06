@@ -36,6 +36,7 @@
             "mode": "debug",
             "program": "${workspaceFolder}/front",
             "cwd": "${workspaceFolder}/front",
+            "buildFlags": "-tags=dev",
             "env": {
                 "CGO_CFLAGS": "-O0 -g",
                 "CGO_CXXFLAGS": "-O0 -g",

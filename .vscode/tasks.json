@@ -36,7 +36,8 @@
             "options": {
                 "cwd": "${workspaceFolder}/front",
                 "env": {
-                    "WAILS_VITE_PORT": "9245"
+                    "WAILS_VITE_PORT": "9245",
+                    "EXTRA_TAGS": "dev"
                 }
             },
             "isBackground": true,
