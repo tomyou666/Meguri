@@ -13,18 +13,19 @@ Phase 3 実装状況の記録。設計の前提は [scraper-ui.md](./api/scraper
 - [x] **`GraphNode.origin`** — DDL マイグレーション `000002_origin`
 - [x] **TS adapter** — Event 購読 + StoreService 永続化、`crawlStub` 削除
 
-## v2 予定（未実装）
+## v2 完了（Phase 3 v2）
 
-- [ ] **`PauseController`** — backend worker レベルの pause
-- [ ] **`ScrapeRunner` cfg hash キャッシュ** — Kernel Init 最適化
-- [ ] **CLI** — `--exclude-url` / `--progress-json`
+- [x] **`PauseController`** — backend worker レベルの pause（`runOne` 前 `WaitIfPaused`）
+- [x] **`RunnerCache` cfg hash キャッシュ** — Mode 3 / manual 後段の Kernel 再利用（LRU 8）
+- [x] **CLI** — `--exclude-url` / `--progress-json`（crawl は `pkg/runner` 経由）
+- [x] **Go 側永続化** — `ScraperService` が `CrawlPersistService` 経由で SQLite 更新。`StartCrawl` が `runId` を返す
 
 ## アーキテクチャ前提（変更なし）
 
 - GraphNode / GraphEdge DTO、RunMode 訪問順 — **front `ScraperService`**
 - 4 層設定マージ — front が JSON を渡し、Go で `runner.MergeUIConfigLayers`
 - Wails Event 発火、url ↔ nodeId — **front `ScraperService`**
-- SQLite / crawl run 永続化 — **StoreService**（TS adapter 経由）
+- SQLite / crawl run 永続化 — **ScraperService → CrawlPersistService**（v2）。TS adapter は UI コールバックのみ
 
 ## 実行経路（実装どおり）
 
@@ -42,7 +43,7 @@ Phase 3 実装状況の記録。設計の前提は [scraper-ui.md](./api/scraper
 | 手動ノード | `origin: manual \| crawl`、本流後に `ScrapeWithConfig` |
 | `exclude_urls` | backend に追加（完了） |
 | 進捗 | backend が URL 単位で emit（完了） |
-| pause | v1 front/ScraperService フラグ、v2 `PauseController` |
+| pause | v2 `PauseController`（ScraperService がジョブごとに注入） |
 | モード 3 | `Crawler.Run` 不使用、`ScrapeWithConfig` × N |
 | 永続化 | TS adapter + StoreService |
 | module 境界 | `pkg/runner` ファサード |

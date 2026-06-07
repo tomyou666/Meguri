@@ -60,6 +60,8 @@ type Flags struct {
 	IncludePaths stringSlice
 	// ExcludePaths は --exclude-path。
 	ExcludePaths stringSlice
+	// ExcludeURLs は --exclude-url。
+	ExcludeURLs stringSlice
 	// AllowExternal は --allow-external。
 	AllowExternal boolFlag
 	// AllowSubdomains は --allow-subdomains。
@@ -98,6 +100,8 @@ type Flags struct {
 
 	// Stdout は --stdout（単一 URL 時に標準出力へ出す）。
 	Stdout bool
+	// ProgressJSON は --progress-json（クロール進捗を stderr に NDJSON 出力）。
+	ProgressJSON bool
 }
 
 // boolFlag は flag.Bool では区別できない「指定されたか」を扱う 3 値型。
@@ -210,6 +214,7 @@ func ParseArgs(args []string) (*Flags, error) {
 	fs.IntVar(&f.MaxPages, "max-pages", -1, "クロール最大ページ数")
 	fs.Var(&f.IncludePaths, "include-path", "クロール許可パス正規表現 (繰り返し可)")
 	fs.Var(&f.ExcludePaths, "exclude-path", "クロール除外パス正規表現 (繰り返し可)")
+	fs.Var(&f.ExcludeURLs, "exclude-url", "完全一致でスキップする URL (繰り返し可)")
 	fs.Var(&f.AllowExternal, "allow-external", "外部リンクの追跡を許可")
 	fs.Var(&f.AllowSubdomains, "allow-subdomains", "サブドメインの追跡を許可")
 	fs.DurationVar(&f.RequestDelay, "delay", -1, "リクエスト間遅延")
@@ -231,6 +236,7 @@ func ParseArgs(args []string) (*Flags, error) {
 	fs.StringVar(&f.OutputPattern, "output-pattern", "", "出力ファイル名パターン")
 
 	fs.BoolVar(&f.Stdout, "stdout", false, "結果を標準出力に出す（単一URLモード）")
+	fs.BoolVar(&f.ProgressJSON, "progress-json", false, "クロール進捗を stderr に NDJSON 出力")
 
 	var url string
 	fs.StringVar(&url, "url", "", "対象URL (1件指定)")
@@ -319,6 +325,9 @@ func Merge(cfg *model.Config, f *Flags) {
 	}
 	if f.ExcludePaths.set {
 		cfg.Crawl.ExcludePaths = f.ExcludePaths.values
+	}
+	if f.ExcludeURLs.set {
+		cfg.Crawl.ExcludeURLs = append(cfg.Crawl.ExcludeURLs, f.ExcludeURLs.values...)
 	}
 	if f.AllowExternal.set {
 		cfg.Crawl.AllowExternal = f.AllowExternal.v

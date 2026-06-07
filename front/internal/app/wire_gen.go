@@ -34,7 +34,7 @@ func InitializeWire(ctx context.Context) (*Application, func(), error) {
 	storeService := ProvideStoreService(appConfigService, workspaceService, resultsService, diffService, crawlPersistService)
 	projectFileService := ProvideProjectFileService(workspaceService)
 	projectService := ProvideProjectService(projectFileService, workspaceService)
-	scraperService := ProvideScraperService()
+	scraperService := ProvideScraperService(crawlPersistService)
 	application, cleanup2, err := ProvideApplication(storeService, projectService, scraperService, db)
 	if err != nil {
 		cleanup()

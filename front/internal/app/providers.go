@@ -91,8 +91,8 @@ func ProvideProjectService(projects *domain.ProjectFileService, workspaces *doma
 }
 
 // ProvideScraperService は ScraperService を返す。
-func ProvideScraperService() *wails_service.ScraperService {
-	return wails_service.NewScraperService()
+func ProvideScraperService(persist *domain.CrawlPersistService) *wails_service.ScraperService {
+	return wails_service.NewScraperService(persist)
 }
 
 // ProvideApplication は Application を組み立てる。
@@ -135,7 +135,7 @@ func Initialize(ctx context.Context) (*Application, func(), error) {
 	projects := ProvideProjectFileService(workspaces)
 	store := ProvideStoreService(appConfig, workspaces, results, diff, crawlPersist)
 	project := ProvideProjectService(projects, workspaces)
-	scraper := ProvideScraperService()
+	scraper := ProvideScraperService(crawlPersist)
 	app, cleanup, err := ProvideApplication(store, project, scraper, db)
 	if err != nil {
 		cleanup()

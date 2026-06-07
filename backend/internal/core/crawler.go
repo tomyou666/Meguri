@@ -45,6 +45,8 @@ type Crawler struct {
 	sink ResultSink
 	// progress は URL 単位の進捗通知先。
 	progress ProgressSink
+	// pause は一時停止制御（nil 可）。
+	pause *PauseController
 }
 
 // CrawlStats はクロールの最終サマリ。
@@ -106,6 +108,11 @@ func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink Result
 	return c
 }
 
+// SetPauseController は一時停止制御を設定する。
+func (c *Crawler) SetPauseController(p *PauseController) {
+	c.pause = p
+}
+
 // job はクロールキュー内の 1 件分の作業単位。
 type job struct {
 	// url は処理対象 URL。
@@ -133,6 +140,9 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 			return stats, nil
 		}
 		stats.Enqueued = 1
+		if err := c.waitIfPaused(ctx); err != nil {
+			return stats, err
+		}
 		if c.runOne(ctx, job{url: seeds[0], depth: 0}, nil) {
 			stats.Succeeded++
 		} else {
@@ -262,6 +272,9 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		go func() {
 			defer wg.Done()
 			for j := range jobs {
+				if err := c.waitIfPaused(ctx); err != nil {
+					return
+				}
 				ok := c.runOne(ctx, j, enqueue)
 				if c.cfg.Crawl.RequestDelay > 0 {
 					select {
@@ -280,6 +293,14 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 	wg.Wait()
 	<-queueDone
 	return stats, ctx.Err()
+}
+
+// waitIfPaused は一時停止中なら解除または ctx キャンセルまで待つ。
+func (c *Crawler) waitIfPaused(ctx context.Context) error {
+	if c.pause == nil {
+		return nil
+	}
+	return c.pause.WaitIfPaused(ctx)
 }
 
 // runOne は 1 ジョブ分のパイプラインを実行し、結果を通知し、抽出リンクを enqueue する。

@@ -52,6 +52,34 @@ func (s *CrawlPersistService) UpsertDiscoveredGraph(ctx context.Context, req mod
 	return s.repo.UpsertDiscoveredGraph(ctx, req.WorkspaceID, req.SourceID, req.TargetID, req.TargetURL)
 }
 
+// AppendNodeResult は crawl 中のノード結果行を追加する。
+func (s *CrawlPersistService) AppendNodeResult(ctx context.Context, req model.AppendNodeResultRequest) error {
+	row := model.NodeResult{
+		ID:          model.StrPtr(genID()),
+		RunID:       req.RunID,
+		WorkspaceID: req.WorkspaceID,
+		NodeID:      req.NodeID,
+		URL:         req.URL,
+		FetchedAt:   req.FetchedAt,
+	}
+	if req.Markdown != "" {
+		row.Markdown = &req.Markdown
+	}
+	if req.LinksJSON != "" {
+		row.LinksJSON = &req.LinksJSON
+	}
+	if req.MetadataJSON != "" {
+		row.MetadataJSON = &req.MetadataJSON
+	}
+	if req.Error != "" {
+		row.Error = &req.Error
+	}
+	if req.ContentHash != "" {
+		row.ContentHash = &req.ContentHash
+	}
+	return s.repo.AppendNodeResult(ctx, row)
+}
+
 // NowISO は現在時刻 ISO 文字列。
 func NowISO() string {
 	return time.Now().UTC().Format(time.RFC3339)

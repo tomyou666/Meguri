@@ -47,7 +47,7 @@ func TestScrapeWithConfigEmitsProgress(t *testing.T) {
 	}
 
 	// plugins registered via plugins.go blank imports when testing runner package
-	_, err := runner.ScrapeWithConfig(context.Background(), "https://example.com", cfg, progress)
+	_, err := runner.ScrapeWithConfig(context.Background(), "https://example.com", cfg, progress, nil)
 	// network may fail in CI; we only assert progress shape when scrape runs
 	if err != nil {
 		t.Skip("network unavailable:", err)
@@ -70,6 +70,6 @@ func containsKind(kinds []core.ProgressKind, want core.ProgressKind) bool {
 
 func TestCrawlWithProgressRequiresSeeds(t *testing.T) {
 	cfg := &model.Config{}
-	_, err := runner.CrawlWithProgress(context.Background(), cfg, nil, nil)
+	_, err := runner.CrawlWithProgress(context.Background(), cfg, nil, nil, nil)
 	require.Error(t, err)
 }

@@ -1,5 +1,4 @@
 import { Events } from '@wailsio/runtime';
-import { contentHashFromMarkdown } from '@/lib/contentHash';
 import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
 import {
 	partialConfigToRaw,
@@ -21,14 +20,7 @@ import type {
 	LinkSkipReason,
 } from '@/types/crawl';
 import type { Workspace } from '@/types/workspace';
-import {
-	AppendNodeResultRequest,
-	BeginCrawlRunRequest,
-	FinishCrawlRunRequest,
-	PatchGraphNodeStatusRequest,
-	StartCrawlRequest,
-	UpsertDiscoveredGraphRequest,
-} from '../../bindings/scraperbot-front/internal/model/models';
+import { StartCrawlRequest } from '../../bindings/scraperbot-front/internal/model/models';
 import * as ScraperService from '../../bindings/scraperbot-front/internal/usecase/wails_service/scraperservice';
 import * as StoreService from '../../bindings/scraperbot-front/internal/usecase/wails_service/storeservice';
 
@@ -54,10 +46,6 @@ interface CrawlEventPayload {
 	targetUrl?: string;
 	summary?: Omit<CrawlRunSummary, 'id' | 'startedAt'>;
 	message?: string;
-}
-
-function uid(): string {
-	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function parseDefaults(raw: unknown): PartialConfig {
@@ -236,43 +224,17 @@ export class CompositeScraperAdapter implements ScraperPort {
 
 	async startCrawl(params: StartCrawlParams): Promise<string> {
 		const ws = params.getWorkspace();
-		const runId = uid();
-		const startedAt = new Date().toISOString();
-		params.onRunStarted?.(runId);
+		const wsDto = workspaceToDTO(ws);
 
-		await StoreService.BeginCrawlRun(
-			new BeginCrawlRunRequest({
-				workspaceId: params.workspaceId,
-				runId,
-				mode: params.mode,
-				startedAt,
-			}),
-		);
-
-		const finishRun = async (
-			status: string,
-			summary?: Omit<CrawlRunSummary, 'id' | 'startedAt'>,
-			errorMessage?: string,
-		) => {
-			await StoreService.FinishCrawlRun(
-				new FinishCrawlRunRequest({
-					workspaceId: params.workspaceId,
-					runId,
-					status,
-					finishedAt: new Date().toISOString(),
-					summaryJson: summary ? JSON.stringify(summary) : undefined,
-					errorMessage,
-				}),
-			);
-		};
-
+		let runId = '';
 		const unsubscribers: Array<() => void> = [];
 		const cleanup = () => {
 			for (const off of unsubscribers) off();
 			unsubscribers.length = 0;
 		};
 
-		const matchesRun = (payload: CrawlEventPayload) => payload.runId === runId;
+		const matchesRun = (payload: CrawlEventPayload) =>
+			runId !== '' && payload.runId === runId;
 
 		await new Promise<void>((resolve) => {
 			let settled = false;
@@ -284,7 +246,7 @@ export class CompositeScraperAdapter implements ScraperPort {
 			};
 
 			const onAbort = () => {
-				void ScraperService.StopCrawl(runId);
+				if (runId) void ScraperService.StopCrawl(runId);
 			};
 			params.signal.addEventListener('abort', onAbort);
 
@@ -302,87 +264,21 @@ export class CompositeScraperAdapter implements ScraperPort {
 
 			subscribe(TOPIC_NODE_STARTED, (p) => {
 				if (!p.nodeId || !p.url) return;
-				void StoreService.PatchGraphNodeStatus(
-					new PatchGraphNodeStatusRequest({
-						workspaceId: params.workspaceId,
-						nodeId: p.nodeId,
-						status: 'running',
-					}),
-				);
 				params.onNodeStarted(p.nodeId, p.url);
 			});
 
 			subscribe(TOPIC_NODE_SUCCEEDED, (p) => {
 				if (!p.nodeId || !p.result) return;
-				void (async () => {
-					const result = p.result!;
-					const markdown = result.markdown ?? '';
-					const contentHash = markdown
-						? await contentHashFromMarkdown(markdown)
-						: '';
-					await StoreService.AppendNodeResult(
-						new AppendNodeResultRequest({
-							workspaceId: params.workspaceId,
-							runId,
-							nodeId: p.nodeId!,
-							url: result.url,
-							markdown,
-							linksJson: result.links
-								? JSON.stringify(result.links)
-								: undefined,
-							metadataJson: result.metadata
-								? JSON.stringify(result.metadata)
-								: undefined,
-							fetchedAt: new Date().toISOString(),
-							contentHash,
-						}),
-					);
-					await StoreService.PatchGraphNodeStatus(
-						new PatchGraphNodeStatusRequest({
-							workspaceId: params.workspaceId,
-							nodeId: p.nodeId!,
-							status: 'success',
-						}),
-					);
-					params.onNodeSucceeded(p.nodeId!, result);
-				})();
+				params.onNodeSucceeded(p.nodeId, p.result);
 			});
 
 			subscribe(TOPIC_NODE_FAILED, (p) => {
 				if (!p.nodeId || !p.url) return;
-				void (async () => {
-					const error = p.error ?? 'unknown error';
-					await StoreService.AppendNodeResult(
-						new AppendNodeResultRequest({
-							workspaceId: params.workspaceId,
-							runId,
-							nodeId: p.nodeId!,
-							url: p.url!,
-							error,
-							fetchedAt: new Date().toISOString(),
-						}),
-					);
-					await StoreService.PatchGraphNodeStatus(
-						new PatchGraphNodeStatusRequest({
-							workspaceId: params.workspaceId,
-							nodeId: p.nodeId!,
-							status: 'error',
-							lastError: error,
-						}),
-					);
-					params.onNodeFailed(p.nodeId!, p.url!, error);
-				})();
+				params.onNodeFailed(p.nodeId, p.url, p.error ?? 'unknown error');
 			});
 
 			subscribe(TOPIC_NODE_SKIPPED, (p) => {
 				if (!p.nodeId || !p.url) return;
-				void StoreService.PatchGraphNodeStatus(
-					new PatchGraphNodeStatusRequest({
-						workspaceId: params.workspaceId,
-						nodeId: p.nodeId,
-						status: 'skipped',
-					}),
-				);
 				params.onNodeSkipped(p.nodeId, p.url, p.reason ?? 'skipped');
 			});
 
@@ -394,41 +290,24 @@ export class CompositeScraperAdapter implements ScraperPort {
 
 			subscribe(TOPIC_EDGE_DISCOVERED, (p) => {
 				if (!p.sourceId || !p.targetId || !p.targetUrl) return;
-				void (async () => {
-					await StoreService.UpsertDiscoveredGraph(
-						new UpsertDiscoveredGraphRequest({
-							workspaceId: params.workspaceId,
-							sourceId: p.sourceId,
-							targetId: p.targetId,
-							targetUrl: p.targetUrl,
-						}),
-					);
-					params.onEdgeDiscovered(p.sourceId, p.targetId, p.targetUrl);
-				})();
+				params.onEdgeDiscovered(p.sourceId, p.targetId, p.targetUrl);
 			});
 
 			subscribe(TOPIC_CRAWL_COMPLETED, (p) => {
 				params.signal.removeEventListener('abort', onAbort);
-				const summary = p.summary;
-				void finishRun('completed', summary).then(() => {
-					if (summary) params.onCrawlCompleted(summary);
-					done();
-				});
+				if (p.summary) params.onCrawlCompleted(p.summary);
+				done();
 			});
 
 			subscribe(TOPIC_CRAWL_ERROR, (p) => {
 				params.signal.removeEventListener('abort', onAbort);
-				const message = p.message ?? 'crawl error';
-				void finishRun('error', undefined, message).then(() => {
-					params.onCrawlError(message);
-					done();
-				});
+				params.onCrawlError(p.message ?? 'crawl error');
+				done();
 			});
 
-			const wsDto = workspaceToDTO(ws);
 			void ScraperService.StartCrawl(
 				new StartCrawlRequest({
-					runId,
+					runId: '',
 					workspaceId: params.workspaceId,
 					mode: params.mode,
 					startNodeId: params.startNodeId ?? '',
@@ -437,14 +316,17 @@ export class CompositeScraperAdapter implements ScraperPort {
 					appDefaults: partialConfigToRaw(params.appDefaults),
 					workspace: wsDto,
 				}),
-			).catch((err: unknown) => {
-				params.signal.removeEventListener('abort', onAbort);
-				const message = err instanceof Error ? err.message : String(err);
-				void finishRun('error', undefined, message).then(() => {
+			)
+				.then((id) => {
+					runId = id;
+					params.onRunStarted?.(runId);
+				})
+				.catch((err: unknown) => {
+					params.signal.removeEventListener('abort', onAbort);
+					const message = err instanceof Error ? err.message : String(err);
 					params.onCrawlError(message);
 					done();
 				});
-			});
 		});
 
 		return runId;

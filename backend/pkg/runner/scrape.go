@@ -12,7 +12,15 @@ import (
 // ScrapeWithConfig は 1 URL を任意 Config で実行する。
 //
 // 呼び出しごとに Kernel を Init し、完了後に Close する（案 A）。
-func ScrapeWithConfig(ctx context.Context, rawURL string, cfg *model.Config, progress ProgressSink) (*model.Result, error) {
+// opts が nil の場合は pause なしで実行する。
+func ScrapeWithConfig(ctx context.Context, rawURL string, cfg *model.Config, progress ProgressSink, opts *RunOptions) (*model.Result, error) {
+	if opts != nil && opts.Cache != nil {
+		var pause *PauseController
+		if opts.Pause != nil {
+			pause = opts.Pause
+		}
+		return opts.Cache.ScrapeWithConfig(ctx, rawURL, cfg, progress, pause)
+	}
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
@@ -29,6 +37,12 @@ func ScrapeWithConfig(ctx context.Context, rawURL string, cfg *model.Config, pro
 	defer func() { _ = k.Close(ctx) }()
 
 	urlStr := u.String()
+	if opts != nil && opts.Pause != nil {
+		if err := opts.Pause.WaitIfPaused(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	core.EmitProgress(progress, core.ProgressEvent{
 		Kind: core.ProgressStarted,
 		URL:  urlStr,

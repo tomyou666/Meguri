@@ -8,7 +8,7 @@ Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `Sc
 
 | フェーズ | Go Wails サービス | クロール実行 | 進捗配信 |
 |----------|-------------------|--------------|----------|
-| **Phase 3（現行）** | **`StoreService`** + **`ProjectService`** + **`ScraperService`** | Go `backend` in-process（`scraperbot/pkg/runner`） | Wails Event → TS adapter コールバック |
+| **Phase 3 v2（現行）** | **`StoreService`** + **`ProjectService`** + **`ScraperService`** | Go `backend` in-process（`scraperbot/pkg/runner` + PauseController + RunnerCache） | Wails Event → TS adapter UI コールバック（永続化は Go） |
 | Phase 2（完了） | `StoreService` + `ProjectService` | TS `crawlStub`（削除済み） | コールバック |
 
 ## 通信モデル
@@ -24,8 +24,8 @@ Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `Sc
 
 | Wails | 説明 |
 |-------|------|
-| `StartCrawl` | ワークスペーススナップショット + マージ済み設定でクロール開始（goroutine）。`rescrapeExisting` で success ノード再取得の有無を制御 |
-| `PauseCrawl` | 実行中ジョブを一時停止（v1: オーケストレーション層） |
+| `StartCrawl` | ワークスペーススナップショット + マージ済み設定でクロール開始（goroutine）。**戻り値 `runId`**。`BeginCrawlRun` は Go 内で実行 |
+| `PauseCrawl` | 実行中ジョブを一時停止（backend `PauseController`） |
 | `ResumeCrawl` | 一時停止を解除 |
 | `StopCrawl` | context cancel で停止 |
 
@@ -33,6 +33,7 @@ Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `Sc
 
 | topic | 説明 |
 |-------|------|
+| `scraper:crawl:runStarted` | crawl 開始（workspaceId / runId） |
 | `scraper:crawl:nodeStarted` | ノード処理開始 |
 | `scraper:crawl:nodeSucceeded` | 成功 + result |
 | `scraper:crawl:nodeFailed` | 失敗 + error |
@@ -42,7 +43,7 @@ Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `Sc
 | `scraper:crawl:completed` | ジョブ完了 + summary |
 | `scraper:crawl:error` | ジョブ全体エラー |
 
-payload: `CrawlEventPayload`（`workspaceId`, `runId` + イベント固有フィールド）。TS adapter が `runId` でフィルタし `StoreService` 永続化 + `StartCrawlParams` コールバックへ橋渡し。
+payload: `CrawlEventPayload`（`workspaceId`, `runId` + イベント固有フィールド）。TS adapter が `runId` でフィルタし `StartCrawlParams` コールバック（UI 更新）へ橋渡し。ノード永続化は `ScraperService` が Go 内で完結。
 
 ## App config
 
@@ -80,16 +81,16 @@ payload: `CrawlEventPayload`（`workspaceId`, `runId` + イベント固有フィ
 | `DeleteResults` | `deleteResults` | 最新 1 件削除 |
 | `SaveResultsSnapshot` | `saveResultsSnapshot` | baseline snapshot |
 
-## Crawl 永続化（StoreService）
+## Crawl 永続化（ScraperService / v2）
 
-`compositeScraperAdapter.startCrawl` が Event 受信時に呼び出す:
+`ScraperService` が `CrawlPersistService` 経由で SQLite を更新（TS adapter は RPC しない）:
 
-| Wails | タイミング |
-|-------|-----------|
-| `BeginCrawlRun` | crawl 開始（adapter が `runId` 生成） |
-| `AppendNodeResult` | ノード成功/失敗 |
-| `PatchGraphNodeStatus` | status 更新 |
-| `FinishCrawlRun` | 完了/エラー |
+| 操作 | タイミング |
+|------|-----------|
+| `BeginCrawlRun` | `StartCrawl` 同期部（`runId` 生成直後） |
+| `AppendNodeResult` / `PatchGraphNodeStatus` | 各 node Event 発火前 |
+| `UpsertDiscoveredGraph` | `edgeDiscovered` 発火前 |
+| `FinishCrawlRun` | completed / stopped / error |
 
 ## Project (.scrb)
 

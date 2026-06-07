@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	topicRunStarted     = "scraper:crawl:runStarted"
 	topicNodeStarted    = "scraper:crawl:nodeStarted"
 	topicNodeSucceeded  = "scraper:crawl:nodeSucceeded"
 	topicNodeFailed     = "scraper:crawl:nodeFailed"
@@ -29,20 +30,22 @@ const (
 
 // ScraperService は backend crawler を駆動し Wails Event で進捗を配信する。
 type ScraperService struct {
-	app *application.App
-	mu  sync.Mutex
-	job *activeCrawlJob
+	app     *application.App
+	persist *domain.CrawlPersistService
+	mu      sync.Mutex
+	job     *activeCrawlJob
 }
 
 type activeCrawlJob struct {
 	runID  string
-	paused bool
+	pause  *runner.PauseController
+	cache  *runner.RunnerCache
 	cancel context.CancelFunc
 }
 
 // NewScraperService は ScraperService を構築する。
-func NewScraperService() *ScraperService {
-	return &ScraperService{}
+func NewScraperService(persist *domain.CrawlPersistService) *ScraperService {
+	return &ScraperService{persist: persist}
 }
 
 // SetApp は Wails App を後から注入する（Event 発火用）。
@@ -50,39 +53,69 @@ func (s *ScraperService) SetApp(app *application.App) {
 	s.app = app
 }
 
-// StartCrawl はクロールを非同期で開始する。
-func (s *ScraperService) StartCrawl(req model.StartCrawlRequest) error {
+// StartCrawl はクロールを非同期で開始し runId を返す。
+func (s *ScraperService) StartCrawl(req model.StartCrawlRequest) (string, error) {
 	if s.app == nil {
-		return fmt.Errorf("app not initialized")
+		return "", fmt.Errorf("app not initialized")
 	}
-	if req.RunID == "" || req.WorkspaceID == "" {
-		return fmt.Errorf("runId and workspaceId are required")
+	if req.WorkspaceID == "" {
+		return "", fmt.Errorf("workspaceId is required")
+	}
+	if s.persist == nil {
+		return "", fmt.Errorf("persist service not initialized")
+	}
+
+	runID := domain.NewRunID()
+	req.RunID = runID
+	startedAt := domain.NowISO()
+
+	if err := s.persist.BeginCrawlRun(context.Background(), model.BeginCrawlRunRequest{
+		WorkspaceID: req.WorkspaceID,
+		RunID:       runID,
+		Mode:        req.Mode,
+		StartedAt:   startedAt,
+	}); err != nil {
+		return "", err
 	}
 
 	s.mu.Lock()
 	if s.job != nil {
 		s.mu.Unlock()
-		return fmt.Errorf("crawl already running")
+		return "", fmt.Errorf("crawl already running")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	s.job = &activeCrawlJob{runID: req.RunID, cancel: cancel}
+	s.job = &activeCrawlJob{
+		runID:  runID,
+		pause:  runner.NewPauseController(),
+		cache:  runner.NewRunnerCache(),
+		cancel: cancel,
+	}
 	s.mu.Unlock()
+
+	s.emit(topicRunStarted, model.CrawlEventPayload{
+		WorkspaceID: req.WorkspaceID,
+		RunID:       runID,
+	})
 
 	go func() {
 		defer func() {
 			s.mu.Lock()
+			if s.job != nil && s.job.cache != nil {
+				s.job.cache.CloseAll()
+			}
 			s.job = nil
 			s.mu.Unlock()
 		}()
 		if err := s.runCrawl(ctx, req); err != nil {
+			s.finishCrawlRun(ctx, req, "error", nil, err.Error())
 			s.emit(topicCrawlError, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
-				RunID:       req.RunID,
+				RunID:       runID,
 				Message:     err.Error(),
 			})
 		}
 	}()
-	return nil
+	return runID, nil
 }
 
 // PauseCrawl は実行中 crawl を一時停止する。
@@ -92,7 +125,7 @@ func (s *ScraperService) PauseCrawl(runID string) error {
 	if s.job == nil || s.job.runID != runID {
 		return fmt.Errorf("no active crawl for runId %s", runID)
 	}
-	s.job.paused = true
+	s.job.pause.Pause()
 	return nil
 }
 
@@ -103,7 +136,7 @@ func (s *ScraperService) ResumeCrawl(runID string) error {
 	if s.job == nil || s.job.runID != runID {
 		return fmt.Errorf("no active crawl for runId %s", runID)
 	}
-	s.job.paused = false
+	s.job.pause.Resume()
 	return nil
 }
 
@@ -118,20 +151,15 @@ func (s *ScraperService) StopCrawl(runID string) error {
 	return nil
 }
 
-func (s *ScraperService) waitIfPaused(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-		s.mu.Lock()
-		paused := s.job != nil && s.job.paused
-		s.mu.Unlock()
-		if !paused {
-			return nil
-		}
-		time.Sleep(100 * time.Millisecond)
+func (s *ScraperService) runOptions() *runner.RunOptions {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.job == nil {
+		return nil
+	}
+	return &runner.RunOptions{
+		Pause: s.job.pause,
+		Cache: s.job.cache,
 	}
 }
 
@@ -140,6 +168,137 @@ func (s *ScraperService) emit(topic string, payload model.CrawlEventPayload) {
 		return
 	}
 	s.app.Event.Emit(topic, payload)
+}
+
+func (s *ScraperService) finishCrawlRun(
+	ctx context.Context,
+	req model.StartCrawlRequest,
+	status string,
+	summary *model.CrawlSummaryDTO,
+	errMsg string,
+) {
+	if s.persist == nil {
+		return
+	}
+	var summaryJSON json.RawMessage
+	if summary != nil {
+		if b, err := json.Marshal(summary); err == nil {
+			summaryJSON = b
+		}
+	}
+	_ = s.persist.FinishCrawlRun(ctx, model.FinishCrawlRunRequest{
+		WorkspaceID:  req.WorkspaceID,
+		RunID:        req.RunID,
+		Status:       status,
+		FinishedAt:   domain.NowISO(),
+		SummaryJSON:  summaryJSON,
+		ErrorMessage: errMsg,
+	})
+}
+
+func (s *ScraperService) persistNodeStarted(ctx context.Context, req model.StartCrawlRequest, nodeID string) {
+	if s.persist == nil || nodeID == "" {
+		return
+	}
+	_ = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
+		WorkspaceID: req.WorkspaceID,
+		NodeID:      nodeID,
+		Status:      "running",
+	})
+}
+
+func (s *ScraperService) persistNodeSucceeded(
+	ctx context.Context,
+	req model.StartCrawlRequest,
+	nodeID, url string,
+	result *model.CrawlNodeResultDTO,
+) {
+	if s.persist == nil || nodeID == "" || result == nil {
+		return
+	}
+	markdown := result.Markdown
+	contentHash := ""
+	if markdown != "" {
+		contentHash = domain.ContentHashFromMarkdown(markdown)
+	}
+	var linksJSON, metadataJSON string
+	if len(result.Links) > 0 {
+		if b, err := json.Marshal(result.Links); err == nil {
+			linksJSON = string(b)
+		}
+	}
+	if len(result.Metadata) > 0 {
+		if b, err := json.Marshal(result.Metadata); err == nil {
+			metadataJSON = string(b)
+		}
+	}
+	_ = s.persist.AppendNodeResult(ctx, model.AppendNodeResultRequest{
+		WorkspaceID:  req.WorkspaceID,
+		RunID:        req.RunID,
+		NodeID:       nodeID,
+		URL:          url,
+		Markdown:     markdown,
+		LinksJSON:    linksJSON,
+		MetadataJSON: metadataJSON,
+		FetchedAt:    domain.NowISO(),
+		ContentHash:  contentHash,
+	})
+	_ = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
+		WorkspaceID: req.WorkspaceID,
+		NodeID:      nodeID,
+		Status:      "success",
+	})
+}
+
+func (s *ScraperService) persistNodeFailed(
+	ctx context.Context,
+	req model.StartCrawlRequest,
+	nodeID, url, errMsg string,
+) {
+	if s.persist == nil || nodeID == "" {
+		return
+	}
+	_ = s.persist.AppendNodeResult(ctx, model.AppendNodeResultRequest{
+		WorkspaceID: req.WorkspaceID,
+		RunID:       req.RunID,
+		NodeID:      nodeID,
+		URL:         url,
+		Error:       errMsg,
+		FetchedAt:   domain.NowISO(),
+	})
+	_ = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
+		WorkspaceID: req.WorkspaceID,
+		NodeID:      nodeID,
+		Status:      "error",
+		LastError:   errMsg,
+	})
+}
+
+func (s *ScraperService) persistNodeSkipped(ctx context.Context, req model.StartCrawlRequest, nodeID string) {
+	if s.persist == nil || nodeID == "" {
+		return
+	}
+	_ = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
+		WorkspaceID: req.WorkspaceID,
+		NodeID:      nodeID,
+		Status:      "skipped",
+	})
+}
+
+func (s *ScraperService) persistEdgeDiscovered(
+	ctx context.Context,
+	req model.StartCrawlRequest,
+	sourceID, targetID, targetURL string,
+) {
+	if s.persist == nil {
+		return
+	}
+	_ = s.persist.UpsertDiscoveredGraph(ctx, model.UpsertDiscoveredGraphRequest{
+		WorkspaceID: req.WorkspaceID,
+		SourceID:    sourceID,
+		TargetID:    targetID,
+		TargetURL:   targetURL,
+	})
 }
 
 func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlRequest) error {
@@ -152,25 +311,31 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 	)
 
 	emitSummary := func() {
+		status := "completed"
+		if stoppedReason == "stopped" {
+			status = "stopped"
+		}
+		summary := &model.CrawlSummaryDTO{
+			Mode:                  req.Mode,
+			FinishedAt:            time.Now().UTC().Format(time.RFC3339),
+			Enqueued:              enqueued,
+			Succeeded:             succeeded,
+			Failed:                failed,
+			Skipped:               skipped,
+			SkippedDuplicateLinks: state.linkSkippedCount,
+			StoppedReason:         stoppedReason,
+		}
+		s.finishCrawlRun(ctx, req, status, summary, "")
 		s.emit(topicCrawlCompleted, model.CrawlEventPayload{
 			WorkspaceID: req.WorkspaceID,
 			RunID:       req.RunID,
-			Summary: &model.CrawlSummaryDTO{
-				Mode:                  req.Mode,
-				FinishedAt:            time.Now().UTC().Format(time.RFC3339),
-				Enqueued:              enqueued,
-				Succeeded:             succeeded,
-				Failed:                failed,
-				Skipped:               skipped,
-				SkippedDuplicateLinks: state.linkSkippedCount,
-				StoppedReason:         stoppedReason,
-			},
+			Summary:     summary,
 		})
 	}
 
 	switch req.Mode {
 	case 1, 2:
-		stats, mainReached, err := s.runMainBFS(ctx, req, state, &enqueued, &succeeded, &failed, &skipped)
+		stats, mainReached, err := s.runMainBFS(ctx, req, state, s.runOptions(), &enqueued, &succeeded, &failed, &skipped)
 		if err != nil {
 			if ctx.Err() != nil {
 				stoppedReason = "stopped"
@@ -185,7 +350,7 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 			failed = stats.Failed
 			skipped = stats.Skipped
 		}
-		if err := s.runManualPass(ctx, req, state, mainReached, &enqueued, &succeeded, &failed, &skipped); err != nil {
+		if err := s.runManualPass(ctx, req, state, mainReached, s.runOptions(), &enqueued, &succeeded, &failed, &skipped); err != nil {
 			if ctx.Err() != nil {
 				stoppedReason = "stopped"
 				emitSummary()
@@ -194,7 +359,7 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 			return err
 		}
 	case 3:
-		if err := s.runMode3(ctx, req, state, &enqueued, &succeeded, &failed, &skipped); err != nil {
+		if err := s.runMode3(ctx, req, state, s.runOptions(), &enqueued, &succeeded, &failed, &skipped); err != nil {
 			if ctx.Err() != nil {
 				stoppedReason = "stopped"
 				emitSummary()
@@ -206,7 +371,7 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 		for _, n := range ws.Nodes {
 			mainReached[n.ID] = struct{}{}
 		}
-		if err := s.runManualPass(ctx, req, state, mainReached, &enqueued, &succeeded, &failed, &skipped); err != nil {
+		if err := s.runManualPass(ctx, req, state, mainReached, s.runOptions(), &enqueued, &succeeded, &failed, &skipped); err != nil {
 			if ctx.Err() != nil {
 				stoppedReason = "stopped"
 				emitSummary()
@@ -272,16 +437,6 @@ func newCrawlState(req model.StartCrawlRequest) *crawlState {
 		st.outEdges[e.Source] = append(st.outEdges[e.Source], e.Target)
 	}
 	return st
-}
-
-func (st *crawlState) nodeIDForURL(rawURL string, create bool) (string, bool) {
-	key := rawURL
-	if norm, err := domain.NormalizeCrawlURL(rawURL); err == nil {
-		key = norm
-	}
-	st.mu.Lock()
-	defer st.mu.Unlock()
-	return st.nodeIDForURLLocked(key, create)
 }
 
 func (st *crawlState) crawlURLKey(rawURL string) string {
@@ -407,6 +562,7 @@ func (s *ScraperService) runMainBFS(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	st *crawlState,
+	opts *runner.RunOptions,
 	enqueued, succeeded, failed, skipped *int,
 ) (*runner.CrawlStats, map[string]struct{}, error) {
 	ws := req.Workspace
@@ -466,6 +622,7 @@ func (s *ScraperService) runMainBFS(
 			childID, _ := st.nodeIDForURLLocked(childKey, true)
 			st.markMaterialized(childKey)
 			st.mu.Unlock()
+			s.persistEdgeDiscovered(ctx, req, parentID, childID, childKey)
 			s.emit(topicEdgeDiscovered, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
@@ -484,6 +641,7 @@ func (s *ScraperService) runMainBFS(
 			if nodeID == "" {
 				return
 			}
+			s.persistNodeStarted(ctx, req, nodeID)
 			s.emit(topicNodeStarted, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
@@ -501,18 +659,21 @@ func (s *ScraperService) runMainBFS(
 			if nodeID == "" {
 				return
 			}
+			dto := resultToDTO(ev.Result)
+			s.persistNodeSucceeded(ctx, req, nodeID, urlKey, dto)
 			s.emit(topicNodeSucceeded, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
 				NodeID:      nodeID,
 				URL:         urlKey,
-				Result:      resultToDTO(ev.Result),
+				Result:      dto,
 			})
 		case runner.ProgressFailed:
 			nodeID, urlKey := st.resolveNodeID(ev.URL, false)
 			if nodeID == "" {
 				return
 			}
+			s.persistNodeFailed(ctx, req, nodeID, urlKey, ev.Error)
 			s.emit(topicNodeFailed, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
@@ -534,6 +695,7 @@ func (s *ScraperService) runMainBFS(
 			if nodeID == "" {
 				return
 			}
+			s.persistNodeSkipped(ctx, req, nodeID)
 			s.emit(topicNodeSkipped, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
@@ -544,11 +706,7 @@ func (s *ScraperService) runMainBFS(
 		}
 	}
 
-	if err := s.waitIfPaused(ctx); err != nil {
-		return nil, mainReached, err
-	}
-
-	stats, err := runner.CrawlWithProgress(ctx, cfg, []string{seedURL}, progress)
+	stats, err := runner.CrawlWithProgress(ctx, cfg, []string{seedURL}, progress, opts)
 	return stats, mainReached, err
 }
 
@@ -556,6 +714,7 @@ func (s *ScraperService) runMode3(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	st *crawlState,
+	opts *runner.RunOptions,
 	enqueued, succeeded, failed, skipped *int,
 ) error {
 	if req.StartNodeID == "" {
@@ -569,9 +728,6 @@ func (s *ScraperService) runMode3(
 	visit := append([]string{req.StartNodeID}, order...)
 
 	for _, nodeID := range visit {
-		if err := s.waitIfPaused(ctx); err != nil {
-			return err
-		}
 		node, ok := st.nodeByID[nodeID]
 		if !ok {
 			continue
@@ -582,6 +738,7 @@ func (s *ScraperService) runMode3(
 		}
 		if _, ex := st.excludeSet[node.URLNormalized]; ex || node.CrawlExclude {
 			*skipped++
+			s.persistNodeSkipped(ctx, req, nodeID)
 			s.emit(topicNodeSkipped, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
@@ -592,7 +749,7 @@ func (s *ScraperService) runMode3(
 			continue
 		}
 		*enqueued++
-		if err := s.scrapeOneNode(ctx, req, st, node); err != nil {
+		if err := s.scrapeOneNode(ctx, req, st, node, opts); err != nil {
 			if ctx.Err() != nil {
 				return err
 			}
@@ -609,6 +766,7 @@ func (s *ScraperService) runManualPass(
 	req model.StartCrawlRequest,
 	st *crawlState,
 	mainReached map[string]struct{},
+	opts *runner.RunOptions,
 	enqueued, succeeded, failed, skipped *int,
 ) error {
 	for _, node := range st.nodeByID {
@@ -624,6 +782,7 @@ func (s *ScraperService) runManualPass(
 		}
 		if _, ex := st.excludeSet[node.URLNormalized]; ex || node.CrawlExclude {
 			*skipped++
+			s.persistNodeSkipped(ctx, req, node.ID)
 			s.emit(topicNodeSkipped, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
@@ -633,11 +792,8 @@ func (s *ScraperService) runManualPass(
 			})
 			continue
 		}
-		if err := s.waitIfPaused(ctx); err != nil {
-			return err
-		}
 		*enqueued++
-		if err := s.scrapeOneNode(ctx, req, st, node); err != nil {
+		if err := s.scrapeOneNode(ctx, req, st, node, opts); err != nil {
 			if ctx.Err() != nil {
 				return err
 			}
@@ -654,6 +810,7 @@ func (s *ScraperService) scrapeOneNode(
 	req model.StartCrawlRequest,
 	st *crawlState,
 	node model.GraphNodeDTO,
+	opts *runner.RunOptions,
 ) error {
 	cfg, err := st.mergedConfig(req.Mode, node)
 	if err != nil {
@@ -665,6 +822,7 @@ func (s *ScraperService) scrapeOneNode(
 	progress := func(ev runner.ProgressEvent) {
 		switch ev.Kind {
 		case runner.ProgressStarted:
+			s.persistNodeStarted(ctx, req, node.ID)
 			s.emit(topicNodeStarted, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
@@ -672,15 +830,18 @@ func (s *ScraperService) scrapeOneNode(
 				URL:         ev.URL,
 			})
 		case runner.ProgressSucceeded:
+			dto := resultToDTO(ev.Result)
+			s.persistNodeSucceeded(ctx, req, node.ID, ev.URL, dto)
 			s.emit(topicNodeSucceeded, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
 				NodeID:      node.ID,
 				URL:         ev.URL,
-				Result:      resultToDTO(ev.Result),
+				Result:      dto,
 			})
 		case runner.ProgressFailed:
 			failed = true
+			s.persistNodeFailed(ctx, req, node.ID, ev.URL, ev.Error)
 			s.emit(topicNodeFailed, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
 				RunID:       req.RunID,
@@ -691,7 +852,7 @@ func (s *ScraperService) scrapeOneNode(
 		}
 	}
 
-	_, err = runner.ScrapeWithConfig(ctx, node.URLNormalized, cfg, progress)
+	_, err = runner.ScrapeWithConfig(ctx, node.URLNormalized, cfg, progress, opts)
 	if err != nil {
 		return err
 	}

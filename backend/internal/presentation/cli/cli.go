@@ -14,6 +14,7 @@ import (
 	"scraperbot/internal/domain/model"
 	"scraperbot/internal/infrastructure/configloader"
 	"scraperbot/internal/logger"
+	"scraperbot/pkg/runner"
 )
 
 // App は CLI 実行に必要な I/O 依存をまとめる。テスト時はここを差し替える。
@@ -64,16 +65,16 @@ func (a *App) RunApp() int {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	if cfg.Crawl.Enabled {
+		return a.runCrawl(ctx, &cfg, flags)
+	}
+
 	application, cleanup, err := app.Initialize(ctx, &cfg)
 	if err != nil {
 		slog.Error("Kernel初期化エラー", "err", err)
 		return 1
 	}
 	defer cleanup()
-
-	if cfg.Crawl.Enabled {
-		return a.runCrawl(ctx, &cfg, application)
-	}
 	return a.runSingle(ctx, &cfg, application, flags)
 }
 
@@ -96,9 +97,13 @@ func (a *App) runSingle(ctx context.Context, cfg *model.Config, application *app
 	return 0
 }
 
-// runCrawl はクロールモードで複数 URL を巡回し結果を出力ディレクトリへ保存する。
-func (a *App) runCrawl(ctx context.Context, cfg *model.Config, application *app.Application) int {
-	stats, _, err := application.Crawl.Run(ctx, cfg.Targets)
+// runCrawl は pkg/runner 経由で BFS クロールを実行する。
+func (a *App) runCrawl(ctx context.Context, cfg *model.Config, flags *Flags) int {
+	var progress runner.ProgressSink
+	if flags.ProgressJSON {
+		progress = newProgressJSONSink(a.Stderr)
+	}
+	stats, err := runner.CrawlWithProgress(ctx, cfg, cfg.Targets, progress, nil)
 	if err != nil {
 		slog.Error("クロール失敗", "err", err)
 		return 1

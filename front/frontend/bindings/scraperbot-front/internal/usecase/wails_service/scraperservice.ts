@@ -39,9 +39,9 @@ export function SetApp(app: application$0.App | null): $CancellablePromise<void>
 }
 
 /**
- * StartCrawl はクロールを非同期で開始する。
+ * StartCrawl はクロールを非同期で開始し runId を返す。
  */
-export function StartCrawl(req: model$0.StartCrawlRequest): $CancellablePromise<void> {
+export function StartCrawl(req: model$0.StartCrawlRequest): $CancellablePromise<string> {
     return $Call.ByID(1172127101, req);
 }
 

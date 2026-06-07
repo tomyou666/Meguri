@@ -11,7 +11,9 @@ import (
 )
 
 // CrawlWithProgress はマージ済み Config とシード URL から BFS クロールを実行する。
-func CrawlWithProgress(ctx context.Context, cfg *model.Config, seeds []string, progress ProgressSink) (*CrawlStats, error) {
+//
+// opts が nil の場合は pause なしで実行する。
+func CrawlWithProgress(ctx context.Context, cfg *model.Config, seeds []string, progress ProgressSink, opts *RunOptions) (*CrawlStats, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
@@ -42,6 +44,9 @@ func CrawlWithProgress(ctx context.Context, cfg *model.Config, seeds []string, p
 	}
 
 	crawler := core.NewCrawler(k, pipeline, robotsChecker, nil, progress)
+	if opts != nil && opts.Pause != nil {
+		crawler.SetPauseController(opts.Pause)
+	}
 	stats, err := crawler.Run(ctx, parsed)
 	if err != nil {
 		core.EmitProgress(progress, core.ProgressEvent{
