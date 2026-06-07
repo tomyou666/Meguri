@@ -28,5 +28,6 @@ type Repository interface {
 	TrimCrawlRuns(ctx context.Context, workspaceID string, keep int) error
 
 	PatchGraphNodeStatus(ctx context.Context, workspaceID, nodeID, status string, lastError *string) error
+	UpsertDiscoveredGraph(ctx context.Context, workspaceID, sourceNodeID, targetNodeID, targetURL string) error
 	SetBaselineRunID(ctx context.Context, workspaceID, runID string) error
 }

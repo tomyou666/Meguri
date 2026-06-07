@@ -39,6 +39,7 @@ func newGraphNode(db *gorm.DB, opts ...gen.DOOption) graphNode {
 	_graphNode.CrawlExclude = field.NewInt32(tableName, "crawl_exclude")
 	_graphNode.Status = field.NewString(tableName, "status")
 	_graphNode.LastError = field.NewString(tableName, "last_error")
+	_graphNode.Origin = field.NewString(tableName, "origin")
 
 	_graphNode.fillFieldMap()
 
@@ -60,6 +61,7 @@ type graphNode struct {
 	CrawlExclude     field.Int32
 	Status           field.String
 	LastError        field.String
+	Origin           field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -87,6 +89,7 @@ func (g *graphNode) updateTableName(table string) *graphNode {
 	g.CrawlExclude = field.NewInt32(table, "crawl_exclude")
 	g.Status = field.NewString(table, "status")
 	g.LastError = field.NewString(table, "last_error")
+	g.Origin = field.NewString(table, "origin")
 
 	g.fillFieldMap()
 
@@ -113,7 +116,7 @@ func (g *graphNode) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (g *graphNode) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 11)
+	g.fieldMap = make(map[string]field.Expr, 12)
 	g.fieldMap["workspace_id"] = g.WorkspaceID
 	g.fieldMap["id"] = g.ID
 	g.fieldMap["url_normalized"] = g.URLNormalized
@@ -125,6 +128,7 @@ func (g *graphNode) fillFieldMap() {
 	g.fieldMap["crawl_exclude"] = g.CrawlExclude
 	g.fieldMap["status"] = g.Status
 	g.fieldMap["last_error"] = g.LastError
+	g.fieldMap["origin"] = g.Origin
 }
 
 func (g graphNode) clone(db *gorm.DB) graphNode {

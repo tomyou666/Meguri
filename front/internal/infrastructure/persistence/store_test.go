@@ -13,12 +13,17 @@ import (
 )
 
 func applyTestSchema(db *gorm.DB) error {
-	path := filepath.Join("..", "..", "app", "migrations", "000001_init.up.sql")
-	sqlBytes, err := os.ReadFile(path)
-	if err != nil {
-		return err
+	for _, name := range []string{"000001_init.up.sql", "000002_origin.up.sql"} {
+		path := filepath.Join("..", "..", "app", "migrations", name)
+		sqlBytes, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if err := db.Exec(string(sqlBytes)).Error; err != nil {
+			return err
+		}
 	}
-	return db.Exec(string(sqlBytes)).Error
+	return nil
 }
 
 func TestStoreBootstrapAndWorkspaceRoundTrip(t *testing.T) {
@@ -61,11 +66,23 @@ func TestStoreBootstrapAndWorkspaceRoundTrip(t *testing.T) {
 			CreatedAt:            "2026-01-01T00:00:00Z",
 			UpdatedAt:            "2026-01-01T00:00:00Z",
 		},
-		Nodes: []model.GraphNode{{
-			WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com",
-			Label: "example", PositionX: 0, PositionY: 0,
-			NodeSettingsJSON: `{}`, Status: model.StrPtr("idle"),
-		}},
+		Nodes: []model.GraphNode{
+			{
+				WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com",
+				Label: "example", PositionX: 0, PositionY: 0,
+				NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("idle"),
+			},
+			{
+				WorkspaceID: wsID, ID: "n2", URLNormalized: "https://example.com/a",
+				Label: "a", PositionX: 100, PositionY: 0, UserPositioned: 1,
+				NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+			},
+			{
+				WorkspaceID: wsID, ID: "n3", URLNormalized: "https://example.com/b",
+				Label: "b", PositionX: 200, PositionY: 0,
+				NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("skipped"),
+			},
+		},
 	}
 	if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
 		t.Fatalf("save ws: %v", err)

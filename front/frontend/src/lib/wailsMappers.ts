@@ -32,15 +32,15 @@ export function workspaceFromDTO(dto: WorkspaceDTO): Workspace {
 }
 
 export function workspaceToDTO(ws: Workspace): WorkspaceDTO {
-	const domainSettings: Record<string, string> = {};
+	const domainSettings: Record<string, PartialConfig> = {};
 	for (const [host, cfg] of Object.entries(ws.domainSettings)) {
-		domainSettings[host] = JSON.stringify(cfg);
+		domainSettings[host] = cfg;
 	}
 	return {
 		id: ws.id,
 		name: ws.name,
 		seedUrl: ws.seedUrl,
-		settings: JSON.stringify(ws.settings),
+		settings: ws.settings,
 		exclude_urls: ws.exclude_urls,
 		nodes: ws.nodes.map(nodeToDTO),
 		edges: ws.edges.map(edgeToDTO),
@@ -62,6 +62,7 @@ function nodeFromDTO(n: WorkspaceDTO['nodes'][0]): GraphNode {
 		userPositioned: n.userPositioned,
 		nodeSettings: parseJSON<PartialConfig>(n.nodeSettings, {}),
 		crawlExclude: n.crawlExclude,
+		origin: (n.origin === 'manual' ? 'manual' : 'crawl') as GraphNode['origin'],
 		status: n.status as GraphNode['status'],
 		lastError: n.lastError,
 		lastResult: n.lastResult ? crawlResultFromDTO(n.lastResult) : undefined,
@@ -75,8 +76,9 @@ function nodeToDTO(n: GraphNode): WorkspaceDTO['nodes'][0] {
 		label: n.label,
 		position: { x: n.position.x, y: n.position.y },
 		userPositioned: n.userPositioned,
-		nodeSettings: JSON.stringify(n.nodeSettings),
+		nodeSettings: n.nodeSettings,
 		crawlExclude: n.crawlExclude,
+		origin: n.origin ?? 'crawl',
 		status: n.status,
 		lastError: n.lastError,
 	};
@@ -109,6 +111,6 @@ function parseJSON<T>(raw: unknown, fallback: T): T {
 	}
 }
 
-export function partialConfigToRaw(config: PartialConfig): string {
-	return JSON.stringify(config);
+export function partialConfigToRaw(config: PartialConfig): PartialConfig {
+	return config;
 }

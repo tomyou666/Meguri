@@ -9,7 +9,7 @@ const TableNameGraphEdge = "graph_edges"
 // GraphEdge mapped from table <graph_edges>
 type GraphEdge struct {
 	WorkspaceID  string `gorm:"column:workspace_id;primaryKey" json:"workspace_id"`
-	ID           string `gorm:"column:id;not null" json:"id"`
+	ID           string `gorm:"column:id;primaryKey" json:"id"`
 	SourceNodeID string `gorm:"column:source_node_id;not null" json:"source_node_id"`
 	TargetNodeID string `gorm:"column:target_node_id;not null" json:"target_node_id"`
 }

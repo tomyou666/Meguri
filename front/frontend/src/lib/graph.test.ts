@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { GraphEdge, GraphNode } from '@/types/graph';
-import { getDescendantNodeIds, getForwardReachableExisting } from './graph';
+import {
+	getDescendantNodeIds,
+	getForwardReachableExisting,
+	isExcludedSubtree,
+} from './graph';
 
 const nodes: GraphNode[] = [
 	{
@@ -44,5 +48,24 @@ describe('graph', () => {
 	it('getDescendantNodeIds', () => {
 		const d = getDescendantNodeIds('a', edges);
 		expect([...d]).toEqual(['b', 'c']);
+	});
+
+	it('isExcludedSubtree detects excluded ancestor', () => {
+		const withExclude: GraphNode[] = [
+			{ ...nodes[0], crawlExclude: true },
+			nodes[1],
+			nodes[2],
+		];
+		expect(isExcludedSubtree('c', withExclude, edges)).toBe(true);
+		expect(isExcludedSubtree('a', withExclude, edges)).toBe(true);
+	});
+
+	it('isExcludedSubtree terminates on cyclic edges', () => {
+		const cycleEdges: GraphEdge[] = [
+			{ id: 'e1', source: 'a', target: 'b' },
+			{ id: 'e2', source: 'b', target: 'c' },
+			{ id: 'e3', source: 'c', target: 'a' },
+		];
+		expect(isExcludedSubtree('b', nodes, cycleEdges)).toBe(false);
 	});
 });

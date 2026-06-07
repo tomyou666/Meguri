@@ -23,6 +23,7 @@ func InitializeWire(ctx context.Context) (*Application, func(), error) {
 		ProvideProjectFileService,
 		ProvideStoreService,
 		ProvideProjectService,
+		ProvideScraperService,
 		ProvideApplication,
 	)
 	return nil, nil, nil

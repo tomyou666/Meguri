@@ -15,8 +15,8 @@ type Workspace struct {
 	ExcludeUrlsJSON      string  `gorm:"column:exclude_urls_json;not null;default:'[]'" json:"exclude_urls_json"`
 	GraphLayoutDirection *string `gorm:"column:graph_layout_direction;type:TEXT" json:"graph_layout_direction"`
 	BaselineRunID        *string `gorm:"column:baseline_run_id" json:"baseline_run_id"`
-	CreatedAt            string  `gorm:"column:created_at;not null" json:"created_at"`
-	UpdatedAt            string  `gorm:"column:updated_at;not null" json:"updated_at"`
+	CreatedAt            string  `gorm:"column:created_at;not null;default:datetime('now'))" json:"created_at"`
+	UpdatedAt            string  `gorm:"column:updated_at;not null;default:datetime('now'))" json:"updated_at"`
 }
 
 // TableName Workspace's table name

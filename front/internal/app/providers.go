@@ -90,10 +90,16 @@ func ProvideProjectService(projects *domain.ProjectFileService, workspaces *doma
 	return wails_service.NewProjectService(projects, workspaces)
 }
 
+// ProvideScraperService は ScraperService を返す。
+func ProvideScraperService() *wails_service.ScraperService {
+	return wails_service.NewScraperService()
+}
+
 // ProvideApplication は Application を組み立てる。
 func ProvideApplication(
 	store *wails_service.StoreService,
 	project *wails_service.ProjectService,
+	scraper *wails_service.ScraperService,
 	db *gorm.DB,
 ) (*Application, func(), error) {
 	sqlDB, err := db.DB()
@@ -104,6 +110,7 @@ func ProvideApplication(
 	app := &Application{
 		StoreService:   store,
 		ProjectService: project,
+		ScraperService: scraper,
 		cleanup:        cleanup,
 	}
 	return app, cleanup, nil
@@ -128,7 +135,8 @@ func Initialize(ctx context.Context) (*Application, func(), error) {
 	projects := ProvideProjectFileService(workspaces)
 	store := ProvideStoreService(appConfig, workspaces, results, diff, crawlPersist)
 	project := ProvideProjectService(projects, workspaces)
-	app, cleanup, err := ProvideApplication(store, project, db)
+	scraper := ProvideScraperService()
+	app, cleanup, err := ProvideApplication(store, project, scraper, db)
 	if err != nil {
 		cleanup()
 		return nil, nil, err

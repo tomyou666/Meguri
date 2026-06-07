@@ -105,13 +105,17 @@ export function isExcludedSubtree(
 	nodeId: string,
 	nodes: GraphNode[],
 	edges: GraphEdge[],
+	visited: Set<string> = new Set(),
 ): boolean {
+	if (visited.has(nodeId)) return false;
+	visited.add(nodeId);
+
 	const n = nodes.find((x) => x.id === nodeId);
 	if (!n) return false;
 	if (n.crawlExclude) return true;
 	for (const e of edges) {
 		if (e.target === nodeId) {
-			if (isExcludedSubtree(e.source, nodes, edges)) return true;
+			if (isExcludedSubtree(e.source, nodes, edges, visited)) return true;
 		}
 	}
 	return false;

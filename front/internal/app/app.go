@@ -8,6 +8,7 @@ import (
 type Application struct {
 	StoreService   *wails_service.StoreService
 	ProjectService *wails_service.ProjectService
+	ScraperService *wails_service.ScraperService
 	cleanup        func()
 }
 

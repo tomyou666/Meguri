@@ -70,12 +70,12 @@ func (s *WorkspaceService) SaveWorkspaceSettings(ctx context.Context, workspaceI
 	if err != nil || bundle == nil {
 		return fmt.Errorf("workspace not found")
 	}
-	var cur map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(bundle.Workspace.SettingsJSON), &cur); err != nil {
-		cur = map[string]json.RawMessage{}
+	cur, err := unmarshalConfigMap(bundle.Workspace.SettingsJSON)
+	if err != nil {
+		return err
 	}
-	var patch map[string]json.RawMessage
-	if err := json.Unmarshal(settings, &patch); err != nil {
+	patch, err := unmarshalConfigMap(string(settings))
+	if err != nil {
 		return err
 	}
 	for k, v := range patch {
@@ -98,13 +98,12 @@ func (s *WorkspaceService) SaveDomainSettings(ctx context.Context, workspaceID, 
 	found := false
 	for i, d := range bundle.DomainSettings {
 		if d.Host == host {
-			var cur map[string]json.RawMessage
-			_ = json.Unmarshal([]byte(d.SettingsJSON), &cur)
-			if cur == nil {
-				cur = map[string]json.RawMessage{}
+			cur, err := unmarshalConfigMap(d.SettingsJSON)
+			if err != nil {
+				return err
 			}
-			var patch map[string]json.RawMessage
-			if err := json.Unmarshal(settings, &patch); err != nil {
+			patch, err := unmarshalConfigMap(string(settings))
+			if err != nil {
 				return err
 			}
 			for k, v := range patch {
@@ -120,10 +119,14 @@ func (s *WorkspaceService) SaveDomainSettings(ctx context.Context, workspaceID, 
 		}
 	}
 	if !found {
+		settingsJSON, err := settingsJSONFromRaw(settings)
+		if err != nil {
+			return err
+		}
 		bundle.DomainSettings = append(bundle.DomainSettings, model.DomainSetting{
 			WorkspaceID:  workspaceID,
 			Host:         host,
-			SettingsJSON: string(settings),
+			SettingsJSON: settingsJSON,
 		})
 	}
 	return s.repo.SaveWorkspaceBundle(ctx, *bundle)
@@ -137,13 +140,12 @@ func (s *WorkspaceService) SaveNodeSettings(ctx context.Context, workspaceID, no
 	}
 	for i, n := range bundle.Nodes {
 		if n.ID == nodeID {
-			var cur map[string]json.RawMessage
-			_ = json.Unmarshal([]byte(n.NodeSettingsJSON), &cur)
-			if cur == nil {
-				cur = map[string]json.RawMessage{}
+			cur, err := unmarshalConfigMap(n.NodeSettingsJSON)
+			if err != nil {
+				return err
 			}
-			var patch map[string]json.RawMessage
-			if err := json.Unmarshal(settings, &patch); err != nil {
+			patch, err := unmarshalConfigMap(string(settings))
+			if err != nil {
 				return err
 			}
 			for k, v := range patch {

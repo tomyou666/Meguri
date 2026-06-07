@@ -11,7 +11,7 @@ import (
 )
 
 func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
-	settings, err := json.Marshal(dto.Settings)
+	settingsJSON, err := settingsJSONFromRaw(dto.Settings)
 	if err != nil {
 		return model.WorkspaceBundle{}, err
 	}
@@ -23,7 +23,7 @@ func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 		ID:                   model.StrPtr(dto.ID),
 		Name:                 dto.Name,
 		SeedURL:              dto.SeedURL,
-		SettingsJSON:         string(settings),
+		SettingsJSON:         settingsJSON,
 		ExcludeUrlsJSON:      string(exclude),
 		GraphLayoutDirection: model.StrPtr(dto.GraphLayoutDirection),
 		CreatedAt:            dto.CreatedAt,
@@ -34,7 +34,7 @@ func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 
 	nodes := make([]model.GraphNode, len(dto.Nodes))
 	for i, n := range dto.Nodes {
-		ns, err := json.Marshal(n.NodeSettings)
+		ns, err := settingsJSONFromRaw(n.NodeSettings)
 		if err != nil {
 			return model.WorkspaceBundle{}, err
 		}
@@ -50,6 +50,10 @@ func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 		if n.CrawlExclude {
 			ex = 1
 		}
+		origin := n.Origin
+		if origin == "" {
+			origin = "crawl"
+		}
 		nodes[i] = model.GraphNode{
 			WorkspaceID:      dto.ID,
 			ID:               n.ID,
@@ -58,8 +62,9 @@ func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 			PositionX:        n.Position.X,
 			PositionY:        n.Position.Y,
 			UserPositioned:   up,
-			NodeSettingsJSON: string(ns),
+			NodeSettingsJSON: ns,
 			CrawlExclude:     ex,
+			Origin:           origin,
 			Status:           model.StrPtr(n.Status),
 			LastError:        lastErr,
 		}
@@ -77,10 +82,14 @@ func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 
 	domains := make([]model.DomainSetting, 0, len(dto.DomainSettings))
 	for host, raw := range dto.DomainSettings {
+		domainJSON, err := settingsJSONFromRaw(raw)
+		if err != nil {
+			return model.WorkspaceBundle{}, err
+		}
 		domains = append(domains, model.DomainSetting{
 			WorkspaceID:  dto.ID,
 			Host:         host,
-			SettingsJSON: string(raw),
+			SettingsJSON: domainJSON,
 		})
 	}
 
@@ -122,6 +131,10 @@ func bundleToDTO(bundle *model.WorkspaceBundle, previews map[string]*model.Crawl
 		if n.LastError != nil {
 			lastErr = *n.LastError
 		}
+		origin := n.Origin
+		if origin == "" {
+			origin = "crawl"
+		}
 		nodes[i] = model.GraphNodeDTO{
 			ID:             n.ID,
 			URLNormalized:  n.URLNormalized,
@@ -130,6 +143,7 @@ func bundleToDTO(bundle *model.WorkspaceBundle, previews map[string]*model.Crawl
 			UserPositioned: n.UserPositioned == 1,
 			NodeSettings:   json.RawMessage(n.NodeSettingsJSON),
 			CrawlExclude:   n.CrawlExclude == 1,
+			Origin:         origin,
 			Status:         model.StrVal(n.Status),
 			LastError:      lastErr,
 			LastResult:     preview,

@@ -83,6 +83,8 @@ type CrawlConfig struct {
 	IncludePaths []string `yaml:"include_paths"`
 	// ExcludePaths は除外する URL パスの正規表現。
 	ExcludePaths []string `yaml:"exclude_paths"`
+	// ExcludeURLs は完全一致でスキップする正規化 URL 一覧（exclude_paths とは別）。
+	ExcludeURLs []string `yaml:"exclude_urls"`
 	// AllowExternal は登録ドメイン外へのリンク追跡を許可するか。
 	AllowExternal bool `yaml:"allow_external_links"`
 	// AllowSubdomains はサブドメインへの追跡を許可するか。
@@ -320,6 +322,15 @@ func (c *Config) validateCrawl() []error {
 	for i, p := range c.Crawl.ExcludePaths {
 		if _, err := regexp.Compile(p); err != nil {
 			errs = append(errs, fmt.Errorf("crawl.exclude_paths[%d]: 不正な正規表現 %q: %w", i, p, err))
+		}
+	}
+	for i, raw := range c.Crawl.ExcludeURLs {
+		if !strings.HasPrefix(raw, "http://") && !strings.HasPrefix(raw, "https://") {
+			errs = append(errs, fmt.Errorf("crawl.exclude_urls[%d]: http:// または https:// で始まる必要があります: %q", i, raw))
+			continue
+		}
+		if _, err := url.Parse(raw); err != nil {
+			errs = append(errs, fmt.Errorf("crawl.exclude_urls[%d]: URLとしてパースできません: %w", i, err))
 		}
 	}
 	return errs

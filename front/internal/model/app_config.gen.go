@@ -10,7 +10,7 @@ const TableNameAppConfig = "app_config"
 type AppConfig struct {
 	ID           *int32 `gorm:"column:id;primaryKey" json:"id"`
 	DefaultsJSON string `gorm:"column:defaults_json;not null" json:"defaults_json"`
-	UpdatedAt    string `gorm:"column:updated_at;not null" json:"updated_at"`
+	UpdatedAt    string `gorm:"column:updated_at;not null;default:datetime('now'))" json:"updated_at"`
 }
 
 // TableName AppConfig's table name

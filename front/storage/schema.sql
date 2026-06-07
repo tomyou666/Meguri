@@ -55,6 +55,7 @@ CREATE INDEX idx_workspaces_updated_at ON workspaces(updated_at);
 --   user_positioned:     1 = ユーザーがドラッグ配置済み（自動レイアウト対象外）
 --   node_settings_json:  PartialConfig: ノード単位の設定上書き
 --   crawl_exclude:       1 = このノードと配下をクロールしない
+--   origin:              crawl | manual（手動追加ノードは manual）
 --   status:              idle | running | success | error | skipped
 --   last_error:          直近のノード単位エラー文言（status=error 時など）
 -- ---------------------------------------------------------------------------
@@ -68,6 +69,7 @@ CREATE TABLE graph_nodes (
     user_positioned     INTEGER NOT NULL DEFAULT 0 CHECK (user_positioned IN (0, 1)),
     node_settings_json  TEXT NOT NULL DEFAULT '{}',
     crawl_exclude       INTEGER NOT NULL DEFAULT 0 CHECK (crawl_exclude IN (0, 1)),
+    origin              TEXT NOT NULL DEFAULT 'crawl' CHECK (origin IN ('crawl', 'manual')),
     status              TEXT NOT NULL DEFAULT 'idle'
                         CHECK (status IN ('idle', 'running', 'success', 'error', 'skipped')),
     last_error          TEXT,

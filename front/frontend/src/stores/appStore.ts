@@ -33,6 +33,7 @@ import type {
 } from '@/types/crawl';
 import type { GraphNode, NodeStatus } from '@/types/graph';
 import type { Workspace } from '@/types/workspace';
+import * as ScraperService from '../../bindings/scraperbot-front/internal/usecase/wails_service/scraperservice';
 
 function uid(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -131,6 +132,7 @@ interface AppState {
 	} | null;
 
 	_abortController: AbortController | null;
+	_activeRunId: string | null;
 	_paused: boolean;
 
 	bootstrap: () => Promise<void>;
@@ -243,6 +245,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	addNodeContextPosition: null,
 	saveNotification: null,
 	_abortController: null,
+	_activeRunId: null as string | null,
 	_paused: false,
 
 	bootstrap: async () => {
@@ -674,6 +677,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				label: normalized,
 				position: pos,
 				userPositioned: true,
+				origin: 'manual',
 				nodeSettings: {},
 				crawlExclude: false,
 				status: 'idle',
@@ -829,12 +833,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 	clearGlobalError: () => set({ globalError: null }),
 	clearCrawlError: () => set({ crawlError: null }),
 
-	pauseCrawl: () => set({ _paused: true, crawlStatus: 'paused' }),
-	resumeCrawl: () => set({ _paused: false, crawlStatus: 'running' }),
+	pauseCrawl: () => {
+		const runId = get()._activeRunId;
+		if (runId) void ScraperService.PauseCrawl(runId);
+		set({ _paused: true, crawlStatus: 'paused' });
+	},
+	resumeCrawl: () => {
+		const runId = get()._activeRunId;
+		if (runId) void ScraperService.ResumeCrawl(runId);
+		set({ _paused: false, crawlStatus: 'running' });
+	},
 
 	stopCrawl: () => {
+		const runId = get()._activeRunId;
+		if (runId) void ScraperService.StopCrawl(runId);
 		get()._abortController?.abort();
-		set({ crawlStatus: 'idle', _paused: false });
+		set({ crawlStatus: 'idle', _paused: false, _activeRunId: null });
 	},
 
 	startCrawl: async () => {
@@ -862,7 +876,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			crawlError: null,
 		});
 
-		const runId = uid();
+		let runId = '';
 		const startedAt = new Date().toISOString();
 
 		const patchNode = (nodeId: string, patch: Partial<GraphNode>) => {
@@ -887,7 +901,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				? state.selectedNodeIds
 				: undefined;
 
-		await scraperPort.startCrawl({
+		runId = await scraperPort.startCrawl({
 			workspaceId: ws.id,
 			mode: state.runMode,
 			startNodeId: state.selectedNodeId ?? undefined,
@@ -900,6 +914,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 					await new Promise((r) => setTimeout(r, 100));
 				}
 			},
+			onRunStarted: (id) => set({ _activeRunId: id }),
 			getWorkspace: () => get().getActiveWorkspace()!,
 			onNodeStarted: (nodeId, url) => {
 				patchNode(nodeId, { status: 'running' as NodeStatus, label: url });
@@ -957,6 +972,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 						label: targetUrl,
 						position,
 						userPositioned: false,
+						origin: 'crawl',
 						nodeSettings: {},
 						crawlExclude: false,
 						status: 'idle',
@@ -977,6 +993,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				set((s) => ({
 					crawlStatus: 'idle',
 					_abortController: null,
+					_activeRunId: null,
 					runHistory: [full, ...s.runHistory].slice(0, 20),
 				}));
 			},
@@ -984,6 +1001,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				set({
 					crawlStatus: 'idle',
 					_abortController: null,
+					_activeRunId: null,
 					crawlError: {
 						type: 'crawl',
 						message,

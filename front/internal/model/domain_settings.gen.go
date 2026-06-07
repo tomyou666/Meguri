@@ -9,7 +9,7 @@ const TableNameDomainSetting = "domain_settings"
 // DomainSetting mapped from table <domain_settings>
 type DomainSetting struct {
 	WorkspaceID  string `gorm:"column:workspace_id;primaryKey" json:"workspace_id"`
-	Host         string `gorm:"column:host;not null" json:"host"`
+	Host         string `gorm:"column:host;primaryKey" json:"host"`
 	SettingsJSON string `gorm:"column:settings_json;not null;default:'{}'" json:"settings_json"`
 }
 

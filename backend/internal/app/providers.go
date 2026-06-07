@@ -75,8 +75,8 @@ func (s *FileResultSink) Handle(r *model.Result) {
 
 // ProvideCrawlerFactory は Kernel・Pipeline・robots キャッシュから Crawler 生成関数を返す。
 func ProvideCrawlerFactory(k *core.Kernel, pipeline *core.Pipeline, robotsCache *robots.Cache) usecase.CrawlerFactory {
-	return func(sink core.ResultSink) *core.Crawler {
-		return core.NewCrawler(k, pipeline, robotsCache, sink)
+	return func(sink core.ResultSink, progress core.ProgressSink) *core.Crawler {
+		return core.NewCrawler(k, pipeline, robotsCache, sink, progress)
 	}
 }
 

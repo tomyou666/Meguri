@@ -17,6 +17,7 @@ type GraphNodeDTO struct {
 	UserPositioned bool            `json:"userPositioned,omitempty"`
 	NodeSettings   json.RawMessage `json:"nodeSettings"`
 	CrawlExclude   bool            `json:"crawlExclude"`
+	Origin         string          `json:"origin"`
 	Status         string          `json:"status"`
 	LastError      string          `json:"lastError,omitempty"`
 	LastResult     *CrawlResultDTO `json:"lastResult,omitempty"`
@@ -134,7 +135,61 @@ type PatchGraphNodeStatusRequest struct {
 	LastError   string `json:"lastError,omitempty"`
 }
 
+// UpsertDiscoveredGraphRequest は crawl 中に発見したノードとエッジを永続化する。
+type UpsertDiscoveredGraphRequest struct {
+	WorkspaceID string `json:"workspaceId"`
+	SourceID    string `json:"sourceId"`
+	TargetID    string `json:"targetId"`
+	TargetURL   string `json:"targetUrl"`
+}
+
 // OpenScrbResponse は .scrb インポート結果。
 type OpenScrbResponse struct {
 	WorkspaceID string `json:"workspaceId"`
+}
+
+// StartCrawlRequest はクロール開始 RPC 入力。
+type StartCrawlRequest struct {
+	RunID       string          `json:"runId"`
+	WorkspaceID string          `json:"workspaceId"`
+	Mode        int32           `json:"mode"`
+	StartNodeID string          `json:"startNodeId,omitempty"`
+	NodeIDs     []string        `json:"nodeIds,omitempty"`
+	AppDefaults json.RawMessage `json:"appDefaults"`
+	Workspace   WorkspaceDTO    `json:"workspace"`
+}
+
+// CrawlNodeResultDTO は Wails Event 用のノード結果プレビュー。
+type CrawlNodeResultDTO struct {
+	URL      string            `json:"url"`
+	Markdown string            `json:"markdown,omitempty"`
+	Links    []string          `json:"links,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+// CrawlEventPayload は scraper:crawl:* Event の共通フィールド。
+type CrawlEventPayload struct {
+	WorkspaceID string              `json:"workspaceId"`
+	RunID       string              `json:"runId"`
+	NodeID      string              `json:"nodeId,omitempty"`
+	URL         string              `json:"url,omitempty"`
+	Result      *CrawlNodeResultDTO `json:"result,omitempty"`
+	Error       string              `json:"error,omitempty"`
+	Reason      string              `json:"reason,omitempty"`
+	SourceID    string              `json:"sourceId,omitempty"`
+	TargetID    string              `json:"targetId,omitempty"`
+	TargetURL   string              `json:"targetUrl,omitempty"`
+	Summary     *CrawlSummaryDTO    `json:"summary,omitempty"`
+	Message     string              `json:"message,omitempty"`
+}
+
+// CrawlSummaryDTO は crawl 完了サマリ。
+type CrawlSummaryDTO struct {
+	Mode          int32  `json:"mode"`
+	FinishedAt    string `json:"finishedAt"`
+	Enqueued      int    `json:"enqueued"`
+	Succeeded     int    `json:"succeeded"`
+	Failed        int    `json:"failed"`
+	Skipped       int    `json:"skipped"`
+	StoppedReason string `json:"stoppedReason,omitempty"`
 }

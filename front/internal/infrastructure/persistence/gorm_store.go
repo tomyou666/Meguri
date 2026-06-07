@@ -311,6 +311,48 @@ func (s *Store) TrimCrawlRuns(ctx context.Context, workspaceID string, keep int)
 	return err
 }
 
+// UpsertDiscoveredGraph は crawl 中に発見したノードとエッジを追加する。
+func (s *Store) UpsertDiscoveredGraph(ctx context.Context, workspaceID, sourceNodeID, targetNodeID, targetURL string) error {
+	if workspaceID == "" || sourceNodeID == "" || targetNodeID == "" || targetURL == "" {
+		return fmt.Errorf("upsert discovered graph: missing required fields")
+	}
+	if sourceNodeID == targetNodeID {
+		return nil
+	}
+	return s.q.Transaction(func(txQ *query.Query) error {
+		idle := "idle"
+		node := model.GraphNode{
+			WorkspaceID:      workspaceID,
+			ID:               targetNodeID,
+			URLNormalized:    targetURL,
+			Label:            targetURL,
+			NodeSettingsJSON: "{}",
+			Origin:           "crawl",
+			Status:           &idle,
+		}
+		gn := txQ.GraphNode
+		if err := gn.WithContext(ctx).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "workspace_id"}, {Name: "id"}},
+			DoNothing: true,
+		}).Create(&node); err != nil {
+			return err
+		}
+
+		edgeID := fmt.Sprintf("e-%s-%s", sourceNodeID, targetNodeID)
+		edge := model.GraphEdge{
+			WorkspaceID:  workspaceID,
+			ID:           edgeID,
+			SourceNodeID: sourceNodeID,
+			TargetNodeID: targetNodeID,
+		}
+		ge := txQ.GraphEdge
+		return ge.WithContext(ctx).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "workspace_id"}, {Name: "id"}},
+			DoNothing: true,
+		}).Create(&edge)
+	})
+}
+
 // PatchGraphNodeStatus は graph_nodes.status を更新する。
 func (s *Store) PatchGraphNodeStatus(ctx context.Context, workspaceID, nodeID, status string, lastError *string) error {
 	gn := s.q.GraphNode

@@ -1,3 +1,4 @@
+import { Events } from '@wailsio/runtime';
 import { contentHashFromMarkdown } from '@/lib/contentHash';
 import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
 import {
@@ -5,7 +6,6 @@ import {
 	workspaceFromDTO,
 	workspaceToDTO,
 } from '@/lib/wailsMappers';
-import { runCrawlStub } from '@/services/crawlStub';
 import type {
 	MergeResultsResponse,
 	SaveSettingsResponse,
@@ -22,8 +22,34 @@ import {
 	BeginCrawlRunRequest,
 	FinishCrawlRunRequest,
 	PatchGraphNodeStatusRequest,
+	StartCrawlRequest,
+	UpsertDiscoveredGraphRequest,
 } from '../../bindings/scraperbot-front/internal/model/models';
+import * as ScraperService from '../../bindings/scraperbot-front/internal/usecase/wails_service/scraperservice';
 import * as StoreService from '../../bindings/scraperbot-front/internal/usecase/wails_service/storeservice';
+
+const TOPIC_NODE_STARTED = 'scraper:crawl:nodeStarted';
+const TOPIC_NODE_SUCCEEDED = 'scraper:crawl:nodeSucceeded';
+const TOPIC_NODE_FAILED = 'scraper:crawl:nodeFailed';
+const TOPIC_NODE_SKIPPED = 'scraper:crawl:nodeSkipped';
+const TOPIC_EDGE_DISCOVERED = 'scraper:crawl:edgeDiscovered';
+const TOPIC_CRAWL_COMPLETED = 'scraper:crawl:completed';
+const TOPIC_CRAWL_ERROR = 'scraper:crawl:error';
+
+interface CrawlEventPayload {
+	workspaceId: string;
+	runId: string;
+	nodeId?: string;
+	url?: string;
+	result?: CrawlResultPreview;
+	error?: string;
+	reason?: string;
+	sourceId?: string;
+	targetId?: string;
+	targetUrl?: string;
+	summary?: Omit<CrawlRunSummary, 'id' | 'startedAt'>;
+	message?: string;
+}
 
 function uid(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -37,6 +63,10 @@ function parseDefaults(raw: unknown): PartialConfig {
 	} catch {
 		return { ...DEFAULT_APP_CONFIG };
 	}
+}
+
+function eventData(ev: { data?: unknown }): CrawlEventPayload {
+	return (ev.data ?? {}) as CrawlEventPayload;
 }
 
 export class CompositeScraperAdapter implements ScraperPort {
@@ -151,7 +181,7 @@ export class CompositeScraperAdapter implements ScraperPort {
 		const res = await StoreService.MergeResults(
 			workspaceId,
 			nodeIds ?? [],
-			formats ?? ['markdown'],
+			formats ?? [],
 		);
 		return {
 			merged: res.merged,
@@ -177,6 +207,15 @@ export class CompositeScraperAdapter implements ScraperPort {
 
 	async getWorkspaceDiff(workspaceId: string): Promise<WorkspaceDiff> {
 		const dto = await StoreService.GetWorkspaceDiff(workspaceId);
+		if (!dto) {
+			return {
+				workspaceId,
+				hasDiff: false,
+				baselineRunId: null,
+				nodes: [],
+				summary: { content: 0, links: 0, fetch: 0 },
+			};
+		}
 		return {
 			workspaceId: dto.workspaceId,
 			hasDiff: dto.hasDiff,
@@ -190,10 +229,11 @@ export class CompositeScraperAdapter implements ScraperPort {
 		};
 	}
 
-	async startCrawl(params: StartCrawlParams): Promise<void> {
+	async startCrawl(params: StartCrawlParams): Promise<string> {
 		const ws = params.getWorkspace();
 		const runId = uid();
 		const startedAt = new Date().toISOString();
+		params.onRunStarted?.(runId);
 
 		await StoreService.BeginCrawlRun(
 			new BeginCrawlRunRequest({
@@ -221,110 +261,181 @@ export class CompositeScraperAdapter implements ScraperPort {
 			);
 		};
 
-		await runCrawlStub(
-			ws,
-			params.appDefaults,
-			ws.seedUrl,
-			{
-				onNodeStarted: (nodeId, url) => {
-					void StoreService.PatchGraphNodeStatus(
-						new PatchGraphNodeStatusRequest({
+		const unsubscribers: Array<() => void> = [];
+		const cleanup = () => {
+			for (const off of unsubscribers) off();
+			unsubscribers.length = 0;
+		};
+
+		const matchesRun = (payload: CrawlEventPayload) => payload.runId === runId;
+
+		await new Promise<void>((resolve) => {
+			let settled = false;
+			const done = () => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				resolve();
+			};
+
+			const onAbort = () => {
+				void ScraperService.StopCrawl(runId);
+			};
+			params.signal.addEventListener('abort', onAbort);
+
+			const subscribe = (
+				topic: string,
+				handler: (p: CrawlEventPayload) => void,
+			) => {
+				const off = Events.On(topic, (ev) => {
+					const p = eventData(ev);
+					if (!matchesRun(p)) return;
+					handler(p);
+				});
+				unsubscribers.push(off);
+			};
+
+			subscribe(TOPIC_NODE_STARTED, (p) => {
+				if (!p.nodeId || !p.url) return;
+				void StoreService.PatchGraphNodeStatus(
+					new PatchGraphNodeStatusRequest({
+						workspaceId: params.workspaceId,
+						nodeId: p.nodeId,
+						status: 'running',
+					}),
+				);
+				params.onNodeStarted(p.nodeId, p.url);
+			});
+
+			subscribe(TOPIC_NODE_SUCCEEDED, (p) => {
+				if (!p.nodeId || !p.result) return;
+				void (async () => {
+					const result = p.result!;
+					const markdown = result.markdown ?? '';
+					const contentHash = markdown
+						? await contentHashFromMarkdown(markdown)
+						: '';
+					await StoreService.AppendNodeResult(
+						new AppendNodeResultRequest({
 							workspaceId: params.workspaceId,
-							nodeId,
-							status: 'running',
+							runId,
+							nodeId: p.nodeId!,
+							url: result.url,
+							markdown,
+							linksJson: result.links
+								? JSON.stringify(result.links)
+								: undefined,
+							metadataJson: result.metadata
+								? JSON.stringify(result.metadata)
+								: undefined,
+							fetchedAt: new Date().toISOString(),
+							contentHash,
 						}),
 					);
-					params.onNodeStarted(nodeId, url);
-				},
-				onNodeSucceeded: (nodeId, result) => {
-					void (async () => {
-						const markdown = result.markdown ?? '';
-						const contentHash = markdown
-							? await contentHashFromMarkdown(markdown)
-							: '';
-						await StoreService.AppendNodeResult(
-							new AppendNodeResultRequest({
-								workspaceId: params.workspaceId,
-								runId,
-								nodeId,
-								url: result.url,
-								markdown,
-								linksJson: result.links
-									? JSON.stringify(result.links)
-									: undefined,
-								metadataJson: result.metadata
-									? JSON.stringify(result.metadata)
-									: undefined,
-								fetchedAt: new Date().toISOString(),
-								contentHash,
-							}),
-						);
-						await StoreService.PatchGraphNodeStatus(
-							new PatchGraphNodeStatusRequest({
-								workspaceId: params.workspaceId,
-								nodeId,
-								status: 'success',
-							}),
-						);
-						params.onNodeSucceeded(nodeId, result);
-					})();
-				},
-				onNodeFailed: (nodeId, url, error) => {
-					void (async () => {
-						await StoreService.AppendNodeResult(
-							new AppendNodeResultRequest({
-								workspaceId: params.workspaceId,
-								runId,
-								nodeId,
-								url,
-								error,
-								fetchedAt: new Date().toISOString(),
-							}),
-						);
-						await StoreService.PatchGraphNodeStatus(
-							new PatchGraphNodeStatusRequest({
-								workspaceId: params.workspaceId,
-								nodeId,
-								status: 'error',
-								lastError: error,
-							}),
-						);
-						params.onNodeFailed(nodeId, url, error);
-					})();
-				},
-				onNodeSkipped: (nodeId, url, reason) => {
-					void StoreService.PatchGraphNodeStatus(
+					await StoreService.PatchGraphNodeStatus(
 						new PatchGraphNodeStatusRequest({
 							workspaceId: params.workspaceId,
-							nodeId,
-							status: 'skipped',
+							nodeId: p.nodeId!,
+							status: 'success',
 						}),
 					);
-					params.onNodeSkipped(nodeId, url, reason);
-				},
-				onEdgeDiscovered: params.onEdgeDiscovered,
-				onCrawlCompleted: (summary) => {
-					void finishRun('completed', summary).then(() =>
-						params.onCrawlCompleted(summary),
+					params.onNodeSucceeded(p.nodeId!, result);
+				})();
+			});
+
+			subscribe(TOPIC_NODE_FAILED, (p) => {
+				if (!p.nodeId || !p.url) return;
+				void (async () => {
+					const error = p.error ?? 'unknown error';
+					await StoreService.AppendNodeResult(
+						new AppendNodeResultRequest({
+							workspaceId: params.workspaceId,
+							runId,
+							nodeId: p.nodeId!,
+							url: p.url!,
+							error,
+							fetchedAt: new Date().toISOString(),
+						}),
 					);
-				},
-				onCrawlError: (message) => {
-					void finishRun('error', undefined, message).then(() =>
-						params.onCrawlError(message),
+					await StoreService.PatchGraphNodeStatus(
+						new PatchGraphNodeStatusRequest({
+							workspaceId: params.workspaceId,
+							nodeId: p.nodeId!,
+							status: 'error',
+							lastError: error,
+						}),
 					);
-				},
-			},
-			{
-				mode: params.mode,
-				startNodeId: params.startNodeId,
-				nodeIds: params.nodeIds,
-				workspaceId: params.workspaceId,
-				getWorkspace: params.getWorkspace,
-				signal: params.signal,
-				isPaused: params.isPaused,
-				waitWhilePaused: params.waitWhilePaused,
-			},
-		);
+					params.onNodeFailed(p.nodeId!, p.url!, error);
+				})();
+			});
+
+			subscribe(TOPIC_NODE_SKIPPED, (p) => {
+				if (!p.nodeId || !p.url) return;
+				void StoreService.PatchGraphNodeStatus(
+					new PatchGraphNodeStatusRequest({
+						workspaceId: params.workspaceId,
+						nodeId: p.nodeId,
+						status: 'skipped',
+					}),
+				);
+				params.onNodeSkipped(p.nodeId, p.url, p.reason ?? 'skipped');
+			});
+
+			subscribe(TOPIC_EDGE_DISCOVERED, (p) => {
+				if (!p.sourceId || !p.targetId || !p.targetUrl) return;
+				void (async () => {
+					await StoreService.UpsertDiscoveredGraph(
+						new UpsertDiscoveredGraphRequest({
+							workspaceId: params.workspaceId,
+							sourceId: p.sourceId,
+							targetId: p.targetId,
+							targetUrl: p.targetUrl,
+						}),
+					);
+					params.onEdgeDiscovered(p.sourceId, p.targetId, p.targetUrl);
+				})();
+			});
+
+			subscribe(TOPIC_CRAWL_COMPLETED, (p) => {
+				params.signal.removeEventListener('abort', onAbort);
+				const summary = p.summary;
+				void finishRun('completed', summary).then(() => {
+					if (summary) params.onCrawlCompleted(summary);
+					done();
+				});
+			});
+
+			subscribe(TOPIC_CRAWL_ERROR, (p) => {
+				params.signal.removeEventListener('abort', onAbort);
+				const message = p.message ?? 'crawl error';
+				void finishRun('error', undefined, message).then(() => {
+					params.onCrawlError(message);
+					done();
+				});
+			});
+
+			const wsDto = workspaceToDTO(ws);
+			void ScraperService.StartCrawl(
+				new StartCrawlRequest({
+					runId,
+					workspaceId: params.workspaceId,
+					mode: params.mode,
+					startNodeId: params.startNodeId ?? '',
+					nodeIds: params.nodeIds ?? [],
+					appDefaults: partialConfigToRaw(params.appDefaults),
+					workspace: wsDto,
+				}),
+			).catch((err: unknown) => {
+				params.signal.removeEventListener('abort', onAbort);
+				const message = err instanceof Error ? err.message : String(err);
+				void finishRun('error', undefined, message).then(() => {
+					params.onCrawlError(message);
+					done();
+				});
+			});
+		});
+
+		return runId;
 	}
 }
 

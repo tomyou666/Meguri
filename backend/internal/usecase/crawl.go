@@ -9,8 +9,8 @@ import (
 	"scraperbot/internal/domain/model"
 )
 
-// CrawlerFactory は実行時の ResultSink を受け取り Crawler を生成する。
-type CrawlerFactory func(sink core.ResultSink) *core.Crawler
+// CrawlerFactory は実行時の ResultSink と ProgressSink を受け取り Crawler を生成する。
+type CrawlerFactory func(sink core.ResultSink, progress core.ProgressSink) *core.Crawler
 
 // Crawl はクローリングシナリオを束ねるユースケース。
 type Crawl struct {
@@ -18,6 +18,8 @@ type Crawl struct {
 	Factory CrawlerFactory
 	// Sink は各ページの Result 受け取り先（nil 可）。
 	Sink core.ResultSink
+	// Progress は URL 単位の進捗通知先（nil 可）。
+	Progress core.ProgressSink
 }
 
 // NewCrawl はクロール用ユースケースを構築する。
@@ -29,6 +31,11 @@ func NewCrawl(factory CrawlerFactory, sink core.ResultSink) *Crawl {
 
 // Run はシード URL 一覧からクロールを実行し、統計と収集結果を返す。
 func (c *Crawl) Run(ctx context.Context, targets []string) (*core.CrawlStats, []*model.Result, error) {
+	return c.RunWithProgress(ctx, targets, c.Progress)
+}
+
+// RunWithProgress は ProgressSink を指定してクロールを実行する。
+func (c *Crawl) RunWithProgress(ctx context.Context, targets []string, progress core.ProgressSink) (*core.CrawlStats, []*model.Result, error) {
 	if len(targets) == 0 {
 		return nil, nil, fmt.Errorf("no target URLs")
 	}
@@ -53,7 +60,7 @@ func (c *Crawl) Run(ctx context.Context, targets []string) (*core.CrawlStats, []
 		}
 	}
 
-	crawler := c.Factory(sink)
+	crawler := c.Factory(sink, progress)
 	stats, err := crawler.Run(ctx, seeds)
 	return stats, collected, err
 }

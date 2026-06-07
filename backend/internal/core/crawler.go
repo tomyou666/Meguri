@@ -36,9 +36,13 @@ type Crawler struct {
 	includeRe []*regexp.Regexp
 	// excludeRe は除外パス正規表現（コンパイル済み）。
 	excludeRe []*regexp.Regexp
+	// excludeURLs は完全一致でスキップする正規化 URL 集合。
+	excludeURLs map[string]struct{}
 
-	// sink は各ページの Result 受け取り先。
+	// sink は各ページの Result 受け取り先（レガシー互換）。
 	sink ResultSink
+	// progress は URL 単位の進捗通知先。
+	progress ProgressSink
 }
 
 // CrawlStats はクロールの最終サマリ。
@@ -56,7 +60,8 @@ type CrawlStats struct {
 // NewCrawler はクローラを構築する。
 //
 // robots は nil 可（その場合は判定をスキップ）。
-func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink ResultSink) *Crawler {
+// progress は nil 可（進捗通知なし）。
+func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink ResultSink, progress ProgressSink) *Crawler {
 	cfg := k.Config()
 	c := &Crawler{
 		cfg:      cfg,
@@ -64,6 +69,7 @@ func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink Result
 		pipeline: pipeline,
 		robots:   robots,
 		sink:     sink,
+		progress: progress,
 	}
 	for _, p := range cfg.Crawl.IncludePaths {
 		if re, err := regexp.Compile(p); err == nil {
@@ -75,6 +81,16 @@ func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink Result
 			c.excludeRe = append(c.excludeRe, re)
 		}
 	}
+	if len(cfg.Crawl.ExcludeURLs) > 0 {
+		c.excludeURLs = make(map[string]struct{}, len(cfg.Crawl.ExcludeURLs))
+		for _, raw := range cfg.Crawl.ExcludeURLs {
+			u, err := url.Parse(raw)
+			if err != nil {
+				continue
+			}
+			c.excludeURLs[normalizeURL(u).String()] = struct{}{}
+		}
+	}
 	return c
 }
 
@@ -84,12 +100,21 @@ type job struct {
 	url *url.URL
 	// depth はシードからの深度。
 	depth int
+	// parentURL はリンク発見元 URL（シードは空）。
+	parentURL string
 }
 
 // Run は与えられたシード URL から BFS でクロールを実行する。
 // crawl.enabled=false の場合は単一 URL モードとして seed[0] のみを処理する。
 func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error) {
 	stats := &CrawlStats{}
+
+	defer func() {
+		emitProgress(c.progress, ProgressEvent{
+			Kind:  ProgressCompleted,
+			Stats: stats,
+		})
+	}()
 
 	if !c.cfg.Crawl.Enabled {
 		if len(seeds) == 0 {
@@ -174,24 +199,35 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		}
 	}
 
-	enqueue := func(u *url.URL, depth int) bool {
+	emitSkip := func(u *url.URL, depth int, parentURL, reason string) {
+		stats.Skipped++
+		emitProgress(c.progress, ProgressEvent{
+			Kind:       ProgressSkipped,
+			URL:        u.String(),
+			ParentURL:  parentURL,
+			Depth:      depth,
+			SkipReason: reason,
+		})
+	}
+
+	enqueue := func(u *url.URL, depth int, parentURL string) bool {
 		normalized := normalizeURL(u)
 		key := normalized.String()
 
 		stateMu.Lock()
-		if !c.shouldVisit(ctx, normalized, depth, seeds[0]) {
-			stats.Skipped++
+		if reason := c.skipReason(ctx, normalized, depth, seeds[0]); reason != "" {
 			stateMu.Unlock()
+			emitSkip(normalized, depth, parentURL, reason)
 			return false
 		}
 		if _, dup := seen[key]; dup {
-			stats.Skipped++
 			stateMu.Unlock()
+			emitSkip(normalized, depth, parentURL, "duplicate")
 			return false
 		}
 		if visited >= c.cfg.Crawl.MaxPages {
-			stats.Skipped++
 			stateMu.Unlock()
+			emitSkip(normalized, depth, parentURL, "max_pages")
 			return false
 		}
 		seen[key] = struct{}{}
@@ -204,7 +240,7 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		stats.Enqueued++
 		stateMu.Unlock()
 
-		pushQ <- job{url: normalized, depth: depth}
+		pushQ <- job{url: normalized, depth: depth, parentURL: parentURL}
 		return true
 	}
 
@@ -227,58 +263,88 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 	}
 
 	for _, s := range seeds {
-		enqueue(s, 0)
+		enqueue(s, 0, "")
 	}
 	wg.Wait()
 	<-queueDone
 	return stats, ctx.Err()
 }
 
-// runOne は 1 ジョブ分のパイプラインを実行し、結果を sink に渡し、抽出リンクを enqueue する。
+// runOne は 1 ジョブ分のパイプラインを実行し、結果を通知し、抽出リンクを enqueue する。
 // enqueue が nil の場合（単一URLモード）は次URLを追加しない。
-func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int) bool) bool {
+func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int, string) bool) bool {
+	urlStr := j.url.String()
+	emitProgress(c.progress, ProgressEvent{
+		Kind:      ProgressStarted,
+		URL:       urlStr,
+		ParentURL: j.parentURL,
+		Depth:     j.depth,
+	})
+
 	req := model.NewRequest(j.url, j.depth)
 	out, err := c.pipeline.Run(ctx, req)
 	if err != nil {
-		slog.Warn("pipeline failed", "url", j.url.String(), "err", err.Error())
+		slog.Warn("pipeline failed", "url", urlStr, "err", err.Error())
+		emitProgress(c.progress, ProgressEvent{
+			Kind:      ProgressFailed,
+			URL:       urlStr,
+			ParentURL: j.parentURL,
+			Depth:     j.depth,
+			Error:     err.Error(),
+		})
 		return false
 	}
-	if c.sink != nil && out.Result != nil {
-		c.sink(out.Result)
+	if out.Result != nil {
+		if c.sink != nil {
+			c.sink(out.Result)
+		}
+		emitProgress(c.progress, ProgressEvent{
+			Kind:      ProgressSucceeded,
+			URL:       urlStr,
+			ParentURL: j.parentURL,
+			Depth:     j.depth,
+			Result:    out.Result,
+		})
 	}
 	if enqueue != nil {
+		parent := urlStr
 		for _, link := range out.Links {
-			enqueue(link, j.depth+1)
+			child := normalizeURL(link).String()
+			emitProgress(c.progress, ProgressEvent{
+				Kind:      ProgressLinkDiscovered,
+				URL:       child,
+				ParentURL: parent,
+				Depth:     j.depth + 1,
+			})
+			enqueue(link, j.depth+1, parent)
 		}
 	}
 	return true
 }
 
-// shouldVisit はクロール対象 URL の事前フィルタ。
-// 既訪問判定は別 (seen map) で行うので、ここでは登録前のチェックのみ。
-func (c *Crawler) shouldVisit(ctx context.Context, u *url.URL, depth int, base *url.URL) bool {
+// skipReason は訪問不可の理由を返す。訪問可能なら空文字。
+func (c *Crawler) skipReason(ctx context.Context, u *url.URL, depth int, base *url.URL) string {
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return false
+		return "invalid_scheme"
 	}
 	if depth > c.cfg.Crawl.MaxDepth {
-		return false
+		return "max_depth"
 	}
-
-	// PDF 無効化フィルタ
+	if c.excludeURLs != nil {
+		if _, ok := c.excludeURLs[u.String()]; ok {
+			return "exclude_urls"
+		}
+	}
 	if !c.cfg.PDF.Enabled && strings.HasSuffix(strings.ToLower(u.Path), ".pdf") {
-		return false
+		return "pdf_disabled"
 	}
-
-	// ドメイン制限
 	if base != nil {
 		if !c.cfg.Crawl.AllowExternal {
 			if !sameRegisteredDomain(u.Host, base.Host, c.cfg.Crawl.AllowSubdomains) {
-				return false
+				return "external_domain"
 			}
 		}
 	}
-
-	// path パターン
 	if len(c.includeRe) > 0 {
 		ok := false
 		for _, re := range c.includeRe {
@@ -288,23 +354,21 @@ func (c *Crawler) shouldVisit(ctx context.Context, u *url.URL, depth int, base *
 			}
 		}
 		if !ok {
-			return false
+			return "include_paths"
 		}
 	}
 	for _, re := range c.excludeRe {
 		if re.MatchString(u.Path) {
-			return false
+			return "exclude_paths"
 		}
 	}
-
-	// robots.txt
 	if c.cfg.Crawl.RespectRobotsTxt && c.robots != nil {
 		ua := c.cfg.Request.Headers["User-Agent"]
 		if !c.robots.Allowed(ctx, u, ua) {
-			return false
+			return "robots"
 		}
 	}
-	return true
+	return ""
 }
 
 // sameRegisteredDomain はホストが同一登録ドメインかを判定する。

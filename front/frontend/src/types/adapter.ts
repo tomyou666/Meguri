@@ -50,6 +50,7 @@ export interface StartCrawlParams {
 		summary: Omit<CrawlRunSummary, 'id' | 'startedAt'>,
 	) => void;
 	onCrawlError: (message: string) => void;
+	onRunStarted?: (runId: string) => void;
 	getWorkspace: () => Workspace;
 }
 
@@ -110,5 +111,5 @@ export interface ScraperPort {
 
 	getWorkspaceDiff(workspaceId: string): Promise<WorkspaceDiff>;
 
-	startCrawl(params: StartCrawlParams): Promise<void>;
+	startCrawl(params: StartCrawlParams): Promise<string>;
 }

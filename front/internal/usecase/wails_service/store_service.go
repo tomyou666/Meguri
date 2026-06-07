@@ -158,6 +158,11 @@ func (s *StoreService) PatchGraphNodeStatus(req model.PatchGraphNodeStatusReques
 	return s.crawlPersist.PatchGraphNodeStatus(s.ctx(), req)
 }
 
+// UpsertDiscoveredGraph は crawl 中に発見したノードとエッジを永続化する。
+func (s *StoreService) UpsertDiscoveredGraph(req model.UpsertDiscoveredGraphRequest) error {
+	return s.crawlPersist.UpsertDiscoveredGraph(s.ctx(), req)
+}
+
 // Bootstrap は起動時 DB 初期化。
 func (s *StoreService) Bootstrap() error {
 	if err := s.appConfig.Bootstrap(s.ctx()); err != nil {

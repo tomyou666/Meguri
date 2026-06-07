@@ -11,6 +11,8 @@ import (
 	"scraperbot-front/internal/logger"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+
+	_ "scraperbot/pkg/runner"
 )
 
 //go:embed all:frontend/dist
@@ -32,6 +34,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(wailsApp.StoreService),
 			application.NewService(wailsApp.ProjectService),
+			application.NewService(wailsApp.ScraperService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -42,6 +45,7 @@ func main() {
 	})
 
 	wailsApp.ProjectService.SetApp(webApp)
+	wailsApp.ScraperService.SetApp(webApp)
 
 	webApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "scraperbot",

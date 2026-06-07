@@ -127,6 +127,10 @@ crawl:
   # 例: '.*\.zip$' で zip ファイルへのリンクを除外
   exclude_paths: []
 
+  # exclude_urls: 正規化 URL の完全一致でスキップする一覧（UI の「クロールしない」等）
+  # exclude_paths（パス正規表現）とは別物
+  exclude_urls: []
+
   # allow_external_links: 起点と異なる登録ドメインへのリンクを辿る（既定: false）
   allow_external_links: false
 
