@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { mockScraperAdapter, scraperPort } from '@/adapters';
+import { scraperPort } from '@/adapters';
 import { messages } from '@/i18n/messages';
 import { validatePartialConfig } from '@/lib/configValidation';
 import {
@@ -8,6 +8,7 @@ import {
 	fallbackNearParent,
 	positionForDiscoveredNode,
 } from '@/lib/dagreLayout';
+import { debouncedSaveWorkspace } from '@/lib/debouncedWorkspaceSave';
 import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
 import {
 	collectDescendantUrls,
@@ -42,10 +43,10 @@ function syncHistory(
 	activeWorkspaceId: string | null,
 ) {
 	syncGraphHistory(workspaces, activeWorkspaceId);
-	for (const ws of workspaces) {
-		void mockScraperAdapter.saveWorkspace(ws);
+	const active = workspaces.find((w) => w.id === activeWorkspaceId);
+	if (active) {
+		debouncedSaveWorkspace(active);
 	}
-	mockScraperAdapter.syncFromUi(workspaces, useAppStore.getState().appDefaults);
 }
 
 function patchWorkspaces(
@@ -150,6 +151,7 @@ interface AppState {
 	createWorkspace: (name: string, seedUrl: string) => void;
 	setActiveWorkspace: (id: string) => void;
 	deleteWorkspace: (id: string) => void;
+	loadWorkspaceFromServer: (id: string) => Promise<void>;
 	selectNode: (
 		id: string | null,
 		opts?: { additive?: boolean; range?: boolean },
@@ -244,21 +246,38 @@ export const useAppStore = create<AppState>((set, get) => ({
 	_paused: false,
 
 	bootstrap: async () => {
-		const start = Date.now();
 		const defaults = await scraperPort.getAppDefaults();
-		await new Promise((r) => setTimeout(r, 150));
-		const elapsed = Date.now() - start;
-		if (elapsed < 400) {
-			await new Promise((r) => setTimeout(r, 400 - elapsed));
+		const list = await scraperPort.listWorkspaces();
+		const workspaces: Workspace[] = [];
+		for (const item of list) {
+			const ws = await scraperPort.loadWorkspace(item.id);
+			if (ws) workspaces.push(ws);
 		}
-		set({ bootstrapped: true, appDefaults: defaults });
-		mockScraperAdapter.syncFromUi(get().workspaces, defaults);
+		let activeWorkspaceId: string | null = null;
+		if (list.length > 0) {
+			const latest = list.reduce((a, b) =>
+				a.updatedAt >= b.updatedAt ? a : b,
+			);
+			activeWorkspaceId = latest.id;
+		}
+		const active = workspaces.find((w) => w.id === activeWorkspaceId);
+		set({
+			bootstrapped: true,
+			appDefaults: defaults,
+			workspaces,
+			activeWorkspaceId,
+			showNewWorkspaceDialog: list.length === 0,
+			selectedNodeId: active?.nodes[0]?.id ?? null,
+			selectedNodeIds: active?.nodes[0]?.id ? [active.nodes[0].id] : [],
+		});
+		if (workspaces.length > 0) {
+			syncGraphHistory(workspaces, activeWorkspaceId);
+		}
 	},
 
 	setAppDefaults: (config) => {
 		set({ appDefaults: config });
 		void scraperPort.setAppDefaults(config);
-		mockScraperAdapter.syncFromUi(get().workspaces, config);
 	},
 
 	clearSaveNotification: () => set({ saveNotification: null }),
@@ -386,7 +405,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			set((s) => {
 				const workspaces = [...s.workspaces, ws];
 				syncHistory(workspaces, ws.id);
-				void mockScraperAdapter.saveWorkspace(ws);
+				void scraperPort.saveWorkspace(ws);
 				return {
 					workspaces,
 					activeWorkspaceId: ws.id,
@@ -423,6 +442,25 @@ export const useAppStore = create<AppState>((set, get) => ({
 					: s.activeWorkspaceId;
 			return { workspaces, activeWorkspaceId };
 		}),
+
+	loadWorkspaceFromServer: async (id) => {
+		const ws = await scraperPort.loadWorkspace(id);
+		if (!ws) return;
+		set((s) => {
+			const exists = s.workspaces.some((w) => w.id === id);
+			const workspaces = exists
+				? s.workspaces.map((w) => (w.id === id ? ws : w))
+				: [...s.workspaces, ws];
+			syncGraphHistory(workspaces, id);
+			return {
+				workspaces,
+				activeWorkspaceId: id,
+				selectedNodeId: ws.nodes[0]?.id ?? null,
+				selectedNodeIds: ws.nodes[0]?.id ? [ws.nodes[0].id] : [],
+				showNewWorkspaceDialog: false,
+			};
+		});
+	},
 
 	selectNode: (id, opts) => {
 		const ws = get().getActiveWorkspace();

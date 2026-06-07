@@ -1,0 +1,53 @@
+package domain
+
+import (
+	"context"
+	"time"
+
+	"scraperbot-front/internal/infrastructure/persistence"
+	"scraperbot-front/internal/model"
+)
+
+// CrawlPersistService は crawl run 永続化。
+type CrawlPersistService struct {
+	repo persistence.Repository
+}
+
+// NewCrawlPersistService は CrawlPersistService を構築する。
+func NewCrawlPersistService(repo persistence.Repository) *CrawlPersistService {
+	return &CrawlPersistService{repo: repo}
+}
+
+// BeginCrawlRun は crawl run を開始する。
+func (s *CrawlPersistService) BeginCrawlRun(ctx context.Context, req model.BeginCrawlRunRequest) error {
+	return s.repo.BeginCrawlRun(ctx, model.CrawlRun{
+		ID:          model.StrPtr(req.RunID),
+		WorkspaceID: req.WorkspaceID,
+		Mode:        req.Mode,
+		Status:      model.StrPtr("running"),
+		StartedAt:   req.StartedAt,
+	})
+}
+
+// FinishCrawlRun は crawl run を終了する。
+func (s *CrawlPersistService) FinishCrawlRun(ctx context.Context, req model.FinishCrawlRunRequest) error {
+	var summary, errMsg *string
+	if len(req.SummaryJSON) > 0 {
+		s := string(req.SummaryJSON)
+		summary = &s
+	}
+	if req.ErrorMessage != "" {
+		errMsg = &req.ErrorMessage
+	}
+	return s.repo.FinishCrawlRun(ctx, req.RunID, req.Status, req.FinishedAt, summary, errMsg)
+}
+
+// PatchGraphNodeStatus はノード status を更新する。
+func (s *CrawlPersistService) PatchGraphNodeStatus(ctx context.Context, req model.PatchGraphNodeStatusRequest) error {
+	return s.repo.PatchGraphNodeStatus(ctx, req.WorkspaceID, req.NodeID, req.Status, strPtr(req.LastError))
+}
+
+// NowISO は現在時刻 ISO 文字列。
+func NowISO() string {
+	return time.Now().UTC().Format(time.RFC3339)
+}

@@ -1,0 +1,81 @@
+package persistence
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"scraperbot-front/internal/model"
+
+	"github.com/libtnb/sqlite"
+	"gorm.io/gorm"
+)
+
+func applyTestSchema(db *gorm.DB) error {
+	path := filepath.Join("..", "..", "app", "migrations", "000001_init.up.sql")
+	sqlBytes, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return db.Exec(string(sqlBytes)).Error
+}
+
+func TestStoreBootstrapAndWorkspaceRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "test.db")
+
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	if err := applyTestSchema(db); err != nil {
+		t.Fatalf("schema: %v", err)
+	}
+	sqlDB, _ := db.DB()
+	t.Cleanup(func() {
+		_ = sqlDB.Close()
+		_ = os.Remove(dbPath)
+	})
+
+	ctx := context.Background()
+	store := NewStore(db)
+
+	if err := store.BootstrapAppConfig(ctx); err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	cfg, err := store.GetAppConfig(ctx)
+	if err != nil || cfg == nil {
+		t.Fatalf("get app config: %v", err)
+	}
+
+	wsID := "ws-1"
+	bundle := model.WorkspaceBundle{
+		Workspace: model.Workspace{
+			ID:                   model.StrPtr(wsID),
+			Name:                 "Test",
+			SeedURL:              "https://example.com",
+			SettingsJSON:         `{}`,
+			ExcludeUrlsJSON:      `[]`,
+			GraphLayoutDirection: model.StrPtr("LR"),
+			CreatedAt:            "2026-01-01T00:00:00Z",
+			UpdatedAt:            "2026-01-01T00:00:00Z",
+		},
+		Nodes: []model.GraphNode{{
+			WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com",
+			Label: "example", PositionX: 0, PositionY: 0,
+			NodeSettingsJSON: `{}`, Status: model.StrPtr("idle"),
+		}},
+	}
+	if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+		t.Fatalf("save ws: %v", err)
+	}
+	list, err := store.ListWorkspaces(ctx)
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list: %v len=%d", err, len(list))
+	}
+	loaded, err := store.LoadWorkspaceBundle(ctx, wsID)
+	if err != nil || loaded == nil || loaded.Workspace.Name != "Test" {
+		t.Fatalf("load: %v", err)
+	}
+}

@@ -1,0 +1,114 @@
+import type { PartialConfig } from '@/types/config';
+import type { CrawlResultPreview } from '@/types/crawl';
+import type { GraphEdge, GraphNode } from '@/types/graph';
+import type { Workspace } from '@/types/workspace';
+import type {
+	CrawlResultDTO,
+	WorkspaceDTO,
+} from '../../bindings/scraperbot-front/internal/model/models';
+
+export function workspaceFromDTO(dto: WorkspaceDTO): Workspace {
+	const settings = parseJSON<PartialConfig>(dto.settings, {});
+	const domainSettings: Record<string, PartialConfig> = {};
+	for (const [host, raw] of Object.entries(dto.domainSettings ?? {})) {
+		domainSettings[host] = parseJSON<PartialConfig>(raw, {});
+	}
+	return {
+		id: dto.id,
+		name: dto.name,
+		seedUrl: dto.seedUrl,
+		settings,
+		exclude_urls: dto.exclude_urls ?? [],
+		nodes: (dto.nodes ?? []).map(nodeFromDTO),
+		edges: (dto.edges ?? []).map(edgeFromDTO),
+		graphLayoutDirection:
+			(dto.graphLayoutDirection as Workspace['graphLayoutDirection']) ?? 'LR',
+		domainSettings,
+		baselineRunId: dto.baselineRunId || undefined,
+		collapsedNodeIds: dto.collapsedNodeIds ?? [],
+		expandedDetailNodeIds: dto.expandedDetailNodeIds ?? [],
+		createdAt: dto.createdAt,
+	};
+}
+
+export function workspaceToDTO(ws: Workspace): WorkspaceDTO {
+	const domainSettings: Record<string, string> = {};
+	for (const [host, cfg] of Object.entries(ws.domainSettings)) {
+		domainSettings[host] = JSON.stringify(cfg);
+	}
+	return {
+		id: ws.id,
+		name: ws.name,
+		seedUrl: ws.seedUrl,
+		settings: JSON.stringify(ws.settings),
+		exclude_urls: ws.exclude_urls,
+		nodes: ws.nodes.map(nodeToDTO),
+		edges: ws.edges.map(edgeToDTO),
+		graphLayoutDirection: ws.graphLayoutDirection,
+		domainSettings,
+		baselineRunId: ws.baselineRunId ?? '',
+		collapsedNodeIds: ws.collapsedNodeIds ?? [],
+		expandedDetailNodeIds: ws.expandedDetailNodeIds ?? [],
+		createdAt: ws.createdAt ?? new Date().toISOString(),
+	};
+}
+
+function nodeFromDTO(n: WorkspaceDTO['nodes'][0]): GraphNode {
+	return {
+		id: n.id,
+		urlNormalized: n.urlNormalized,
+		label: n.label,
+		position: { x: n.position?.x ?? 0, y: n.position?.y ?? 0 },
+		userPositioned: n.userPositioned,
+		nodeSettings: parseJSON<PartialConfig>(n.nodeSettings, {}),
+		crawlExclude: n.crawlExclude,
+		status: n.status as GraphNode['status'],
+		lastError: n.lastError,
+		lastResult: n.lastResult ? crawlResultFromDTO(n.lastResult) : undefined,
+	};
+}
+
+function nodeToDTO(n: GraphNode): WorkspaceDTO['nodes'][0] {
+	return {
+		id: n.id,
+		urlNormalized: n.urlNormalized,
+		label: n.label,
+		position: { x: n.position.x, y: n.position.y },
+		userPositioned: n.userPositioned,
+		nodeSettings: JSON.stringify(n.nodeSettings),
+		crawlExclude: n.crawlExclude,
+		status: n.status,
+		lastError: n.lastError,
+	};
+}
+
+function edgeFromDTO(e: WorkspaceDTO['edges'][0]): GraphEdge {
+	return { id: e.id, source: e.source, target: e.target };
+}
+
+function edgeToDTO(e: GraphEdge): WorkspaceDTO['edges'][0] {
+	return { id: e.id, source: e.source, target: e.target };
+}
+
+function crawlResultFromDTO(dto: CrawlResultDTO): CrawlResultPreview {
+	return {
+		url: dto.url,
+		markdown: dto.markdown,
+		links: dto.links,
+		metadata: dto.metadata,
+	};
+}
+
+function parseJSON<T>(raw: unknown, fallback: T): T {
+	if (raw == null || raw === '') return fallback;
+	if (typeof raw === 'object') return raw as T;
+	try {
+		return JSON.parse(String(raw)) as T;
+	} catch {
+		return fallback;
+	}
+}
+
+export function partialConfigToRaw(config: PartialConfig): string {
+	return JSON.stringify(config);
+}

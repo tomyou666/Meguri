@@ -1,6 +1,6 @@
 import type { ScraperPort } from '@/types/adapter';
-import { mockScraperAdapter } from './mockScraperAdapter';
+import { compositeScraperAdapter } from './compositeScraperAdapter';
 
-export const scraperPort: ScraperPort = mockScraperAdapter;
+export const scraperPort: ScraperPort = compositeScraperAdapter;
 
-export { mockScraperAdapter };
+export { compositeScraperAdapter };

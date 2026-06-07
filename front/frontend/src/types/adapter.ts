@@ -55,6 +55,12 @@ export interface StartCrawlParams {
 
 export type SettingsScope = 'app' | 'workspace' | 'domain' | 'node';
 
+export interface WorkspaceListItem {
+	id: string;
+	name: string;
+	updatedAt: string;
+}
+
 export interface SaveSettingsResponse {
 	ok: boolean;
 	scope: SettingsScope;
@@ -66,6 +72,7 @@ export interface ScraperPort {
 	/** 既定設定の保存（バリデーション済み JSON） */
 	saveAppDefaults(config: PartialConfig): Promise<SaveSettingsResponse>;
 
+	listWorkspaces(): Promise<WorkspaceListItem[]>;
 	loadWorkspace(id: string): Promise<Workspace | null>;
 	saveWorkspace(ws: Workspace): Promise<void>;
 	saveWorkspaceSettings(

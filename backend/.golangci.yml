@@ -1,6 +1,6 @@
 version: "2"
 linters:
- default: standard
+  default: standard
   exclusions:
     generated: lax
     presets:
@@ -12,6 +12,8 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - '\.gen\.go$'
+      - wire_gen\.go$
 formatters:
   exclusions:
     generated: lax
@@ -19,3 +21,5 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - '\.gen\.go$'
+      - wire_gen\.go$
