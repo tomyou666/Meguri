@@ -15,7 +15,11 @@ import type {
 	WorkspaceListItem,
 } from '@/types/adapter';
 import type { PartialConfig } from '@/types/config';
-import type { CrawlResultPreview, CrawlRunSummary } from '@/types/crawl';
+import type {
+	CrawlResultPreview,
+	CrawlRunSummary,
+	LinkSkipReason,
+} from '@/types/crawl';
 import type { Workspace } from '@/types/workspace';
 import {
 	AppendNodeResultRequest,
@@ -32,6 +36,7 @@ const TOPIC_NODE_STARTED = 'scraper:crawl:nodeStarted';
 const TOPIC_NODE_SUCCEEDED = 'scraper:crawl:nodeSucceeded';
 const TOPIC_NODE_FAILED = 'scraper:crawl:nodeFailed';
 const TOPIC_NODE_SKIPPED = 'scraper:crawl:nodeSkipped';
+const TOPIC_LINK_SKIPPED = 'scraper:crawl:linkSkipped';
 const TOPIC_EDGE_DISCOVERED = 'scraper:crawl:edgeDiscovered';
 const TOPIC_CRAWL_COMPLETED = 'scraper:crawl:completed';
 const TOPIC_CRAWL_ERROR = 'scraper:crawl:error';
@@ -381,6 +386,12 @@ export class CompositeScraperAdapter implements ScraperPort {
 				params.onNodeSkipped(p.nodeId, p.url, p.reason ?? 'skipped');
 			});
 
+			subscribe(TOPIC_LINK_SKIPPED, (p) => {
+				if (!p.targetUrl) return;
+				const reason = (p.reason ?? 'duplicate_in_run') as LinkSkipReason;
+				params.onLinkSkipped(p.url ?? '', p.targetUrl, reason);
+			});
+
 			subscribe(TOPIC_EDGE_DISCOVERED, (p) => {
 				if (!p.sourceId || !p.targetId || !p.targetUrl) return;
 				void (async () => {
@@ -422,6 +433,7 @@ export class CompositeScraperAdapter implements ScraperPort {
 					mode: params.mode,
 					startNodeId: params.startNodeId ?? '',
 					nodeIds: params.nodeIds ?? [],
+					rescrapeExisting: params.rescrapeExisting ?? false,
 					appDefaults: partialConfigToRaw(params.appDefaults),
 					workspace: wsDto,
 				}),

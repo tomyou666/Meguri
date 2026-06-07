@@ -36,7 +36,7 @@ type ProgressEvent struct {
 	Result *model.Result
 	// Error は失敗時のエラー文言。
 	Error string
-	// SkipReason はスキップ理由（exclude_urls / robots / max_pages / duplicate 等）。
+	// SkipReason はスキップ理由（exclude_urls / robots / max_pages / duplicate / already_success 等）。
 	SkipReason string
 	// Stats は completed 時のサマリ。
 	Stats *CrawlStats

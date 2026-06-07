@@ -85,6 +85,8 @@ type CrawlConfig struct {
 	ExcludePaths []string `yaml:"exclude_paths"`
 	// ExcludeURLs は完全一致でスキップする正規化 URL 一覧（exclude_paths とは別）。
 	ExcludeURLs []string `yaml:"exclude_urls"`
+	// SkipScrapeURLs は fetch をスキップする正規化 URL 一覧（UI オーケストレーション用。exclude_urls とは別）。
+	SkipScrapeURLs []string `yaml:"skip_scrape_urls"`
 	// AllowExternal は登録ドメイン外へのリンク追跡を許可するか。
 	AllowExternal bool `yaml:"allow_external_links"`
 	// AllowSubdomains はサブドメインへの追跡を許可するか。

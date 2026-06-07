@@ -38,6 +38,8 @@ type Crawler struct {
 	excludeRe []*regexp.Regexp
 	// excludeURLs は完全一致でスキップする正規化 URL 集合。
 	excludeURLs map[string]struct{}
+	// skipScrapeURLs は fetch のみスキップする正規化 URL 集合（already_success 理由で通知）。
+	skipScrapeURLs map[string]struct{}
 
 	// sink は各ページの Result 受け取り先（レガシー互換）。
 	sink ResultSink
@@ -89,6 +91,16 @@ func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink Result
 				continue
 			}
 			c.excludeURLs[normalizeURL(u).String()] = struct{}{}
+		}
+	}
+	if len(cfg.Crawl.SkipScrapeURLs) > 0 {
+		c.skipScrapeURLs = make(map[string]struct{}, len(cfg.Crawl.SkipScrapeURLs))
+		for _, raw := range cfg.Crawl.SkipScrapeURLs {
+			u, err := url.Parse(raw)
+			if err != nil {
+				continue
+			}
+			c.skipScrapeURLs[normalizeURL(u).String()] = struct{}{}
 		}
 	}
 	return c
@@ -333,6 +345,11 @@ func (c *Crawler) skipReason(ctx context.Context, u *url.URL, depth int, base *u
 	if c.excludeURLs != nil {
 		if _, ok := c.excludeURLs[u.String()]; ok {
 			return "exclude_urls"
+		}
+	}
+	if c.skipScrapeURLs != nil {
+		if _, ok := c.skipScrapeURLs[u.String()]; ok {
+			return "already_success"
 		}
 	}
 	if !c.cfg.PDF.Enabled && strings.HasSuffix(strings.ToLower(u.Path), ".pdf") {

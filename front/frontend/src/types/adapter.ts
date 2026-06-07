@@ -1,5 +1,10 @@
 import type { PartialConfig } from './config';
-import type { CrawlResultPreview, CrawlRunSummary, RunMode } from './crawl';
+import type {
+	CrawlResultPreview,
+	CrawlRunSummary,
+	LinkSkipReason,
+	RunMode,
+} from './crawl';
 import type { Workspace } from './workspace';
 
 export type DiffKind = 'content' | 'links' | 'fetch';
@@ -33,6 +38,7 @@ export interface StartCrawlParams {
 	mode: RunMode;
 	startNodeId?: string;
 	nodeIds?: string[];
+	rescrapeExisting?: boolean;
 	appDefaults: PartialConfig;
 	signal: AbortSignal;
 	isPaused: () => boolean;
@@ -41,6 +47,11 @@ export interface StartCrawlParams {
 	onNodeSucceeded: (nodeId: string, result: CrawlResultPreview) => void;
 	onNodeFailed: (nodeId: string, url: string, error: string) => void;
 	onNodeSkipped: (nodeId: string, url: string, reason: string) => void;
+	onLinkSkipped: (
+		parentUrl: string,
+		targetUrl: string,
+		reason: LinkSkipReason,
+	) => void;
 	onEdgeDiscovered: (
 		sourceId: string,
 		targetId: string,

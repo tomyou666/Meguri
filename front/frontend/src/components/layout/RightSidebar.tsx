@@ -20,6 +20,8 @@ export function RightSidebarContent() {
 	const selectedDomain = useAppStore((s) => s.selectedDomain);
 	const rightCollapsed = useAppStore((s) => s.rightSidebarCollapsed);
 	const runHistory = useAppStore((s) => s.runHistory);
+	const crawlLogs = useAppStore((s) => s.crawlLogs);
+	const crawlStatus = useAppStore((s) => s.crawlStatus);
 	const crawlError = useAppStore((s) => s.crawlError);
 	const loadedNodeResult = useAppStore((s) => s.loadedNodeResult);
 	const resultPreview = useAppStore((s) => s.resultPreview);
@@ -195,42 +197,80 @@ export function RightSidebarContent() {
 				</Alert>
 			)}
 			<ScrollArea className='flex-1 p-3'>
-				{runHistory.length === 0 ? (
-					<p className='text-xs text-muted-foreground'>
-						{messages.right.noSelection}
-					</p>
-				) : (
-					<div className='space-y-2'>
-						<p className='text-xs font-medium text-muted-foreground'>
-							{messages.right.history}
-						</p>
-						{runHistory.map((run) => (
-							<div
-								key={run.id}
-								className='rounded-lg border border-border p-2 text-xs'
-							>
-								<div className='flex items-center justify-between'>
-									<Badge variant='secondary'>
-										{messages.right.runModeBadge(run.mode)}
-									</Badge>
-									<span className='text-muted-foreground'>
-										{run.stoppedReason ?? '—'}
-									</span>
-								</div>
-								<p className='mt-1 text-muted-foreground'>
-									{new Date(run.startedAt).toLocaleString()}
+				<div className='space-y-4'>
+					{(crawlStatus !== 'idle' || crawlLogs.length > 0) && (
+						<div className='space-y-2'>
+							<p className='text-xs font-medium text-muted-foreground'>
+								{messages.right.crawlLog}
+							</p>
+							{crawlLogs.length === 0 ? (
+								<p className='text-xs text-muted-foreground'>
+									{messages.right.crawlLogEmpty}
 								</p>
-								<p className='mt-1'>
-									{messages.right.runStats(
-										run.succeeded,
-										run.failed,
-										run.skipped,
+							) : (
+								<ul className='max-h-40 space-y-1 overflow-y-auto text-xs text-muted-foreground'>
+									{crawlLogs.map((entry) => (
+										<li
+											key={`${entry.at}-${entry.parentUrl}-${entry.targetUrl}-${entry.reason}`}
+										>
+											{messages.right.linkSkipLine(
+												entry.parentUrl,
+												entry.targetUrl,
+												messages.right.linkSkipReason(entry.reason),
+											)}
+										</li>
+									))}
+								</ul>
+							)}
+						</div>
+					)}
+					{runHistory.length === 0 ? (
+						crawlStatus === 'idle' &&
+						crawlLogs.length === 0 && (
+							<p className='text-xs text-muted-foreground'>
+								{messages.right.noSelection}
+							</p>
+						)
+					) : (
+						<div className='space-y-2'>
+							<p className='text-xs font-medium text-muted-foreground'>
+								{messages.right.history}
+							</p>
+							{runHistory.map((run) => (
+								<div
+									key={run.id}
+									className='rounded-lg border border-border p-2 text-xs'
+								>
+									<div className='flex items-center justify-between'>
+										<Badge variant='secondary'>
+											{messages.right.runModeBadge(run.mode)}
+										</Badge>
+										<span className='text-muted-foreground'>
+											{run.stoppedReason ?? '—'}
+										</span>
+									</div>
+									<p className='mt-1 text-muted-foreground'>
+										{new Date(run.startedAt).toLocaleString()}
+									</p>
+									<p className='mt-1'>
+										{messages.right.runStats(
+											run.succeeded,
+											run.failed,
+											run.skipped,
+										)}
+									</p>
+									{(run.skippedDuplicateLinks ?? 0) > 0 && (
+										<p className='mt-1 text-muted-foreground'>
+											{messages.right.runStatsDuplicateLinks(
+												run.skippedDuplicateLinks ?? 0,
+											)}
+										</p>
 									)}
-								</p>
-							</div>
-						))}
-					</div>
-				)}
+								</div>
+							))}
+						</div>
+					)}
+				</div>
 			</ScrollArea>
 		</aside>
 	);

@@ -24,7 +24,7 @@ Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `Sc
 
 | Wails | 説明 |
 |-------|------|
-| `StartCrawl` | ワークスペーススナップショット + マージ済み設定でクロール開始（goroutine） |
+| `StartCrawl` | ワークスペーススナップショット + マージ済み設定でクロール開始（goroutine）。`rescrapeExisting` で success ノード再取得の有無を制御 |
 | `PauseCrawl` | 実行中ジョブを一時停止（v1: オーケストレーション層） |
 | `ResumeCrawl` | 一時停止を解除 |
 | `StopCrawl` | context cancel で停止 |
@@ -37,6 +37,7 @@ Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `Sc
 | `scraper:crawl:nodeSucceeded` | 成功 + result |
 | `scraper:crawl:nodeFailed` | 失敗 + error |
 | `scraper:crawl:nodeSkipped` | スキップ + reason |
+| `scraper:crawl:linkSkipped` | 重複リンクスキップ（url=親 / targetUrl=子 / reason） |
 | `scraper:crawl:edgeDiscovered` | リンク発見（sourceId / targetId / targetUrl） |
 | `scraper:crawl:completed` | ジョブ完了 + summary |
 | `scraper:crawl:error` | ジョブ全体エラー |

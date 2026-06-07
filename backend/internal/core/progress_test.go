@@ -105,6 +105,58 @@ func TestCrawlerExcludeURLs(t *testing.T) {
 	assert.True(t, found, "page-a should be skipped with exclude_urls reason")
 }
 
+func TestCrawlerSkipScrapeURLs(t *testing.T) {
+	srv := newTestWebServer(t)
+	defer srv.Close()
+
+	cfg := baseConfig()
+	cfg.Crawl.Enabled = true
+	cfg.Crawl.MaxDepth = 2
+	cfg.Crawl.MaxPages = 100
+	cfg.Crawl.SkipScrapeURLs = []string{srv.URL + "/docs/page-a.html"}
+
+	var mu sync.Mutex
+	var skipped []core.ProgressEvent
+	var collected []string
+	sink := func(r *model.Result) {
+		mu.Lock()
+		defer mu.Unlock()
+		collected = append(collected, r.URL.String())
+	}
+	progress := func(ev core.ProgressEvent) {
+		if ev.Kind != core.ProgressSkipped {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		skipped = append(skipped, ev)
+	}
+
+	k := setupKernel(t, cfg)
+	c := core.NewCrawler(k, core.NewPipeline(k), nil, sink, progress)
+
+	seed, err := url.Parse(srv.URL + "/links_with_pdf.html")
+	require.NoError(t, err)
+
+	_, err = c.Run(context.Background(), []*url.URL{seed})
+	require.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	found := false
+	for _, ev := range skipped {
+		if ev.SkipReason == "already_success" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "page-a should be skipped with already_success reason")
+	for _, u := range collected {
+		assert.NotContains(t, u, "/docs/page-a.html", "skip scrape URLs must not be fetched")
+	}
+}
+
 func TestCrawlerProgressSinkCollectsResults(t *testing.T) {
 	srv := newTestWebServer(t)
 	defer srv.Close()

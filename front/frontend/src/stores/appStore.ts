@@ -25,6 +25,7 @@ import type { WorkspaceDiff } from '@/types/adapter';
 import type { PartialConfig } from '@/types/config';
 import type {
 	CrawlError,
+	CrawlLogEntry,
 	CrawlResultPreview,
 	CrawlRunStatus,
 	CrawlRunSummary,
@@ -118,7 +119,9 @@ interface AppState {
 	mergeSheetOpen: boolean;
 	mergeSheetContent: string | null;
 	runMode: RunMode;
+	rescrapeExisting: boolean;
 	crawlStatus: CrawlRunStatus;
+	crawlLogs: CrawlLogEntry[];
 	runHistory: CrawlRunSummary[];
 	globalError: GlobalError;
 	crawlError: CrawlError;
@@ -188,6 +191,7 @@ interface AppState {
 	fetchWorkspaceDiff: (workspaceId: string) => Promise<WorkspaceDiff>;
 	closeMergeSheet: () => void;
 	setRunMode: (mode: RunMode) => void;
+	setRescrapeExisting: (value: boolean) => void;
 	updateNodePosition: (id: string, position: { x: number; y: number }) => void;
 	layoutWorkspaceGraph: () => void;
 	setGraphLayoutDirection: (direction: DagreLayoutDirection) => void;
@@ -235,7 +239,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 	mergeSheetOpen: false,
 	mergeSheetContent: null,
 	runMode: 1,
+	rescrapeExisting: false,
 	crawlStatus: 'idle',
+	crawlLogs: [],
 	runHistory: [],
 	globalError: null,
 	crawlError: null,
@@ -590,6 +596,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 		set({ workspaces, activeWorkspaceId });
 	},
 	setRunMode: (mode) => set({ runMode: mode }),
+	setRescrapeExisting: (value) => set({ rescrapeExisting: value }),
 
 	updateNodePosition: (id, position) => {
 		const ws = get().getActiveWorkspace();
@@ -874,6 +881,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			_paused: false,
 			crawlStatus: 'running',
 			crawlError: null,
+			crawlLogs: [],
 		});
 
 		let runId = '';
@@ -906,6 +914,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			mode: state.runMode,
 			startNodeId: state.selectedNodeId ?? undefined,
 			nodeIds: bulkIds,
+			rescrapeExisting: state.rescrapeExisting,
 			appDefaults: state.appDefaults,
 			signal: ac.signal,
 			isPaused: () => get()._paused,
@@ -931,6 +940,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 			},
 			onNodeSkipped: (nodeId) => {
 				patchNode(nodeId, { status: 'skipped', lastError: undefined });
+			},
+			onLinkSkipped: (parentUrl, targetUrl, reason) => {
+				set((s) => ({
+					crawlLogs: [
+						...s.crawlLogs,
+						{
+							at: new Date().toISOString(),
+							parentUrl,
+							targetUrl,
+							reason,
+						},
+					],
+				}));
 			},
 			onEdgeDiscovered: (sourceId, targetId, targetUrl) => {
 				const current = getWs();

@@ -21,6 +21,7 @@ const (
 	topicNodeSucceeded  = "scraper:crawl:nodeSucceeded"
 	topicNodeFailed     = "scraper:crawl:nodeFailed"
 	topicNodeSkipped    = "scraper:crawl:nodeSkipped"
+	topicLinkSkipped    = "scraper:crawl:linkSkipped"
 	topicEdgeDiscovered = "scraper:crawl:edgeDiscovered"
 	topicCrawlCompleted = "scraper:crawl:completed"
 	topicCrawlError     = "scraper:crawl:error"
@@ -155,13 +156,14 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 			WorkspaceID: req.WorkspaceID,
 			RunID:       req.RunID,
 			Summary: &model.CrawlSummaryDTO{
-				Mode:          req.Mode,
-				FinishedAt:    time.Now().UTC().Format(time.RFC3339),
-				Enqueued:      enqueued,
-				Succeeded:     succeeded,
-				Failed:        failed,
-				Skipped:       skipped,
-				StoppedReason: stoppedReason,
+				Mode:                  req.Mode,
+				FinishedAt:            time.Now().UTC().Format(time.RFC3339),
+				Enqueued:              enqueued,
+				Succeeded:             succeeded,
+				Failed:                failed,
+				Skipped:               skipped,
+				SkippedDuplicateLinks: state.linkSkippedCount,
+				StoppedReason:         stoppedReason,
 			},
 		})
 	}
@@ -224,27 +226,34 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 }
 
 type crawlState struct {
-	mu          sync.Mutex
-	nextNodeSeq int64
-	urlToNode   map[string]string
-	nodeByID    map[string]model.GraphNodeDTO
-	excludeSet  map[string]struct{}
-	outEdges    map[string][]string
-	appDefaults json.RawMessage
-	wsSettings  json.RawMessage
-	domainMap   map[string]json.RawMessage
+	mu               sync.Mutex
+	nextNodeSeq      int64
+	urlToNode        map[string]string
+	nodeByID         map[string]model.GraphNodeDTO
+	initialURLs      map[string]struct{}
+	materializedURLs map[string]struct{}
+	excludeSet       map[string]struct{}
+	outEdges         map[string][]string
+	appDefaults      json.RawMessage
+	wsSettings       json.RawMessage
+	domainMap        map[string]json.RawMessage
+	rescrapeExisting bool
+	linkSkippedCount int
 }
 
 func newCrawlState(req model.StartCrawlRequest) *crawlState {
 	ws := req.Workspace
 	st := &crawlState{
-		urlToNode:   map[string]string{},
-		nodeByID:    map[string]model.GraphNodeDTO{},
-		excludeSet:  map[string]struct{}{},
-		outEdges:    map[string][]string{},
-		appDefaults: req.AppDefaults,
-		wsSettings:  ws.Settings,
-		domainMap:   ws.DomainSettings,
+		urlToNode:        map[string]string{},
+		nodeByID:         map[string]model.GraphNodeDTO{},
+		initialURLs:      map[string]struct{}{},
+		materializedURLs: map[string]struct{}{},
+		excludeSet:       map[string]struct{}{},
+		outEdges:         map[string][]string{},
+		appDefaults:      req.AppDefaults,
+		wsSettings:       ws.Settings,
+		domainMap:        ws.DomainSettings,
+		rescrapeExisting: req.RescrapeExisting,
 	}
 	for _, u := range ws.ExcludeURLs {
 		st.excludeSet[u] = struct{}{}
@@ -256,6 +265,8 @@ func newCrawlState(req model.StartCrawlRequest) *crawlState {
 		}
 		st.urlToNode[key] = n.ID
 		st.nodeByID[n.ID] = n
+		st.initialURLs[key] = struct{}{}
+		st.materializedURLs[key] = struct{}{}
 	}
 	for _, e := range ws.Edges {
 		st.outEdges[e.Source] = append(st.outEdges[e.Source], e.Target)
@@ -306,6 +317,52 @@ func (st *crawlState) nodeIDForURLLocked(key string, create bool) (string, bool)
 		Status:        "idle",
 	}
 	return id, false
+}
+
+// skipScrapeURLs は再取得トグル OFF 時に fetch しない success ノード URL 一覧を返す。
+func (st *crawlState) skipScrapeURLs() []string {
+	if st.rescrapeExisting {
+		return nil
+	}
+	urls := make([]string, 0)
+	for _, n := range st.nodeByID {
+		if n.Status == "success" {
+			urls = append(urls, n.URLNormalized)
+		}
+	}
+	return urls
+}
+
+// linkSkipReason は子 URL が素材化済みのときスキップ理由を返す。未登録なら空文字。
+func (st *crawlState) linkSkipReason(childKey string) string {
+	if _, ok := st.initialURLs[childKey]; ok {
+		return "duplicate_existing"
+	}
+	if _, ok := st.materializedURLs[childKey]; ok {
+		return "duplicate_in_run"
+	}
+	return ""
+}
+
+func (st *crawlState) markMaterialized(childKey string) {
+	st.materializedURLs[childKey] = struct{}{}
+}
+
+func (s *ScraperService) emitLinkSkipped(
+	req model.StartCrawlRequest,
+	st *crawlState,
+	parentURL, childURL, reason string,
+) {
+	st.mu.Lock()
+	st.linkSkippedCount++
+	st.mu.Unlock()
+	s.emit(topicLinkSkipped, model.CrawlEventPayload{
+		WorkspaceID: req.WorkspaceID,
+		RunID:       req.RunID,
+		URL:         parentURL,
+		TargetURL:   childURL,
+		Reason:      reason,
+	})
 }
 
 func (st *crawlState) hostFromURL(raw string) string {
@@ -388,6 +445,7 @@ func (s *ScraperService) runMainBFS(
 		return nil, mainReached, err
 	}
 	cfg.Crawl.Enabled = true
+	cfg.Crawl.SkipScrapeURLs = st.skipScrapeURLs()
 
 	progress := func(ev runner.ProgressEvent) {
 		switch ev.Kind {
@@ -400,7 +458,13 @@ func (s *ScraperService) runMainBFS(
 				return
 			}
 			childKey := st.crawlURLKey(ev.URL)
+			if reason := st.linkSkipReason(childKey); reason != "" {
+				st.mu.Unlock()
+				s.emitLinkSkipped(req, st, parentKey, childKey, reason)
+				return
+			}
 			childID, _ := st.nodeIDForURLLocked(childKey, true)
+			st.markMaterialized(childKey)
 			st.mu.Unlock()
 			s.emit(topicEdgeDiscovered, model.CrawlEventPayload{
 				WorkspaceID: req.WorkspaceID,
@@ -457,7 +521,16 @@ func (s *ScraperService) runMainBFS(
 				Error:       ev.Error,
 			})
 		case runner.ProgressSkipped:
-			nodeID, urlKey := st.resolveNodeID(ev.URL, true)
+			urlKey := st.crawlURLKey(ev.URL)
+			switch ev.SkipReason {
+			case "duplicate":
+				s.emitLinkSkipped(req, st, ev.ParentURL, urlKey, "duplicate_in_run")
+				return
+			case "already_success":
+				s.emitLinkSkipped(req, st, ev.ParentURL, urlKey, "duplicate_existing")
+				return
+			}
+			nodeID, _ := st.resolveNodeID(ev.URL, false)
 			if nodeID == "" {
 				return
 			}
@@ -503,6 +576,10 @@ func (s *ScraperService) runMode3(
 		if !ok {
 			continue
 		}
+		if !st.rescrapeExisting && node.Status == "success" {
+			s.emitLinkSkipped(req, st, "", node.URLNormalized, "duplicate_existing")
+			continue
+		}
 		if _, ex := st.excludeSet[node.URLNormalized]; ex || node.CrawlExclude {
 			*skipped++
 			s.emit(topicNodeSkipped, model.CrawlEventPayload{
@@ -541,7 +618,8 @@ func (s *ScraperService) runManualPass(
 		if _, reached := mainReached[node.ID]; reached {
 			continue
 		}
-		if node.Status == "success" {
+		if !st.rescrapeExisting && node.Status == "success" {
+			s.emitLinkSkipped(req, st, "", node.URLNormalized, "duplicate_existing")
 			continue
 		}
 		if _, ex := st.excludeSet[node.URLNormalized]; ex || node.CrawlExclude {

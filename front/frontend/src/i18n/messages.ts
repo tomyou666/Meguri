@@ -20,6 +20,7 @@ export const messages = {
 		mode3: '選択ノードから既存ノードのみ',
 		bulkScrapeSelected: '選択をスクレイプ',
 		closeModeMenu: '実行モードメニューを閉じる',
+		rescrapeExisting: '既存ノードを再取得',
 	},
 	sidebar: {
 		workspaces: 'ワークスペース',
@@ -49,6 +50,17 @@ export const messages = {
 		runModeBadge: (mode: number) => `モード ${mode}`,
 		runStats: (succeeded: number, failed: number, skipped: number) =>
 			`成功 ${succeeded} / 失敗 ${failed} / スキップ ${skipped}`,
+		runStatsDuplicateLinks: (count: number) => `重複リンクスキップ ${count}`,
+		crawlLog: 'クロールログ',
+		crawlLogEmpty: 'ログはまだありません',
+		linkSkipReason: (reason: string) =>
+			reason === 'duplicate_existing'
+				? '既存URL'
+				: reason === 'duplicate_in_run'
+					? '実行内重複'
+					: reason,
+		linkSkipLine: (parent: string, target: string, reason: string) =>
+			parent ? `${parent} → ${target}（${reason}）` : `${target}（${reason}）`,
 		noResultApi: '結果がありません（API未取得）',
 		formatUnsupported: (format: string) => `（モック未対応: ${format}）`,
 	},

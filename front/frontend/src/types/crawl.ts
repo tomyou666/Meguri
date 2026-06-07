@@ -12,6 +12,15 @@ export interface CrawlResultPreview {
 	metadata?: Record<string, string>;
 }
 
+export type LinkSkipReason = 'duplicate_existing' | 'duplicate_in_run';
+
+export interface CrawlLogEntry {
+	at: string;
+	parentUrl: string;
+	targetUrl: string;
+	reason: LinkSkipReason;
+}
+
 export interface CrawlRunSummary {
 	id: string;
 	mode: RunMode;
@@ -21,6 +30,7 @@ export interface CrawlRunSummary {
 	succeeded: number;
 	failed: number;
 	skipped: number;
+	skippedDuplicateLinks?: number;
 	stoppedReason?: 'completed' | 'stopped' | 'error';
 	errorMessage?: string;
 }
@@ -43,6 +53,11 @@ export interface CrawlEventHandlers {
 	onNodeSucceeded: (nodeId: string, result: CrawlResultPreview) => void;
 	onNodeFailed: (nodeId: string, url: string, error: string) => void;
 	onNodeSkipped: (nodeId: string, url: string, reason: string) => void;
+	onLinkSkipped: (
+		parentUrl: string,
+		targetUrl: string,
+		reason: LinkSkipReason,
+	) => void;
 	onEdgeDiscovered: (
 		sourceId: string,
 		targetId: string,

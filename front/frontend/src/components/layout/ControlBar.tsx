@@ -1,6 +1,8 @@
 import { ChevronDown, Pause, Play, Square } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { messages } from '@/i18n/messages';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
@@ -25,6 +27,8 @@ const MODE_LABELS: Record<RunMode, string> = {
 export function ControlBar() {
 	const runMode = useAppStore((s) => s.runMode);
 	const setRunMode = useAppStore((s) => s.setRunMode);
+	const rescrapeExisting = useAppStore((s) => s.rescrapeExisting);
+	const setRescrapeExisting = useAppStore((s) => s.setRescrapeExisting);
 	const crawlStatus = useAppStore((s) => s.crawlStatus);
 	const startCrawl = useAppStore((s) => s.startCrawl);
 	const pauseCrawl = useAppStore((s) => s.pauseCrawl);
@@ -129,6 +133,21 @@ export function ControlBar() {
 						{messages.control.stop}
 					</Button>
 				)}
+
+				<div className='flex items-center gap-1.5'>
+					<Checkbox
+						id='rescrape-existing'
+						checked={rescrapeExisting}
+						disabled={isRunning || isPaused || !ws}
+						onCheckedChange={(checked) => setRescrapeExisting(checked === true)}
+					/>
+					<Label
+						htmlFor='rescrape-existing'
+						className='cursor-pointer text-xs font-normal text-muted-foreground'
+					>
+						{messages.control.rescrapeExisting}
+					</Label>
+				</div>
 
 				<span className='text-muted-foreground'>|</span>
 				<span className='text-xs text-muted-foreground'>

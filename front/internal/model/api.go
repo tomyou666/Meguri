@@ -150,13 +150,14 @@ type OpenScrbResponse struct {
 
 // StartCrawlRequest はクロール開始 RPC 入力。
 type StartCrawlRequest struct {
-	RunID       string          `json:"runId"`
-	WorkspaceID string          `json:"workspaceId"`
-	Mode        int32           `json:"mode"`
-	StartNodeID string          `json:"startNodeId,omitempty"`
-	NodeIDs     []string        `json:"nodeIds,omitempty"`
-	AppDefaults json.RawMessage `json:"appDefaults"`
-	Workspace   WorkspaceDTO    `json:"workspace"`
+	RunID            string          `json:"runId"`
+	WorkspaceID      string          `json:"workspaceId"`
+	Mode             int32           `json:"mode"`
+	StartNodeID      string          `json:"startNodeId,omitempty"`
+	NodeIDs          []string        `json:"nodeIds,omitempty"`
+	RescrapeExisting bool            `json:"rescrapeExisting"`
+	AppDefaults      json.RawMessage `json:"appDefaults"`
+	Workspace        WorkspaceDTO    `json:"workspace"`
 }
 
 // CrawlNodeResultDTO は Wails Event 用のノード結果プレビュー。
@@ -185,11 +186,12 @@ type CrawlEventPayload struct {
 
 // CrawlSummaryDTO は crawl 完了サマリ。
 type CrawlSummaryDTO struct {
-	Mode          int32  `json:"mode"`
-	FinishedAt    string `json:"finishedAt"`
-	Enqueued      int    `json:"enqueued"`
-	Succeeded     int    `json:"succeeded"`
-	Failed        int    `json:"failed"`
-	Skipped       int    `json:"skipped"`
-	StoppedReason string `json:"stoppedReason,omitempty"`
+	Mode                  int32  `json:"mode"`
+	FinishedAt            string `json:"finishedAt"`
+	Enqueued              int    `json:"enqueued"`
+	Succeeded             int    `json:"succeeded"`
+	Failed                int    `json:"failed"`
+	Skipped               int    `json:"skipped"`
+	SkippedDuplicateLinks int    `json:"skippedDuplicateLinks"`
+	StoppedReason         string `json:"stoppedReason,omitempty"`
 }
