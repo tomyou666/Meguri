@@ -14,17 +14,17 @@ export function MergeSheet() {
 	const close = useAppStore((s) => s.closeMergeSheet);
 
 	return (
-		<Dialog open={open} onOpenChange={(o) => !o && close()}>
-			<DialogContent className='max-h-[85vh] max-w-2xl'>
+		<Dialog open={open} onOpenChange={(o) => !o && close()} size='full'>
+			<DialogContent className='flex h-full flex-col overflow-hidden'>
 				<DialogHeader>
 					<DialogTitle>マージ結果</DialogTitle>
 				</DialogHeader>
-				<ScrollArea className='max-h-[60vh]'>
+				<ScrollArea className='min-h-0 flex-1'>
 					<pre className='whitespace-pre-wrap p-2 font-mono text-xs'>
 						{content}
 					</pre>
 				</ScrollArea>
-				<Button size='sm' onClick={close}>
+				<Button size='sm' className='mt-4 shrink-0 self-end' onClick={close}>
 					閉じる
 				</Button>
 			</DialogContent>

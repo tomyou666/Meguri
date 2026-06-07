@@ -6,14 +6,13 @@ import { AppBootstrap } from './AppBootstrap';
 import { AppDialogs } from './AppDialogs';
 import { AppKeyboardShortcuts } from './AppKeyboardShortcuts';
 import { ControlBar } from './ControlBar';
-import { GlobalErrorBanner } from './GlobalErrorBanner';
 import { LeftSidebarContent } from './LeftSidebar';
 import { MenuBar } from './MenuBar';
 import { MergeSheet } from './MergeSheet';
 import { RightSidebarContent } from './RightSidebar';
-import { SaveNotification } from './SaveNotification';
 
-const MAIN_LAYOUT = { left: 22, main: 53, right: 22 };
+const LEFT_SIDEBAR_SIZE = '14rem';
+const RIGHT_SIDEBAR_SIZE = '16rem';
 
 function SidebarPanels() {
 	const leftCollapsed = useAppStore((s) => s.leftSidebarCollapsed);
@@ -40,9 +39,8 @@ function SidebarPanels() {
 			<Panel
 				id='left-sidebar'
 				panelRef={leftRef}
-				defaultSize={MAIN_LAYOUT.left}
-				minSize='14rem'
-				maxSize='28rem'
+				defaultSize={LEFT_SIDEBAR_SIZE}
+				minSize={LEFT_SIDEBAR_SIZE}
 				collapsible
 				collapsedSize='2.75rem'
 				className='min-w-0'
@@ -50,12 +48,7 @@ function SidebarPanels() {
 				<LeftSidebarContent />
 			</Panel>
 			<Separator className='w-1 shrink-0 bg-border hover:bg-primary/30' />
-			<Panel
-				id='main-canvas'
-				defaultSize={MAIN_LAYOUT.main}
-				minSize='30%'
-				className='min-w-0'
-			>
+			<Panel id='main-canvas' minSize='30%' className='min-w-0'>
 				<main className='relative flex h-full min-w-0 flex-col'>
 					<CrawlGraph />
 				</main>
@@ -64,9 +57,9 @@ function SidebarPanels() {
 			<Panel
 				id='right-sidebar'
 				panelRef={rightRef}
-				defaultSize={MAIN_LAYOUT.right}
-				minSize='16rem'
-				maxSize='32rem'
+				defaultSize={RIGHT_SIDEBAR_SIZE}
+				minSize={RIGHT_SIDEBAR_SIZE}
+				// maxSize='32rem'
 				collapsible
 				collapsedSize='2.75rem'
 				className='min-w-0'
@@ -83,18 +76,12 @@ export function AppShell() {
 			<AppKeyboardShortcuts />
 			<div className='flex h-screen w-full flex-col overflow-hidden'>
 				<MenuBar />
-				<GlobalErrorBanner />
 				<ControlBar />
-				<Group
-					orientation='horizontal'
-					className='min-h-0 w-full flex-1'
-					defaultLayout={MAIN_LAYOUT}
-				>
+				<Group orientation='horizontal' className='min-h-0 w-full flex-1'>
 					<SidebarPanels />
 				</Group>
 				<AppDialogs />
 				<MergeSheet />
-				<SaveNotification />
 			</div>
 		</AppBootstrap>
 	);

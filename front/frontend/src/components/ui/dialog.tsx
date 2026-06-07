@@ -5,10 +5,12 @@ function Dialog({
 	open,
 	onOpenChange,
 	children,
+	size = 'default',
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	children: React.ReactNode;
+	size?: 'default' | 'full' | 'fullHeight';
 }) {
 	if (!open) return null;
 	return (
@@ -19,7 +21,18 @@ function Dialog({
 				className='absolute inset-0 bg-black/60'
 				onClick={() => onOpenChange(false)}
 			/>
-			<div className='relative z-10 w-full max-w-md'>{children}</div>
+			<div
+				className={cn(
+					'relative z-10 w-full',
+					size === 'default' && 'max-w-md',
+					size === 'full' &&
+						'mx-2 flex h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] max-w-[calc(100vw-1rem)]',
+					size === 'fullHeight' &&
+						'flex h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] max-w-lg w-full',
+				)}
+			>
+				{children}
+			</div>
 		</div>
 	);
 }

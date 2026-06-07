@@ -1,4 +1,4 @@
-import { ControlButton, Controls, MiniMap, useReactFlow } from '@xyflow/react';
+import { ControlButton, Controls, useReactFlow } from '@xyflow/react';
 import {
 	ArrowDownUp,
 	ArrowLeftRight,
@@ -15,11 +15,12 @@ import { messages } from '@/i18n/messages';
 import type { DagreLayoutDirection } from '@/lib/dagreLayout';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
-import type { UrlNodeData } from './UrlNode';
+import { GraphMinimap } from './GraphMinimap';
+
+export const GRAPH_MIN_ZOOM = 0.2;
 
 export function GraphCanvasControls() {
 	const ws = useAppStore((s) => s.getActiveWorkspace());
-	const layoutWorkspaceGraph = useAppStore((s) => s.layoutWorkspaceGraph);
 	const setGraphLayoutDirection = useAppStore((s) => s.setGraphLayoutDirection);
 	const expandAllNodes = useAppStore((s) => s.expandAllNodes);
 	const collapseAllNodes = useAppStore((s) => s.collapseAllNodes);
@@ -29,27 +30,21 @@ export function GraphCanvasControls() {
 
 	const direction = ws?.graphLayoutDirection ?? 'LR';
 
-	const fitAfterLayout = useCallback(() => {
-		requestAnimationFrame(() => {
-			fitView({ padding: 0.2, duration: 100 });
-		});
+	const onFitView = useCallback(() => {
+		fitView({ padding: 0.2, duration: 100, minZoom: GRAPH_MIN_ZOOM });
 	}, [fitView]);
 
-	const onFitView = useCallback(() => {
-		fitView({ padding: 0.2, duration: 100 });
-	}, [fitView]);
+	const fitAfterLayout = useCallback(() => {
+		requestAnimationFrame(() => {
+			onFitView();
+		});
+	}, [onFitView]);
 
 	const onCycleLayout = useCallback(() => {
 		const next: DagreLayoutDirection = direction === 'LR' ? 'TB' : 'LR';
 		setGraphLayoutDirection(next);
-		layoutWorkspaceGraph();
 		fitAfterLayout();
-	}, [
-		direction,
-		setGraphLayoutDirection,
-		layoutWorkspaceGraph,
-		fitAfterLayout,
-	]);
+	}, [direction, setGraphLayoutDirection, fitAfterLayout]);
 
 	const layoutTitle =
 		direction === 'LR'
@@ -58,18 +53,7 @@ export function GraphCanvasControls() {
 
 	return (
 		<>
-			<MiniMap
-				position='bottom-right'
-				className='graph-minimap'
-				nodeColor={(n) => {
-					const st = (n.data as UrlNodeData).status;
-					if (st === 'error') return '#ef4444';
-					if (st === 'success') return '#22c55e';
-					if (st === 'running') return '#3b82f6';
-					return '#6b7280';
-				}}
-				maskColor='color-mix(in oklch, var(--background) 55%, transparent)'
-			/>
+			<GraphMinimap />
 			<Controls
 				position='bottom-left'
 				orientation='horizontal'

@@ -1,6 +1,6 @@
 .PHONY: help setup dev run build clean check test lint format lint-fix \
 	go-test go-build go-tidy go-fmt go-vet go-lint \
-	frontend-install frontend-dev frontend-build frontend-preview frontend-test frontend-lint frontend-format frontend-lint-fix \
+	frontend-install frontend-dev frontend-build frontend-preview frontend-test frontend-lint frontend-typecheck frontend-format frontend-lint-fix \
 	tools migrate-up migrate-down migrate-version gen wire bindings generate
 
 GO ?= go
@@ -38,7 +38,7 @@ help:
 	@echo ""
 	@echo "Quality targets:"
 	@echo "  check     lint + test"
-	@echo "  lint      Run golangci-lint + frontend lint"
+	@echo "  lint      Run golangci-lint + frontend lint + typecheck"
 	@echo "  fmt       Run go fmt + frontend lint auto-fix"
 	@echo "  test      Run Go + frontend tests"
 	@echo "  go-fmt    Run go fmt on Go packages"
@@ -100,7 +100,7 @@ check: lint test
 
 test: go-test frontend-test
 
-lint: go-lint frontend-lint
+lint: go-lint frontend-lint frontend-typecheck
 
 fmt: go-fmt frontend-lint-fix
 
@@ -140,6 +140,9 @@ frontend-test:
 
 frontend-lint:
 	$(NPM) --prefix $(FRONTEND_DIR) run lint
+
+frontend-typecheck:
+	$(NPM) --prefix $(FRONTEND_DIR) run typecheck
 
 frontend-format:
 	$(NPM) --prefix $(FRONTEND_DIR) run format

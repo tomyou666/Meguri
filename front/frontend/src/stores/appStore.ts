@@ -16,6 +16,7 @@ import {
 	getDescendantNodeIds,
 } from '@/lib/graph';
 import { hostFromUrl, normalizeUrl } from '@/lib/normalizeUrl';
+import { notifyError, notifySuccess } from '@/lib/notify';
 import {
 	redoGraph,
 	syncGraphHistory,
@@ -29,7 +30,6 @@ import type {
 	CrawlResultPreview,
 	CrawlRunStatus,
 	CrawlRunSummary,
-	GlobalError,
 	RunMode,
 } from '@/types/crawl';
 import type { GraphNode, NodeStatus } from '@/types/graph';
@@ -109,6 +109,7 @@ interface AppState {
 	graphToolMode: 'pan' | 'select';
 	leftSidebarCollapsed: boolean;
 	rightSidebarCollapsed: boolean;
+	minimapCollapsed: boolean;
 	clipboard: {
 		nodes: GraphNode[];
 		edges: { source: string; target: string }[];
@@ -123,16 +124,11 @@ interface AppState {
 	crawlStatus: CrawlRunStatus;
 	crawlLogs: CrawlLogEntry[];
 	runHistory: CrawlRunSummary[];
-	globalError: GlobalError;
 	crawlError: CrawlError;
 	showNewWorkspaceDialog: boolean;
 	showAddNodeDialog: boolean;
 	showDeleteNodeDialog: boolean;
 	addNodeContextPosition: { x: number; y: number } | null;
-	saveNotification: {
-		type: 'success' | 'error';
-		detail?: string;
-	} | null;
 
 	_abortController: AbortController | null;
 	_activeRunId: string | null;
@@ -140,7 +136,6 @@ interface AppState {
 
 	bootstrap: () => Promise<void>;
 	setAppDefaults: (config: PartialConfig) => void;
-	clearSaveNotification: () => void;
 	persistAppDefaults: (config: PartialConfig) => Promise<boolean>;
 	persistWorkspaceSettings: (settings: PartialConfig) => Promise<boolean>;
 	persistDomainSettings: (
@@ -168,6 +163,7 @@ interface AppState {
 	selectDomain: (host: string | null) => void;
 	toggleLeftSidebar: () => void;
 	toggleRightSidebar: () => void;
+	toggleMinimap: () => void;
 	undo: () => void;
 	redo: () => void;
 	copySelectedNodes: () => void;
@@ -207,7 +203,6 @@ interface AppState {
 	updateNodeSettings: (nodeId: string, settings: PartialConfig) => void;
 	updateDomainSettings: (host: string, settings: PartialConfig) => void;
 	setWorkspaceFormats: (formats: PartialConfig['content']) => void;
-	clearGlobalError: () => void;
 	clearCrawlError: () => void;
 	startCrawl: () => Promise<void>;
 	pauseCrawl: () => void;
@@ -232,6 +227,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	graphToolMode: 'pan',
 	leftSidebarCollapsed: false,
 	rightSidebarCollapsed: false,
+	minimapCollapsed: false,
 	clipboard: null,
 	loadedNodeResult: null,
 	resultPreview: null,
@@ -243,13 +239,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 	crawlStatus: 'idle',
 	crawlLogs: [],
 	runHistory: [],
-	globalError: null,
 	crawlError: null,
 	showNewWorkspaceDialog: true,
 	showAddNodeDialog: false,
 	showDeleteNodeDialog: false,
 	addNodeContextPosition: null,
-	saveNotification: null,
 	_abortController: null,
 	_activeRunId: null as string | null,
 	_paused: false,
@@ -289,30 +283,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 		void scraperPort.setAppDefaults(config);
 	},
 
-	clearSaveNotification: () => set({ saveNotification: null }),
-
 	persistAppDefaults: async (config) => {
 		const validated = validatePartialConfig(config);
 		if (!validated.ok) {
-			set({
-				saveNotification: {
-					type: 'error',
-					detail: messages.settings.validationFailed,
-				},
+			notifyError(messages.settings.saveFailed, {
+				description: messages.settings.validationFailed,
 			});
 			return false;
 		}
 		try {
 			await scraperPort.saveAppDefaults(validated.data);
 			get().setAppDefaults(validated.data);
-			set({ saveNotification: { type: 'success' } });
+			notifySuccess(messages.settings.saveSuccess);
 			return true;
 		} catch (err) {
-			set({
-				saveNotification: {
-					type: 'error',
-					detail: err instanceof Error ? err.message : undefined,
-				},
+			notifyError(messages.settings.saveFailed, {
+				description: err instanceof Error ? err.message : undefined,
 			});
 			return false;
 		}
@@ -323,25 +309,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 		if (!ws) return false;
 		const validated = validatePartialConfig(settings);
 		if (!validated.ok) {
-			set({
-				saveNotification: {
-					type: 'error',
-					detail: messages.settings.validationFailed,
-				},
+			notifyError(messages.settings.saveFailed, {
+				description: messages.settings.validationFailed,
 			});
 			return false;
 		}
 		try {
 			await scraperPort.saveWorkspaceSettings(ws.id, validated.data);
 			get().updateWorkspaceSettings(validated.data);
-			set({ saveNotification: { type: 'success' } });
+			notifySuccess(messages.settings.saveSuccess);
 			return true;
 		} catch (err) {
-			set({
-				saveNotification: {
-					type: 'error',
-					detail: err instanceof Error ? err.message : undefined,
-				},
+			notifyError(messages.settings.saveFailed, {
+				description: err instanceof Error ? err.message : undefined,
 			});
 			return false;
 		}
@@ -352,25 +332,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 		if (!ws) return false;
 		const validated = validatePartialConfig(settings);
 		if (!validated.ok) {
-			set({
-				saveNotification: {
-					type: 'error',
-					detail: messages.settings.validationFailed,
-				},
+			notifyError(messages.settings.saveFailed, {
+				description: messages.settings.validationFailed,
 			});
 			return false;
 		}
 		try {
 			await scraperPort.saveDomainSettings(ws.id, domain, validated.data);
 			get().updateDomainSettings(domain, validated.data);
-			set({ saveNotification: { type: 'success' } });
+			notifySuccess(messages.settings.saveSuccess);
 			return true;
 		} catch (err) {
-			set({
-				saveNotification: {
-					type: 'error',
-					detail: err instanceof Error ? err.message : undefined,
-				},
+			notifyError(messages.settings.saveFailed, {
+				description: err instanceof Error ? err.message : undefined,
 			});
 			return false;
 		}
@@ -381,25 +355,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 		if (!ws) return false;
 		const validated = validatePartialConfig(settings);
 		if (!validated.ok) {
-			set({
-				saveNotification: {
-					type: 'error',
-					detail: messages.settings.validationFailed,
-				},
+			notifyError(messages.settings.saveFailed, {
+				description: messages.settings.validationFailed,
 			});
 			return false;
 		}
 		try {
 			await scraperPort.saveNodeSettings(ws.id, nodeId, validated.data);
 			get().updateNodeSettings(nodeId, validated.data);
-			set({ saveNotification: { type: 'success' } });
+			notifySuccess(messages.settings.saveSuccess);
 			return true;
 		} catch (err) {
-			set({
-				saveNotification: {
-					type: 'error',
-					detail: err instanceof Error ? err.message : undefined,
-				},
+			notifyError(messages.settings.saveFailed, {
+				description: err instanceof Error ? err.message : undefined,
 			});
 			return false;
 		}
@@ -424,14 +392,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 				};
 			});
 		} catch (e) {
-			set({
-				globalError: {
-					type: 'global',
-					message:
-						e instanceof Error ? e.message : 'ワークスペース作成に失敗しました',
-					at: new Date().toISOString(),
-				},
-			});
+			const message =
+				e instanceof Error ? e.message : 'ワークスペース作成に失敗しました';
+			notifyError(messages.error.globalBanner, { description: message });
 		}
 	},
 
@@ -585,6 +548,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 		set((s) => ({ leftSidebarCollapsed: !s.leftSidebarCollapsed })),
 	toggleRightSidebar: () =>
 		set((s) => ({ rightSidebarCollapsed: !s.rightSidebarCollapsed })),
+	toggleMinimap: () => set((s) => ({ minimapCollapsed: !s.minimapCollapsed })),
 
 	undo: () => {
 		const { workspaces, activeWorkspaceId } = undoGraph();
@@ -701,13 +665,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 				addNodeContextPosition: null,
 			});
 		} catch (e) {
-			set({
-				globalError: {
-					type: 'global',
-					message: e instanceof Error ? e.message : 'URL が不正です',
-					at: new Date().toISOString(),
-				},
-			});
+			const message = e instanceof Error ? e.message : 'URL が不正です';
+			notifyError(messages.error.globalBanner, { description: message });
 		}
 	},
 
@@ -837,7 +796,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 		}));
 	},
 
-	clearGlobalError: () => set({ globalError: null }),
 	clearCrawlError: () => set({ crawlError: null }),
 
 	pauseCrawl: () => {

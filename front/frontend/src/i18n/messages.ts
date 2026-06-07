@@ -32,7 +32,7 @@ export const messages = {
 		emptyWorkspaces: 'ワークスペースがありません',
 		openLeft: '左サイドバーを開く',
 		openRight: '右サイドバーを開く',
-		workspaceSettings: 'ワークスペース設定',
+		workspaceSettings: 'WS 設定',
 		diffSummary: '差分サマリ',
 	},
 	right: {
@@ -157,6 +157,9 @@ export const messages = {
 		contextDelete: '削除',
 		toolPan: '手のひら（パン）— ドラッグで移動',
 		toolSelect: '矩形選択 — ドラッグで範囲選択（Ctrl で追加）',
+		minimapOpen: 'ミニマップを表示',
+		minimapTitle: 'ミニマップ',
+		minimapClose: 'ミニマップを閉じる',
 	},
 	status: {
 		idle: '未訪問',

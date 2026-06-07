@@ -23,11 +23,12 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useAppStore } from '@/stores/appStore';
 import type { WorkspaceDiff } from '@/types/adapter';
-import { GraphCanvasControls } from './GraphCanvasControls';
+import { GRAPH_MIN_ZOOM, GraphCanvasControls } from './GraphCanvasControls';
 import { GraphSelectionSync } from './GraphSelectionSync';
 import { UrlNode, type UrlNodeData } from './UrlNode';
 
 const nodeTypes = { urlNode: UrlNode };
+const graphFitViewOptions = { padding: 0.2, minZoom: GRAPH_MIN_ZOOM };
 
 export function CrawlGraph() {
 	const proOptions = { hideAttribution: true };
@@ -240,7 +241,9 @@ export function CrawlGraph() {
 				multiSelectionKeyCode={['Control', 'Meta']}
 				panOnScroll
 				zoomOnScroll
+				minZoom={GRAPH_MIN_ZOOM}
 				fitView
+				fitViewOptions={graphFitViewOptions}
 				className={
 					isSelectTool
 						? 'bg-background rf-tool-select'

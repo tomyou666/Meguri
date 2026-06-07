@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
+import { notifyError } from '@/lib/notify';
 import { useAppStore } from '@/stores/appStore';
 import * as ProjectService from '../../../bindings/scraperbot-front/internal/usecase/wails_service/projectservice';
 
@@ -18,30 +19,27 @@ export function MenuBar() {
 	const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
 	const loadWorkspace = useAppStore((s) => s.loadWorkspaceFromServer);
 	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [fileError, setFileError] = useState<string | null>(null);
 
 	const handleOpenScrb = async () => {
-		setFileError(null);
 		try {
 			const res = await ProjectService.OpenScrb();
 			if (res?.workspaceId) {
 				await loadWorkspace(res.workspaceId);
 			}
 		} catch (e) {
-			setFileError(e instanceof Error ? e.message : String(e));
+			notifyError(e instanceof Error ? e.message : String(e));
 		}
 	};
 
 	const handleSaveScrb = async () => {
-		setFileError(null);
 		if (!activeWorkspaceId) {
-			setFileError('ワークスペースが選択されていません');
+			notifyError('ワークスペースが選択されていません');
 			return;
 		}
 		try {
 			await ProjectService.SaveScrb(activeWorkspaceId);
 		} catch (e) {
-			setFileError(e instanceof Error ? e.message : String(e));
+			notifyError(e instanceof Error ? e.message : String(e));
 		}
 	};
 
@@ -60,9 +58,6 @@ export function MenuBar() {
 				>
 					{messages.menu.saveScrb}
 				</Button>
-				{fileError ? (
-					<span className='text-destructive px-2'>{fileError}</span>
-				) : null}
 				<span className='mx-1 text-muted-foreground'>|</span>
 				<span className='px-2 font-medium'>{messages.menu.settings}</span>
 				<Button variant='ghost' size='xs' onClick={() => setSettingsOpen(true)}>
@@ -70,12 +65,16 @@ export function MenuBar() {
 				</Button>
 			</div>
 
-			<Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-				<DialogContent className='max-h-[85vh] max-w-lg'>
+			<Dialog
+				open={settingsOpen}
+				onOpenChange={setSettingsOpen}
+				size='fullHeight'
+			>
+				<DialogContent className='flex h-full flex-col overflow-hidden'>
 					<DialogHeader>
 						<DialogTitle>{messages.menu.appDefaults}</DialogTitle>
 					</DialogHeader>
-					<ScrollArea className='max-h-[60vh] pr-2'>
+					<ScrollArea className='min-h-0 flex-1 pr-2'>
 						<ConfigEditor
 							layer='app'
 							settings={appDefaults}

@@ -35,12 +35,6 @@ export interface CrawlRunSummary {
 	errorMessage?: string;
 }
 
-export type GlobalError = {
-	type: 'global';
-	message: string;
-	at: string;
-} | null;
-
 export type CrawlError = {
 	type: 'crawl';
 	message: string;

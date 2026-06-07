@@ -159,7 +159,7 @@ export function LeftSidebarContent() {
 						className='mx-2 my-1'
 						onClick={() => setWsSettingsOpen(true)}
 					>
-						WS 設定
+						{messages.sidebar.workspaceSettings}
 					</Button>
 				)}
 
@@ -211,16 +211,22 @@ export function LeftSidebarContent() {
 			</aside>
 
 			{activeWorkspace && (
-				<Dialog open={wsSettingsOpen} onOpenChange={setWsSettingsOpen}>
-					<DialogContent className='max-h-[85vh] max-w-lg overflow-y-auto'>
+				<Dialog
+					open={wsSettingsOpen}
+					onOpenChange={setWsSettingsOpen}
+					size='fullHeight'
+				>
+					<DialogContent className='flex h-full flex-col overflow-hidden'>
 						<DialogHeader>
 							<DialogTitle>{messages.sidebar.workspaceSettings}</DialogTitle>
 						</DialogHeader>
-						<ConfigEditor
-							layer='workspace'
-							settings={activeWorkspace.settings}
-							onSave={(settings) => persistWorkspaceSettings(settings)}
-						/>
+						<ScrollArea className='min-h-0 flex-1 pr-2'>
+							<ConfigEditor
+								layer='workspace'
+								settings={activeWorkspace.settings}
+								onSave={(settings) => persistWorkspaceSettings(settings)}
+							/>
+						</ScrollArea>
 					</DialogContent>
 				</Dialog>
 			)}
