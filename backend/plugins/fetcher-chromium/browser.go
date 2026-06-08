@@ -87,17 +87,35 @@ func findFirstExecutable(names, fixed []string) (string, error) {
 	return "", fmt.Errorf("not found")
 }
 
+func isEdgeNameList(names []string) bool {
+	for _, name := range names {
+		switch name {
+		case "msedge", "microsoft-edge", "microsoft-edge-stable":
+			return true
+		}
+	}
+	return false
+}
+
 func windowsProgramFilesPaths(names []string) []string {
 	var out []string
-	for _, root := range []string{os.Getenv("ProgramFiles"), os.Getenv("ProgramFiles(x86)")} {
+	roots := []string{os.Getenv("ProgramFiles"), os.Getenv("ProgramFiles(x86)")}
+	for _, root := range roots {
+		if root == "" {
+			continue
+		}
+		if isEdgeNameList(names) {
+			out = append(out, filepath.Join(root, "Microsoft", "Edge", "Application", "msedge.exe"))
+		} else {
+			out = append(out, filepath.Join(root, "Google", "Chrome", "Application", "chrome.exe"))
+		}
+	}
+	for _, root := range roots {
 		if root == "" {
 			continue
 		}
 		for _, name := range names {
 			out = append(out, filepath.Join(root, name, name+".exe"))
-			if name == "msedge" {
-				out = append(out, filepath.Join(root, "Microsoft", "Edge", "Application", "msedge.exe"))
-			}
 		}
 	}
 	return out

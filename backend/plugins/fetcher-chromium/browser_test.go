@@ -62,3 +62,16 @@ func TestResolveBrowserPath_systemChromium(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, path)
 }
+
+func TestResolveBrowserPath_windowsPrefersChrome(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("windows のみ")
+	}
+	chrome := filepath.Join(os.Getenv("ProgramFiles"), "Google", "Chrome", "Application", "chrome.exe")
+	if _, err := os.Stat(chrome); err != nil {
+		t.Skip("google chrome not installed")
+	}
+	path, err := resolveBrowserPath("")
+	require.NoError(t, err)
+	assert.Equal(t, chrome, path)
+}
