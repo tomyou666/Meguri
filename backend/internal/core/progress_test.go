@@ -157,6 +157,50 @@ func TestCrawlerSkipScrapeURLs(t *testing.T) {
 	}
 }
 
+func TestCrawlerSkippedURLsNoLinkDiscovered(t *testing.T) {
+	srv := newTestWebServer(t)
+	defer srv.Close()
+
+	cfg := baseConfig()
+	cfg.Crawl.Enabled = true
+	cfg.Crawl.MaxDepth = 1
+	cfg.Crawl.MaxPages = 100
+	cfg.Crawl.MaxConcurrency = 1
+
+	var mu sync.Mutex
+	var events []core.ProgressEvent
+	progress := func(ev core.ProgressEvent) {
+		mu.Lock()
+		defer mu.Unlock()
+		events = append(events, ev)
+	}
+
+	k := setupKernel(t, cfg)
+	c := core.NewCrawler(k, core.NewPipeline(k), nil, nil, progress)
+
+	seed, err := url.Parse(srv.URL + "/links_with_pdf.html")
+	require.NoError(t, err)
+
+	_, err = c.Run(context.Background(), []*url.URL{seed})
+	require.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	var skippedDepth3 []core.ProgressEvent
+	var linkDiscoveredDepth3 []core.ProgressEvent
+	for _, ev := range events {
+		if ev.Kind == core.ProgressSkipped && ev.SkipReason == "max_depth" {
+			skippedDepth3 = append(skippedDepth3, ev)
+		}
+		if ev.Kind == core.ProgressLinkDiscovered && ev.Depth > cfg.Crawl.MaxDepth {
+			linkDiscoveredDepth3 = append(linkDiscoveredDepth3, ev)
+		}
+	}
+	assert.NotEmpty(t, skippedDepth3, "max_depth でスキップされた URL があること")
+	assert.Empty(t, linkDiscoveredDepth3, "enqueue されない URL には linkDiscovered を出さない")
+}
+
 func TestCrawlerProgressSinkCollectsResults(t *testing.T) {
 	srv := newTestWebServer(t)
 	defer srv.Close()

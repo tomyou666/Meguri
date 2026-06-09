@@ -342,14 +342,15 @@ func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int,
 	if enqueue != nil {
 		parent := urlStr
 		for _, link := range out.Links {
-			child := normalizeURL(link).String()
-			emitProgress(c.progress, ProgressEvent{
-				Kind:      ProgressLinkDiscovered,
-				URL:       child,
-				ParentURL: parent,
-				Depth:     j.depth + 1,
-			})
-			enqueue(link, j.depth+1, parent)
+			if enqueue(link, j.depth+1, parent) {
+				child := normalizeURL(link).String()
+				emitProgress(c.progress, ProgressEvent{
+					Kind:      ProgressLinkDiscovered,
+					URL:       child,
+					ParentURL: parent,
+					Depth:     j.depth + 1,
+				})
+			}
 		}
 	}
 	return true
