@@ -106,9 +106,7 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 	});
 
 	const detailExpanded = d.detailExpanded ?? false;
-	const minHeight = detailExpanded
-		? DAGRE_NODE_HEIGHT + 320
-		: DAGRE_NODE_HEIGHT;
+	const minHeight = detailExpanded ? DAGRE_NODE_HEIGHT + 72 : DAGRE_NODE_HEIGHT;
 	const width = detailExpanded ? NODE_DETAIL_EXPANDED_WIDTH : DAGRE_NODE_WIDTH;
 
 	return (

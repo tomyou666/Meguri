@@ -1,4 +1,4 @@
-import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Settings } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
@@ -7,11 +7,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { messages } from '@/i18n/messages';
 import { useAppStore } from '@/stores/appStore';
 import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';
 import { getActiveFormats } from '@/types/crawl';
+import type { GraphNode } from '@/types/graph';
 
 export function RightSidebarContent() {
 	const ws = useAppStore((s) => s.getActiveWorkspace());
@@ -40,8 +47,6 @@ export function RightSidebarContent() {
 			),
 		[ws, appDefaults],
 	);
-
-	const [tab, setTab] = useState<ContentFormat>(formats[0] ?? 'markdown');
 
 	if (rightCollapsed) {
 		return (
@@ -149,29 +154,12 @@ export function RightSidebarContent() {
 						{messages.error.nodeFailed}: {node.lastError}
 					</Alert>
 				)}
-				<Tabs
-					value={tab}
-					onValueChange={(v) => setTab(v as ContentFormat)}
-					className='flex min-h-0 flex-1 flex-col px-3'
-				>
-					<TabsList>
-						{formats.map((f) => (
-							<TabsTrigger key={f} value={f}>
-								{f}
-							</TabsTrigger>
-						))}
-					</TabsList>
-					<ScrollArea className='flex-1 pb-3'>
-						{formats.map((f) => (
-							<TabsContent key={f} value={f}>
-								<NodeFormatContent
-									format={f}
-									result={resultForDisplay ?? node.lastResult}
-								/>
-							</TabsContent>
-						))}
-					</ScrollArea>
-				</Tabs>
+				<NodeResultPanel
+					key={node.id}
+					node={node}
+					formats={formats}
+					result={resultForDisplay}
+				/>
 			</aside>
 		);
 	}
@@ -278,6 +266,74 @@ export function RightSidebarContent() {
 
 /** @deprecated AppShell 内の Panel でラップするため RightSidebarContent を使用 */
 export const RightSidebar = RightSidebarContent;
+
+function NodeResultPanel({
+	node,
+	formats,
+	result,
+}: {
+	node: GraphNode;
+	formats: ContentFormat[];
+	result: CrawlResultPreview | null;
+}) {
+	const persistNodeSettings = useAppStore((s) => s.persistNodeSettings);
+	const [tab, setTab] = useState<ContentFormat>(formats[0] ?? 'markdown');
+	const [showNodeSettings, setShowNodeSettings] = useState(false);
+
+	return (
+		<TooltipProvider>
+			<Tabs
+				value={tab}
+				onValueChange={(v) => {
+					setTab(v as ContentFormat);
+					setShowNodeSettings(false);
+				}}
+				className='flex min-h-0 flex-1 flex-col px-3'
+			>
+				<div className='flex items-center gap-1'>
+					<TabsList className='min-w-0 flex-1'>
+						{formats.map((f) => (
+							<TabsTrigger key={f} value={f}>
+								{f}
+							</TabsTrigger>
+						))}
+					</TabsList>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant={showNodeSettings ? 'secondary' : 'ghost'}
+								size='icon-xs'
+								onClick={() => setShowNodeSettings((v) => !v)}
+							>
+								<Settings className='size-3.5' />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>{messages.right.nodeSettings}</TooltipContent>
+					</Tooltip>
+				</div>
+				<ScrollArea className='flex-1 pb-3'>
+					{showNodeSettings ? (
+						<ConfigEditor
+							layer='node'
+							settings={node.nodeSettings ?? {}}
+							compact
+							onSave={(settings) => persistNodeSettings(node.id, settings)}
+						/>
+					) : (
+						formats.map((f) => (
+							<TabsContent key={f} value={f}>
+								<NodeFormatContent
+									format={f}
+									result={result ?? node.lastResult}
+								/>
+							</TabsContent>
+						))
+					)}
+				</ScrollArea>
+			</Tabs>
+		</TooltipProvider>
+	);
+}
 
 function NodeFormatContent({
 	format,
