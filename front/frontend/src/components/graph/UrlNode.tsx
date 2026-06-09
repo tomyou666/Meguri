@@ -118,7 +118,7 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 				detailExpanded ? 'overflow-visible' : 'overflow-hidden',
 				cfg.border,
 				d.selected && 'ring-2 ring-ring',
-				d.grayed && 'opacity-45 grayscale',
+				d.grayed && !detailExpanded && 'opacity-45 grayscale',
 			)}
 			style={{
 				width,
