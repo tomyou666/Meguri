@@ -30,6 +30,15 @@ export interface PdfConfig {
 	output?: 'text' | 'markdown' | 'raw';
 }
 
+export interface FetchLimitsConfig {
+	http_max_inflight?: number;
+	chromium_max_inflight?: number;
+	auto_calibrate?: boolean;
+	dynamic_chromium?: boolean;
+	memory_high_watermark?: number;
+	memory_low_watermark?: number;
+}
+
 export interface CrawlConfig {
 	enabled?: boolean;
 	max_depth?: number;
@@ -41,6 +50,7 @@ export interface CrawlConfig {
 	request_delay?: string;
 	max_concurrency?: number;
 	respect_robots_txt?: boolean;
+	fetch_limits?: FetchLimitsConfig;
 }
 
 export interface PluginsConfig {

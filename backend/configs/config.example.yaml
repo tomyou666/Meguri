@@ -146,6 +146,37 @@ crawl:
   # 範囲: 1 ～ 64（既定: 4）
   max_concurrency: 4
 
+  # fetch_limits: フェッチャ種別ごとの同時取得上限（max_concurrency とは別）
+  #   max_concurrency … 同時に走るクロールワーカー数
+  #   http/chromium_max_inflight … 実際の HTTP/Chromium 取得の同時実行数
+  #
+  # Chromium 上限の決まり方（ジョブ開始時 → 実行中）:
+  #   1. chromium_max_inflight を初期値とする（失敗時のフォールバック値でもある）
+  #   2. auto_calibrate=true なら起動時に 1 回だけメモリ計測し、1〜8 の範囲で上書き
+  #      （ブラウザ未検出・計測失敗時は chromium_max_inflight のまま、通常は 2）
+  #   3. dynamic_chromium=true なら 5 秒ごとにメモリ使用率を見て ±1 調整
+  #      増やせる上限 = max(chromium_max_inflight, ②で決まった値)
+  fetch_limits:
+    # http_max_inflight: HTTP 同時取得数。auto_calibrate / dynamic_chromium の対象外
+    # 範囲: 1〜64（既定: 16）
+    http_max_inflight: 16
+    # chromium_max_inflight: Chromium の静的上限（ベースライン）
+    # auto_calibrate=false かつ dynamic_chromium=false のときはこの値が常に使われる
+    # 範囲: 1〜8（既定: 2）
+    chromium_max_inflight: 2
+    # auto_calibrate: ジョブ開始時に Chromium を 1 回起動して上限を再計算する
+    # true … 計測成功時は chromium_max_inflight を上書き（1〜8）。失敗時は 2 にフォールバック
+    # false … chromium_max_inflight をそのまま使う
+    auto_calibrate: true
+    # dynamic_chromium: 実行中に OS メモリ使用率で Chromium 上限を増減する
+    # true … 高水位超で -1（最小 1）、低水位未満で +1（②の値または chromium_max_inflight まで）
+    # false … ②の結果（または静的上限）をジョブ中固定
+    dynamic_chromium: true
+    # memory_high_watermark: 使用率がこれを超えると Chromium 上限を下げる（既定: 0.80）
+    memory_high_watermark: 0.80
+    # memory_low_watermark: 使用率がこれ未満なら上限を上げる（既定: 0.60、高水位より小さく）
+    memory_low_watermark: 0.60
+
   # respect_robots_txt: robots.txt に従う（既定: true）
   # 取得失敗時は全許可として扱う（警告ログを出力）
   respect_robots_txt: true

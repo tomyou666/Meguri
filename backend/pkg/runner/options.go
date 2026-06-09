@@ -1,6 +1,9 @@
 package runner
 
-import "scraperbot/internal/core"
+import (
+	"scraperbot/internal/core"
+	"scraperbot/internal/core/fetchlimit"
+)
 
 // PauseController はクロール一時停止制御（core.PauseController のエイリアス）。
 type PauseController = core.PauseController
@@ -16,4 +19,6 @@ type RunOptions struct {
 	Pause *PauseController
 	// Cache は ScrapeWithConfig 用 Kernel キャッシュ。nil の場合は毎回 Init。
 	Cache *RunnerCache
+	// FetchLimiter は取得並列上限。nil の場合は PrepareFetchLimiter が生成する。
+	FetchLimiter *fetchlimit.FetchLimiter
 }

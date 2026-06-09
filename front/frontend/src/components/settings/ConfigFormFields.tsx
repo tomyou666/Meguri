@@ -472,6 +472,90 @@ export function CrawlConfigFields({
 					}
 				/>
 			</ConfigField>
+			<div className='space-y-3 rounded-lg border border-border/60 p-3'>
+				<p className='text-xs font-medium text-muted-foreground'>
+					取得並列 (fetch_limits)
+				</p>
+				<p className='text-xs text-muted-foreground'>
+					{h.fetch_limits_overview}
+				</p>
+				<ConfigField
+					path='crawl.fetch_limits.http_max_inflight'
+					errors={fieldErrors}
+					label='http_max_inflight'
+					help={h.http_max_inflight}
+				>
+					<Input
+						type='number'
+						className={inputClassName(
+							fieldInvalid(fieldErrors, 'crawl.fetch_limits.http_max_inflight'),
+						)}
+						value={formatOptionalNumber(v.fetch_limits?.http_max_inflight)}
+						onChange={(e) =>
+							onChange({
+								...v,
+								fetch_limits: {
+									...v.fetch_limits,
+									http_max_inflight: parseOptionalNumber(e.target.value),
+								},
+							})
+						}
+					/>
+				</ConfigField>
+				<ConfigField
+					path='crawl.fetch_limits.chromium_max_inflight'
+					errors={fieldErrors}
+					label='chromium_max_inflight'
+					help={h.chromium_max_inflight}
+				>
+					<Input
+						type='number'
+						className={inputClassName(
+							fieldInvalid(
+								fieldErrors,
+								'crawl.fetch_limits.chromium_max_inflight',
+							),
+						)}
+						value={formatOptionalNumber(v.fetch_limits?.chromium_max_inflight)}
+						onChange={(e) =>
+							onChange({
+								...v,
+								fetch_limits: {
+									...v.fetch_limits,
+									chromium_max_inflight: parseOptionalNumber(e.target.value),
+								},
+							})
+						}
+					/>
+				</ConfigField>
+				<ConfigCheckboxRow
+					inputId={configCheckboxId('crawl.fetch_limits.auto_calibrate')}
+					checked={v.fetch_limits?.auto_calibrate ?? true}
+					onCheckedChange={(c) =>
+						onChange({
+							...v,
+							fetch_limits: { ...v.fetch_limits, auto_calibrate: !!c },
+						})
+					}
+				>
+					<FieldLabel label='auto_calibrate' help={h.fetch_auto_calibrate} />
+				</ConfigCheckboxRow>
+				<ConfigCheckboxRow
+					inputId={configCheckboxId('crawl.fetch_limits.dynamic_chromium')}
+					checked={v.fetch_limits?.dynamic_chromium ?? true}
+					onCheckedChange={(c) =>
+						onChange({
+							...v,
+							fetch_limits: { ...v.fetch_limits, dynamic_chromium: !!c },
+						})
+					}
+				>
+					<FieldLabel
+						label='dynamic_chromium'
+						help={h.fetch_dynamic_chromium}
+					/>
+				</ConfigCheckboxRow>
+			</div>
 			<ConfigCheckboxRow
 				inputId={configCheckboxId('crawl.respect_robots_txt')}
 				checked={v.respect_robots_txt ?? true}

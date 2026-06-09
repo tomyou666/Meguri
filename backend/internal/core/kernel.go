@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"scraperbot/internal/core/fetchlimit"
 	"scraperbot/internal/domain/model"
 	"scraperbot/internal/domain/plugin"
 )
@@ -28,8 +29,11 @@ type Kernel struct {
 	filters []plugin.Filter
 	// linkExtractor は Init 済み LinkExtractor。
 	linkExtractor plugin.LinkExtractor
-	// fetcher は Init 済み P3 Fetcher。
+	// fetcher は Init 済み P3 Fetcher（limitingFetcher で包まれる場合あり）。
 	fetcher plugin.Fetcher
+
+	// fetchLimiter は取得並列上限（nil 可）。
+	fetchLimiter *fetchlimit.FetchLimiter
 
 	// initialized は Init 成功順のプラグイン（Close 用）。
 	initialized []plugin.Plugin
@@ -42,6 +46,11 @@ func NewKernel(cfg *model.Config, host plugin.Host, reg *Registry) *Kernel {
 		reg = Default()
 	}
 	return &Kernel{cfg: cfg, host: host, reg: reg}
+}
+
+// SetFetchLimiter は Init 前に取得並列上限を設定する。
+func (k *Kernel) SetFetchLimiter(l *fetchlimit.FetchLimiter) {
+	k.fetchLimiter = l
 }
 
 // Init は設定で指定された名前のプラグインをレジストリから生成して Init する。
@@ -83,8 +92,16 @@ func (k *Kernel) Init(ctx context.Context) error {
 	if err := f.Init(ctx, k.host); err != nil {
 		return rollback(fmt.Errorf("init fetcher %s: %w", fetcherName, err))
 	}
-	k.fetcher = f
 	k.initialized = append(k.initialized, f)
+	if k.fetchLimiter != nil {
+		kind := k.cfg.Plugins.Fetcher
+		if kind == "" {
+			kind = model.FetcherHTTP
+		}
+		k.fetcher = newLimitingFetcher(f, k.fetchLimiter, kind)
+	} else {
+		k.fetcher = f
+	}
 
 	for _, name := range k.cfg.Plugins.Parsers {
 		p, err := k.reg.NewParser(name)

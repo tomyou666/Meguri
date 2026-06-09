@@ -3,12 +3,22 @@ package model
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/andybalholm/cascadia"
+)
+
+const (
+	// DefaultHTTPMaxInflight は HTTP 取得の既定同時実行上限。
+	DefaultHTTPMaxInflight = 16
+	// DefaultChromiumMaxInflight は Chromium 取得の既定同時実行上限。
+	DefaultChromiumMaxInflight = 2
+	// MaxChromiumMaxInflight は Chromium 同時実行上限の絶対最大値。
+	MaxChromiumMaxInflight = 8
 )
 
 // Config は scraperbot 全体の実行設定を表すルート構造体。
@@ -97,6 +107,61 @@ type CrawlConfig struct {
 	MaxConcurrency int `yaml:"max_concurrency"`
 	// RespectRobotsTxt は robots.txt に従うか。
 	RespectRobotsTxt bool `yaml:"respect_robots_txt"`
+	// FetchLimits はフェッチャ種別ごとの同時取得上限と動的調整設定。
+	FetchLimits FetchLimitsConfig `yaml:"fetch_limits"`
+}
+
+// FetchLimitsConfig は HTTP / Chromium の同時取得上限とメモリ連動調整を保持する。
+//
+// Chromium 実効上限はジョブ開始時に ChromiumMaxInflight を初期値とし、
+// AutoCalibrate で 1 回上書きした後、DynamicChromium が実行中に ±1 する。
+type FetchLimitsConfig struct {
+	// HTTPMaxInflight は HTTP フェッチの同時実行上限（0 は既定 16）。
+	// AutoCalibrate / DynamicChromium の対象外。
+	HTTPMaxInflight int `yaml:"http_max_inflight"`
+	// ChromiumMaxInflight は Chromium の静的上限（0 は既定 2）。
+	// 両方オフなら常にこの値。キャリブレーション失敗時のフォールバック兼、動的調整の戻り上限の基準。
+	ChromiumMaxInflight int `yaml:"chromium_max_inflight"`
+	// AutoCalibrate はジョブ開始時に Chromium を 1 回起動して上限を 1〜8 で再計算するか。
+	AutoCalibrate bool `yaml:"auto_calibrate"`
+	// DynamicChromium は実行中にメモリ使用率で Chromium 上限を ±1 調整するか。
+	DynamicChromium bool `yaml:"dynamic_chromium"`
+	// MemoryHighWatermark は使用率がこれを超えたら上限を下げる（0 は既定 0.80）。
+	MemoryHighWatermark float64 `yaml:"memory_high_watermark"`
+	// MemoryLowWatermark は使用率がこれ未満なら上限を上げる（0 は既定 0.60）。
+	MemoryLowWatermark float64 `yaml:"memory_low_watermark"`
+}
+
+// EffectiveHTTPMaxInflight は正規化済みの HTTP 同時実行上限を返す。
+func (f FetchLimitsConfig) EffectiveHTTPMaxInflight() int {
+	if f.HTTPMaxInflight <= 0 {
+		return DefaultHTTPMaxInflight
+	}
+	return f.HTTPMaxInflight
+}
+
+// EffectiveChromiumMaxInflight は正規化済みの Chromium 同時実行上限を返す。
+func (f FetchLimitsConfig) EffectiveChromiumMaxInflight() int {
+	if f.ChromiumMaxInflight <= 0 {
+		return DefaultChromiumMaxInflight
+	}
+	return f.ChromiumMaxInflight
+}
+
+// EffectiveMemoryHighWatermark は正規化済みの高水位しきい値を返す。
+func (f FetchLimitsConfig) EffectiveMemoryHighWatermark() float64 {
+	if f.MemoryHighWatermark <= 0 {
+		return 0.80
+	}
+	return f.MemoryHighWatermark
+}
+
+// EffectiveMemoryLowWatermark は正規化済みの低水位しきい値を返す。
+func (f FetchLimitsConfig) EffectiveMemoryLowWatermark() float64 {
+	if f.MemoryLowWatermark <= 0 {
+		return 0.60
+	}
+	return f.MemoryLowWatermark
 }
 
 // FetcherConfig は chromium フェッチャ専用の実行時設定を保持する。
@@ -174,6 +239,14 @@ func Default() Config {
 			RequestDelay:     0,
 			MaxConcurrency:   4,
 			RespectRobotsTxt: true,
+			FetchLimits: FetchLimitsConfig{
+				HTTPMaxInflight:     DefaultHTTPMaxInflight,
+				ChromiumMaxInflight: DefaultChromiumMaxInflight,
+				AutoCalibrate:       true,
+				DynamicChromium:     true,
+				MemoryHighWatermark: 0.80,
+				MemoryLowWatermark:  0.60,
+			},
 		},
 		Plugins: PluginSelection{
 			Fetcher: FetcherHTTP,
@@ -211,7 +284,27 @@ func (c *Config) Validate() error {
 		c.Crawl.MaxConcurrency = 1
 	}
 
+	c.warnFetchConcurrencyMismatch()
+
 	return errors.Join(errs...)
+}
+
+// warnFetchConcurrencyMismatch は Chromium 時にワーカー数が取得上限を超える場合に警告する。
+func (c *Config) warnFetchConcurrencyMismatch() {
+	fetcher := c.Plugins.Fetcher
+	if fetcher == "" {
+		fetcher = FetcherHTTP
+	}
+	if fetcher != FetcherChromium {
+		return
+	}
+	chromiumLimit := c.Crawl.FetchLimits.EffectiveChromiumMaxInflight()
+	if c.Crawl.MaxConcurrency > chromiumLimit {
+		slog.Warn("crawl.max_concurrency exceeds chromium fetch limit; workers may wait at fetch",
+			"max_concurrency", c.Crawl.MaxConcurrency,
+			"chromium_max_inflight", chromiumLimit,
+		)
+	}
 }
 
 // validateTargets は targets の件数と URL 形式を検証する。
@@ -334,6 +427,31 @@ func (c *Config) validateCrawl() []error {
 		if _, err := url.Parse(raw); err != nil {
 			errs = append(errs, fmt.Errorf("crawl.exclude_urls[%d]: URLとしてパースできません: %w", i, err))
 		}
+	}
+	errs = append(errs, c.validateFetchLimits()...)
+	return errs
+}
+
+// validateFetchLimits は crawl.fetch_limits の範囲を検証する。
+func (c *Config) validateFetchLimits() []error {
+	fl := c.Crawl.FetchLimits
+	var errs []error
+	if fl.HTTPMaxInflight < 0 || fl.HTTPMaxInflight > 64 {
+		errs = append(errs, fmt.Errorf("crawl.fetch_limits.http_max_inflight: 0（既定16）または 1 以上 64 以下 (現在: %d)", fl.HTTPMaxInflight))
+	}
+	if fl.ChromiumMaxInflight < 0 || fl.ChromiumMaxInflight > MaxChromiumMaxInflight {
+		errs = append(errs, fmt.Errorf("crawl.fetch_limits.chromium_max_inflight: 0（既定2）または 1 以上 %d 以下 (現在: %d)", MaxChromiumMaxInflight, fl.ChromiumMaxInflight))
+	}
+	low := fl.EffectiveMemoryLowWatermark()
+	high := fl.EffectiveMemoryHighWatermark()
+	if fl.MemoryLowWatermark != 0 && (fl.MemoryLowWatermark < 0.5 || fl.MemoryLowWatermark >= 0.95) {
+		errs = append(errs, fmt.Errorf("crawl.fetch_limits.memory_low_watermark: 0（既定0.60）または 0.5 以上 0.95 未満 (現在: %g)", fl.MemoryLowWatermark))
+	}
+	if fl.MemoryHighWatermark != 0 && (fl.MemoryHighWatermark <= 0.5 || fl.MemoryHighWatermark > 0.95) {
+		errs = append(errs, fmt.Errorf("crawl.fetch_limits.memory_high_watermark: 0（既定0.80）または 0.5 超 0.95 以下 (現在: %g)", fl.MemoryHighWatermark))
+	}
+	if low >= high {
+		errs = append(errs, fmt.Errorf("crawl.fetch_limits: memory_low_watermark (%g) は memory_high_watermark (%g) より小さくする必要があります", low, high))
 	}
 	return errs
 }

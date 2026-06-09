@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"scraperbot/internal/core"
+	"scraperbot/internal/core/fetchlimit"
 	"scraperbot/internal/domain/model"
 )
 
@@ -21,10 +22,18 @@ type cachedRunner struct {
 
 // RunnerCache は cfg hash 単位で Kernel を再利用する LRU キャッシュ。
 type RunnerCache struct {
-	mu         sync.Mutex
-	maxEntries int
-	order      []string
-	entries    map[string]*cachedRunner
+	mu           sync.Mutex
+	maxEntries   int
+	order        []string
+	entries      map[string]*cachedRunner
+	fetchLimiter *fetchlimit.FetchLimiter
+}
+
+// SetFetchLimiter はジョブ共有の取得並列上限を設定する（Init 前に各 Kernel へ伝播）。
+func (c *RunnerCache) SetFetchLimiter(l *fetchlimit.FetchLimiter) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.fetchLimiter = l
 }
 
 // NewRunnerCache は RunnerCache を構築する。
@@ -118,6 +127,9 @@ func (c *RunnerCache) getOrCreate(ctx context.Context, hash string, cfg *model.C
 
 	host := core.NewHost(cfg)
 	k := core.NewKernel(cfg, host, core.Default())
+	if c.fetchLimiter != nil {
+		k.SetFetchLimiter(c.fetchLimiter)
+	}
 	if err := k.Init(ctx); err != nil {
 		return nil, fmt.Errorf("kernel init: %w", err)
 	}

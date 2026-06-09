@@ -114,18 +114,28 @@ type uiPDFJSON struct {
 	Output   string `json:"output"`
 }
 
+type uiFetchLimitsJSON struct {
+	HTTPMaxInflight     int     `json:"http_max_inflight"`
+	ChromiumMaxInflight int     `json:"chromium_max_inflight"`
+	AutoCalibrate       *bool   `json:"auto_calibrate"`
+	DynamicChromium     *bool   `json:"dynamic_chromium"`
+	MemoryHighWatermark float64 `json:"memory_high_watermark"`
+	MemoryLowWatermark  float64 `json:"memory_low_watermark"`
+}
+
 type uiCrawlJSON struct {
-	Enabled          *bool    `json:"enabled"`
-	MaxDepth         int      `json:"max_depth"`
-	MaxPages         int      `json:"max_pages"`
-	IncludePaths     []string `json:"include_paths"`
-	ExcludePaths     []string `json:"exclude_paths"`
-	ExcludeURLs      []string `json:"exclude_urls"`
-	AllowExternal    *bool    `json:"allow_external_links"`
-	AllowSubdomains  *bool    `json:"allow_subdomains"`
-	RequestDelay     string   `json:"request_delay"`
-	MaxConcurrency   int      `json:"max_concurrency"`
-	RespectRobotsTxt *bool    `json:"respect_robots_txt"`
+	Enabled          *bool              `json:"enabled"`
+	MaxDepth         int                `json:"max_depth"`
+	MaxPages         int                `json:"max_pages"`
+	IncludePaths     []string           `json:"include_paths"`
+	ExcludePaths     []string           `json:"exclude_paths"`
+	ExcludeURLs      []string           `json:"exclude_urls"`
+	AllowExternal    *bool              `json:"allow_external_links"`
+	AllowSubdomains  *bool              `json:"allow_subdomains"`
+	RequestDelay     string             `json:"request_delay"`
+	MaxConcurrency   int                `json:"max_concurrency"`
+	RespectRobotsTxt *bool              `json:"respect_robots_txt"`
+	FetchLimits      *uiFetchLimitsJSON `json:"fetch_limits"`
 }
 
 type uiPluginsJSON struct {
@@ -231,6 +241,27 @@ func applyUIConfig(cfg *model.Config, ui uiConfigJSON) {
 		}
 		if ui.Crawl.RespectRobotsTxt != nil {
 			cfg.Crawl.RespectRobotsTxt = *ui.Crawl.RespectRobotsTxt
+		}
+		if ui.Crawl.FetchLimits != nil {
+			fl := ui.Crawl.FetchLimits
+			if fl.HTTPMaxInflight > 0 {
+				cfg.Crawl.FetchLimits.HTTPMaxInflight = fl.HTTPMaxInflight
+			}
+			if fl.ChromiumMaxInflight > 0 {
+				cfg.Crawl.FetchLimits.ChromiumMaxInflight = fl.ChromiumMaxInflight
+			}
+			if fl.AutoCalibrate != nil {
+				cfg.Crawl.FetchLimits.AutoCalibrate = *fl.AutoCalibrate
+			}
+			if fl.DynamicChromium != nil {
+				cfg.Crawl.FetchLimits.DynamicChromium = *fl.DynamicChromium
+			}
+			if fl.MemoryHighWatermark > 0 {
+				cfg.Crawl.FetchLimits.MemoryHighWatermark = fl.MemoryHighWatermark
+			}
+			if fl.MemoryLowWatermark > 0 {
+				cfg.Crawl.FetchLimits.MemoryLowWatermark = fl.MemoryLowWatermark
+			}
 		}
 	}
 	if ui.Plugins != nil {

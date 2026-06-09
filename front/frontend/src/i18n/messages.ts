@@ -130,7 +130,18 @@ export const messages = {
 			allow_external_links: '別ドメインへのリンクも辿るか。',
 			allow_subdomains: 'サブドメイン（例: blog.example.com）も辿るか。',
 			request_delay: 'リクエスト間隔（例: 500ms）。サーバー負荷軽減用。',
-			max_concurrency: '同時に取得するページ数（1〜64）。',
+			max_concurrency:
+				'同時に走らせるクロールワーカー数（1〜64）。実際の取得数は fetch_limits で別途制限される。',
+			fetch_limits_overview:
+				'max_concurrency はワーカー数、下の項目は HTTP/Chromium の実際の同時取得数。Chromium は auto_calibrate → dynamic_chromium の順で上限が変わる。',
+			http_max_inflight:
+				'HTTP の同時取得上限（1〜64、既定 16）。auto_calibrate / dynamic_chromium の対象外で常にこの値。',
+			chromium_max_inflight:
+				'Chromium の静的上限（1〜8、既定 2）。両方オフなら常にこの値。オンなら起動時の再計算の基準・失敗時のフォールバック・動的調整の戻り上限になる。',
+			fetch_auto_calibrate:
+				'オン: ジョブ開始時にブラウザを1回起動してメモリ計測し、上限を1〜8で上書き（失敗時は2）。オフ: 左の chromium_max_inflight をそのまま使う。',
+			fetch_dynamic_chromium:
+				'オン: 5秒ごとにメモリ使用率を見て上限を±1（高水位0.8超で減、低水位0.6未満で増、最小1）。オフ: 起動時の上限をジョブ中固定。',
 			respect_robots_txt: 'robots.txt の Disallow を守るか。',
 			fetcher: 'http=軽量 / chromium=JavaScript 必須ページ向け（重い）。',
 			browser_path: 'Chromium 実行ファイルのパス。空なら自動検出。',

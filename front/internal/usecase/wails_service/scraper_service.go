@@ -40,6 +40,7 @@ type activeCrawlJob struct {
 	runID  string
 	pause  *runner.PauseController
 	cache  *runner.RunnerCache
+	opts   *runner.RunOptions
 	cancel context.CancelFunc
 }
 
@@ -84,10 +85,13 @@ func (s *ScraperService) StartCrawl(req model.StartCrawlRequest) (string, error)
 		return "", fmt.Errorf("crawl already running")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+	pause := runner.NewPauseController()
+	cache := runner.NewRunnerCache()
 	s.job = &activeCrawlJob{
 		runID:  runID,
-		pause:  runner.NewPauseController(),
-		cache:  runner.NewRunnerCache(),
+		pause:  pause,
+		cache:  cache,
+		opts:   &runner.RunOptions{Pause: pause, Cache: cache},
 		cancel: cancel,
 	}
 	s.mu.Unlock()
@@ -100,8 +104,13 @@ func (s *ScraperService) StartCrawl(req model.StartCrawlRequest) (string, error)
 	go func() {
 		defer func() {
 			s.mu.Lock()
-			if s.job != nil && s.job.cache != nil {
-				s.job.cache.CloseAll()
+			if s.job != nil {
+				if s.job.cache != nil {
+					s.job.cache.CloseAll()
+				}
+				if s.job.opts != nil && s.job.opts.FetchLimiter != nil {
+					s.job.opts.FetchLimiter.Close()
+				}
 			}
 			s.job = nil
 			s.mu.Unlock()
@@ -157,10 +166,7 @@ func (s *ScraperService) runOptions() *runner.RunOptions {
 	if s.job == nil {
 		return nil
 	}
-	return &runner.RunOptions{
-		Pause: s.job.pause,
-		Cache: s.job.cache,
-	}
+	return s.job.opts
 }
 
 func (s *ScraperService) emit(topic string, payload model.CrawlEventPayload) {
@@ -305,6 +311,16 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 	ws := req.Workspace
 	state := newCrawlState(req)
 
+	opts := s.runOptions()
+	if opts != nil {
+		if baseCfg, err := runner.ParseUIConfig(req.AppDefaults); err == nil {
+			lim := runner.PrepareFetchLimiter(ctx, baseCfg, opts)
+			if opts.Cache != nil {
+				opts.Cache.SetFetchLimiter(lim)
+			}
+		}
+	}
+
 	var (
 		enqueued, succeeded, failed, skipped int
 		stoppedReason                        = "completed"
@@ -335,7 +351,7 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 
 	switch req.Mode {
 	case 1, 2:
-		stats, mainReached, err := s.runMainBFS(ctx, req, state, s.runOptions(), &enqueued, &succeeded, &failed, &skipped)
+		stats, mainReached, err := s.runMainBFS(ctx, req, state, opts, &enqueued, &succeeded, &failed, &skipped)
 		if err != nil {
 			if ctx.Err() != nil {
 				stoppedReason = "stopped"
@@ -350,7 +366,7 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 			failed = stats.Failed
 			skipped = stats.Skipped
 		}
-		if err := s.runManualPass(ctx, req, state, mainReached, s.runOptions(), &enqueued, &succeeded, &failed, &skipped); err != nil {
+		if err := s.runManualPass(ctx, req, state, mainReached, opts, &enqueued, &succeeded, &failed, &skipped); err != nil {
 			if ctx.Err() != nil {
 				stoppedReason = "stopped"
 				emitSummary()
@@ -359,7 +375,7 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 			return err
 		}
 	case 3:
-		if err := s.runMode3(ctx, req, state, s.runOptions(), &enqueued, &succeeded, &failed, &skipped); err != nil {
+		if err := s.runMode3(ctx, req, state, opts, &enqueued, &succeeded, &failed, &skipped); err != nil {
 			if ctx.Err() != nil {
 				stoppedReason = "stopped"
 				emitSummary()
@@ -371,7 +387,7 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 		for _, n := range ws.Nodes {
 			mainReached[n.ID] = struct{}{}
 		}
-		if err := s.runManualPass(ctx, req, state, mainReached, s.runOptions(), &enqueued, &succeeded, &failed, &skipped); err != nil {
+		if err := s.runManualPass(ctx, req, state, mainReached, opts, &enqueued, &succeeded, &failed, &skipped); err != nil {
 			if ctx.Err() != nil {
 				stoppedReason = "stopped"
 				emitSummary()

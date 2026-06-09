@@ -33,6 +33,14 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
 		request_delay: '0s',
 		max_concurrency: 4,
 		respect_robots_txt: true,
+		fetch_limits: {
+			http_max_inflight: 16,
+			chromium_max_inflight: 2,
+			auto_calibrate: true,
+			dynamic_chromium: true,
+			memory_high_watermark: 0.8,
+			memory_low_watermark: 0.6,
+		},
 	},
 	plugins: {
 		fetcher: 'http',

@@ -30,8 +30,13 @@ func CrawlWithProgress(ctx context.Context, cfg *model.Config, seeds []string, p
 		parsed = append(parsed, u)
 	}
 
+	lim := PrepareFetchLimiter(ctx, cfg, opts)
+
 	host := core.NewHost(cfg)
 	k := core.NewKernel(cfg, host, core.Default())
+	if lim != nil {
+		k.SetFetchLimiter(lim)
+	}
 	if err := k.Init(ctx); err != nil {
 		return nil, fmt.Errorf("kernel init: %w", err)
 	}

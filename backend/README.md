@@ -222,8 +222,13 @@ output:
 | `--allow-subdomains`    | `crawl.allow_subdomains`     | `false` |
 | `--delay`               | `crawl.request_delay`        | `0s`    |
 | `--concurrency`         | `crawl.max_concurrency`      | `4`     |
+| `--fetch-http-inflight` | `crawl.fetch_limits.http_max_inflight` | `16` |
+| `--fetch-chromium-inflight` | `crawl.fetch_limits.chromium_max_inflight` | `2`（静的上限・キャリブレーション失敗時のフォールバック） |
+| `--fetch-auto-calibrate` | `crawl.fetch_limits.auto_calibrate` | `true`（ジョブ開始時に Chromium 上限を 1〜8 で再計算） |
+| `--fetch-dynamic-chromium` | `crawl.fetch_limits.dynamic_chromium` | `true`（実行中にメモリ使用率で Chromium 上限を ±1） |
 | `--respect-robots`      | `crawl.respect_robots_txt`   | `true`  |
 
+`max_concurrency` はワーカー数、`fetch-*-inflight` は実際の取得同時実行数。Chromium ではワーカーが上限を超えても待機するだけで失敗しない。`auto_calibrate` / `dynamic_chromium` は **Chromium 上限のみ**に効く（HTTP は `http_max_inflight` 固定）。
 
 ### フェッチャ（`plugins.fetcher`）
 

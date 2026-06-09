@@ -48,6 +48,15 @@ export const pdfConfigSchema = z.object({
 	output: z.enum(['text', 'markdown', 'raw']).optional(),
 });
 
+export const fetchLimitsConfigSchema = z.object({
+	http_max_inflight: optionalInt(1, 64),
+	chromium_max_inflight: optionalInt(1, 8),
+	auto_calibrate: z.boolean().optional(),
+	dynamic_chromium: z.boolean().optional(),
+	memory_high_watermark: z.number().min(0.5).max(0.95).optional(),
+	memory_low_watermark: z.number().min(0.5).max(0.95).optional(),
+});
+
 export const crawlConfigSchema = z.object({
 	enabled: z.boolean().optional(),
 	max_depth: optionalInt(0, 10),
@@ -59,6 +68,7 @@ export const crawlConfigSchema = z.object({
 	request_delay: durationSchema.optional(),
 	max_concurrency: optionalInt(1, 64),
 	respect_robots_txt: z.boolean().optional(),
+	fetch_limits: fetchLimitsConfigSchema.optional(),
 });
 
 export const fetcherConfigSchema = z.object({

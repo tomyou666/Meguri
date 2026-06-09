@@ -70,6 +70,14 @@ type Flags struct {
 	RequestDelay time.Duration
 	// MaxConcurrency は --concurrency。
 	MaxConcurrency int
+	// FetchHTTPInflight は --fetch-http-inflight（HTTP 同時取得。キャリブレーション対象外）。
+	FetchHTTPInflight int
+	// FetchChromiumInflight は --fetch-chromium-inflight（Chromium 静的上限・フォールバック値）。
+	FetchChromiumInflight int
+	// FetchAutoCalibrate は --fetch-auto-calibrate（true でジョブ開始時に上限を 1〜8 で再計算）。
+	FetchAutoCalibrate boolFlag
+	// FetchDynamicChromium は --fetch-dynamic-chromium（true で実行中にメモリ使用率で ±1）。
+	FetchDynamicChromium boolFlag
 	// RespectRobotsTxt は --respect-robots。
 	RespectRobotsTxt boolFlag
 
@@ -219,6 +227,10 @@ func ParseArgs(args []string) (*Flags, error) {
 	fs.Var(&f.AllowSubdomains, "allow-subdomains", "サブドメインの追跡を許可")
 	fs.DurationVar(&f.RequestDelay, "delay", -1, "リクエスト間遅延")
 	fs.IntVar(&f.MaxConcurrency, "concurrency", -1, "並行ワーカー数")
+	fs.IntVar(&f.FetchHTTPInflight, "fetch-http-inflight", -1, "HTTP同時取得上限 (1-64)。キャリブレーション対象外")
+	fs.IntVar(&f.FetchChromiumInflight, "fetch-chromium-inflight", -1, "Chromium静的上限 (1-8)。auto_calibrate/dynamicの基準値")
+	fs.Var(&f.FetchAutoCalibrate, "fetch-auto-calibrate", "true=ジョブ開始時にメモリ計測でChromium上限を1-8に再計算")
+	fs.Var(&f.FetchDynamicChromium, "fetch-dynamic-chromium", "true=実行中にメモリ使用率でChromium上限を±1調整")
 	fs.Var(&f.RespectRobotsTxt, "respect-robots", "robots.txtを尊重")
 
 	fs.Var(&f.PreProcessors, "preprocessor", "PreProcessor プラグイン名 (繰り返し可)")
@@ -340,6 +352,18 @@ func Merge(cfg *model.Config, f *Flags) {
 	}
 	if f.MaxConcurrency > 0 {
 		cfg.Crawl.MaxConcurrency = f.MaxConcurrency
+	}
+	if f.FetchHTTPInflight > 0 {
+		cfg.Crawl.FetchLimits.HTTPMaxInflight = f.FetchHTTPInflight
+	}
+	if f.FetchChromiumInflight > 0 {
+		cfg.Crawl.FetchLimits.ChromiumMaxInflight = f.FetchChromiumInflight
+	}
+	if f.FetchAutoCalibrate.set {
+		cfg.Crawl.FetchLimits.AutoCalibrate = f.FetchAutoCalibrate.v
+	}
+	if f.FetchDynamicChromium.set {
+		cfg.Crawl.FetchLimits.DynamicChromium = f.FetchDynamicChromium.v
 	}
 	if f.RespectRobotsTxt.set {
 		cfg.Crawl.RespectRobotsTxt = f.RespectRobotsTxt.v

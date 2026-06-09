@@ -17,6 +17,9 @@ const FIELD_LABELS: Record<string, string> = {
 	'crawl.max_pages': '最大ページ数',
 	'crawl.request_delay': 'リクエスト間隔',
 	'crawl.max_concurrency': '同時取得数',
+	'crawl.fetch_limits.http_max_inflight': 'HTTP 同時取得上限（固定）',
+	'crawl.fetch_limits.chromium_max_inflight':
+		'Chromium 静的上限（ベースライン）',
 	'plugins.fetcher': '取得方式 (fetcher)',
 	'plugins.fetcher_config.browser_path': 'ブラウザパス',
 	'output.dir': '出力フォルダ',

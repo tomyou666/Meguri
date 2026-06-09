@@ -15,6 +15,8 @@ import (
 // opts が nil の場合は pause なしで実行する。
 func ScrapeWithConfig(ctx context.Context, rawURL string, cfg *model.Config, progress ProgressSink, opts *RunOptions) (*model.Result, error) {
 	if opts != nil && opts.Cache != nil {
+		lim := PrepareFetchLimiter(ctx, cfg, opts)
+		opts.Cache.SetFetchLimiter(lim)
 		var pause *PauseController
 		if opts.Pause != nil {
 			pause = opts.Pause
@@ -29,8 +31,13 @@ func ScrapeWithConfig(ctx context.Context, rawURL string, cfg *model.Config, pro
 		return nil, fmt.Errorf("invalid url %q: %w", rawURL, err)
 	}
 
+	lim := PrepareFetchLimiter(ctx, cfg, opts)
+
 	host := core.NewHost(cfg)
 	k := core.NewKernel(cfg, host, core.Default())
+	if lim != nil {
+		k.SetFetchLimiter(lim)
+	}
 	if err := k.Init(ctx); err != nil {
 		return nil, fmt.Errorf("kernel init: %w", err)
 	}
