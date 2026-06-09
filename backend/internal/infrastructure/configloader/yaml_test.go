@@ -10,6 +10,7 @@ import (
 	"scraperbot/internal/infrastructure/configloader"
 )
 
+// TestParseYAML は YAML 設定のパースとデフォルト値マージを検証する。
 func TestParseYAML(t *testing.T) {
 	t.Run("正常系: 部分指定YAMLでもデフォルト値がマージされる", func(t *testing.T) {
 		yaml := []byte(`

@@ -47,6 +47,7 @@ func baseConfig() *model.Config {
 	return &c
 }
 
+// TestPipeline_SingleURL は単一 URL に対するパイプライン処理を検証する。
 func TestPipeline_SingleURL(t *testing.T) {
 	srv := newTestWebServer(t)
 	defer srv.Close()

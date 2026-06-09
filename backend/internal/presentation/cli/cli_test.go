@@ -39,6 +39,7 @@ func newCLITestServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
+// TestCLI_RunApp は CLI のエンドツーエンド実行と終了コードを検証する。
 func TestCLI_RunApp(t *testing.T) {
 	srv := newCLITestServer(t)
 	defer srv.Close()

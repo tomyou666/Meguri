@@ -40,17 +40,18 @@ const edges: GraphEdge[] = [
 	{ id: 'e2', source: 'b', target: 'c' },
 ];
 
+// グラフ走査と除外サブツリー判定を検証する。
 describe('graph', () => {
-	it('getForwardReachableExisting returns BFS order without start', () => {
+	it('起点から BFS 順で到達可能な既存ノード ID を返す（起点除く）', () => {
 		expect(getForwardReachableExisting('a', nodes, edges)).toEqual(['b', 'c']);
 	});
 
-	it('getDescendantNodeIds', () => {
+	it('起点からエッジを辿った全子孫ノード ID を返す', () => {
 		const d = getDescendantNodeIds('a', edges);
 		expect([...d]).toEqual(['b', 'c']);
 	});
 
-	it('isExcludedSubtree detects excluded ancestor', () => {
+	it('除外祖先があるサブツリー内のノードを検出する', () => {
 		const withExclude: GraphNode[] = [
 			{ ...nodes[0], crawlExclude: true },
 			nodes[1],
@@ -60,7 +61,7 @@ describe('graph', () => {
 		expect(isExcludedSubtree('a', withExclude, edges)).toBe(true);
 	});
 
-	it('isExcludedSubtree terminates on cyclic edges', () => {
+	it('循環エッジでも除外判定が終了する', () => {
 		const cycleEdges: GraphEdge[] = [
 			{ id: 'e1', source: 'a', target: 'b' },
 			{ id: 'e2', source: 'b', target: 'c' },

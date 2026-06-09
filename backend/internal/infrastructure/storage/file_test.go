@@ -12,6 +12,7 @@ import (
 	"scraperbot/internal/infrastructure/storage"
 )
 
+// TestFileWriter_Write は結果ファイルの書き出しパターンと連番を検証する。
 func TestFileWriter_Write(t *testing.T) {
 	t.Run("正常系: Markdown 1ファイルが {seq}-{host}-{path}.md で書き出される", func(t *testing.T) {
 		tmp := t.TempDir()

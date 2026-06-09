@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { Workspace } from '@/types/workspace';
 import { workspaceFromDb, workspaceToDb } from './dbMappers';
 
+// DB バンドルと UI ワークスペース型の相互変換を検証する。
 describe('dbMappers', () => {
-	it('round-trips workspace', () => {
+	it('ワークスペースを DB 保存後に復元して主要フィールドを保持する', () => {
 		const ws: Workspace = {
 			id: 'ws1',
 			name: 'Test',

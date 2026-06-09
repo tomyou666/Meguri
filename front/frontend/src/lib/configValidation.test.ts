@@ -4,13 +4,14 @@ import {
 	validatePartialConfig,
 } from './configValidation';
 
+// 部分設定のバリデーションとフィールド別エラーマップを検証する。
 describe('validatePartialConfig', () => {
-	it('accepts empty partial config', () => {
+	it('空の部分設定は受理する', () => {
 		const r = validatePartialConfig({});
 		expect(r.ok).toBe(true);
 	});
 
-	it('rejects invalid retry_count with Japanese message', () => {
+	it('範囲外の retry_count を日本語メッセージで拒否する', () => {
 		const r = validatePartialConfig({
 			request: { retry_count: 99 },
 		});
@@ -21,12 +22,12 @@ describe('validatePartialConfig', () => {
 		}
 	});
 
-	it('maps field errors by path', () => {
+	it('パス単位でフィールドエラーを取得できる', () => {
 		const errors = getConfigFieldErrors({ request: { retry_count: 99 } });
 		expect(errors['request.retry_count']).toContain('10以下');
 	});
 
-	it('requires at least one content format when formats set', () => {
+	it('formats を指定した場合は 1 件以上必須', () => {
 		const r = validatePartialConfig({
 			content: { formats: [] },
 		});

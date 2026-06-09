@@ -8,6 +8,7 @@ import (
 	"scraperbot/internal/domain/model"
 )
 
+// TestResolveUserAgent は User-Agent 解決の優先順位を検証する。
 func TestResolveUserAgent(t *testing.T) {
 	t.Parallel()
 

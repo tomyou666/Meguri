@@ -22,8 +22,9 @@ function node(id: string, x = 0, y = 0): GraphNode {
 	};
 }
 
+// Dagre レイアウト計算と新規ノード配置のフォールバックを検証する。
 describe('dagreLayout', () => {
-	it('computeDagrePositions returns distinct positions for a chain', () => {
+	it('鎖状グラフでノードごとに異なる位置を返す', () => {
 		const nodes = [node('a'), node('b'), node('c')];
 		const edges: GraphEdge[] = [
 			{ id: 'e1', source: 'a', target: 'b' },
@@ -38,7 +39,7 @@ describe('dagreLayout', () => {
 		expect(c.y).toBeGreaterThan(b.y);
 	});
 
-	it('positionForDiscoveredNode only affects layout math for the new id', () => {
+	it('新規ノード追加時は既存ノードの position を変更しない', () => {
 		const nodes = [node('a', 10, 10), node('b', 500, 500)];
 		const edges: GraphEdge[] = [{ id: 'e1', source: 'a', target: 'b' }];
 		const withC = [...nodes, node('c')];
@@ -55,7 +56,7 @@ describe('dagreLayout', () => {
 		expect(nodes[0].position).toEqual({ x: 10, y: 10 });
 	});
 
-	it('uses fallback when node id is missing from graph', () => {
+	it('グラフに存在しないノード ID は親近フォールバック座標を返す', () => {
 		const positions = positionForDiscoveredNode([], [], 'x', {
 			x: 99,
 			y: 88,
@@ -63,17 +64,17 @@ describe('dagreLayout', () => {
 		expect(positions).toEqual({ x: 99, y: 88 });
 	});
 
-	it('exports node dimensions for UrlNode alignment', () => {
+	it('UrlNode 整列用のノード寸法定数を公開する', () => {
 		expect(DAGRE_NODE_WIDTH).toBeGreaterThan(0);
 		expect(DAGRE_NODE_HEIGHT).toBeGreaterThan(0);
 	});
 
-	it('handlePositionsForDirection switches handles', () => {
+	it('レイアウト方向に応じてハンドル位置を切り替える', () => {
 		expect(handlePositionsForDirection('TB').target).toBe(Position.Top);
 		expect(handlePositionsForDirection('LR').source).toBe(Position.Right);
 	});
 
-	it('fallbackNearParent offsets by direction', () => {
+	it('方向に応じて親ノード近傍のオフセット座標を返す', () => {
 		const parent = node('a', 100, 200);
 		const v = fallbackNearParent(parent, 'TB');
 		const h = fallbackNearParent(parent, 'LR');

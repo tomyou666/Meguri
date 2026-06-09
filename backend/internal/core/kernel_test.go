@@ -153,6 +153,7 @@ func (l *leFake) Extract(context.Context, *model.Content, *url.URL) ([]*url.URL,
 
 func newRecorder() *recorder { return &recorder{calls: &[]call{}} }
 
+// TestKernel_Lifecycle はプラグインの Init/Close 順序と失敗時のロールバックを検証する。
 func TestKernel_Lifecycle(t *testing.T) {
 	t.Run("正常系: 設定で指定したプラグインが順番にInitされ、逆順でCloseされる", func(t *testing.T) {
 		reg := core.NewRegistry()

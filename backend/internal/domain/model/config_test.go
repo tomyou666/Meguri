@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestConfig_Validate は Config の入力検証ルールを検証する。
 func TestConfig_Validate(t *testing.T) {
 	t.Run("正常系: デフォルト設定にtargetsを1件付ければ検証は通る", func(t *testing.T) {
 		c := Default()
@@ -191,6 +192,7 @@ func TestConfig_Validate(t *testing.T) {
 	})
 }
 
+// TestOutputFormat_Valid は出力フォーマット列挙の妥当性判定を検証する。
 func TestOutputFormat_Valid(t *testing.T) {
 	t.Run("正常系: 列挙値はすべてValid", func(t *testing.T) {
 		for _, f := range []OutputFormat{FormatMarkdown, FormatHTML, FormatRawHTML, FormatJSON, FormatLinks, FormatMetadata} {

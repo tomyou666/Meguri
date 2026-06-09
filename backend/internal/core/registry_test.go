@@ -80,6 +80,7 @@ func (f *fakeLinkExtractor) Extract(context.Context, *model.Content, *url.URL) (
 
 // --- テスト本体 ---
 
+// TestRegistry はプラグインレジストリの登録・取得・重複検知を検証する。
 func TestRegistry(t *testing.T) {
 	t.Run("正常系: 各Kindのプラグインを登録して取得できる", func(t *testing.T) {
 		reg := NewRegistry()

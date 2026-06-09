@@ -27,6 +27,7 @@ func (d *denyRobots) Allowed(_ context.Context, u *url.URL, _ string) bool {
 	return true
 }
 
+// TestCrawler は BFS クロールと各種フィルタ・制限の挙動を検証する。
 func TestCrawler(t *testing.T) {
 	srv := newTestWebServer(t)
 	defer srv.Close()

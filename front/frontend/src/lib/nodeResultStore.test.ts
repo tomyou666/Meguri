@@ -25,8 +25,9 @@ function row(nodeId: string, fetchedAt: string, id?: string): DbNodeResult {
 	};
 }
 
+// ノード結果の履歴上限と最新行削除を検証する。
 describe('nodeResultStore', () => {
-	it('keeps at most MAX_NODE_RESULT_HISTORY per node', () => {
+	it('ノードごとに MAX_NODE_RESULT_HISTORY 件を超えた古い行を捨てる', () => {
 		let rows: DbNodeResult[] = [];
 		for (let i = 0; i < MAX_NODE_RESULT_HISTORY + 5; i++) {
 			rows = appendNodeResult(
@@ -39,7 +40,7 @@ describe('nodeResultStore', () => {
 		);
 	});
 
-	it('deleteLatestResults removes only the newest row per node', () => {
+	it('指定ノードの最新行だけを削除し他ノードは残す', () => {
 		const rows = [
 			row('n1', '2020-01-02', 'new'),
 			row('n1', '2020-01-01', 'old'),
