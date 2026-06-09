@@ -17,6 +17,12 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { messages } from '@/i18n/messages';
 import { hostFromUrl } from '@/lib/normalizeUrl';
 import { cn } from '@/lib/utils';
@@ -28,11 +34,15 @@ export function LeftSidebarContent() {
 	const leftCollapsed = useAppStore((s) => s.leftSidebarCollapsed);
 	const workspaceDiffCache = useAppStore((s) => s.workspaceDiffCache);
 	const setActiveWorkspace = useAppStore((s) => s.setActiveWorkspace);
-	const deleteWorkspace = useAppStore((s) => s.deleteWorkspace);
+	const openDeleteWorkspaceDialog = useAppStore(
+		(s) => s.openDeleteWorkspaceDialog,
+	);
 	const openNewWorkspaceDialog = useAppStore((s) => s.openNewWorkspaceDialog);
 	const openAddNodeDialog = useAppStore((s) => s.openAddNodeDialog);
 	const openDeleteNodeDialog = useAppStore((s) => s.openDeleteNodeDialog);
-	const duplicateWorkspace = useAppStore((s) => s.duplicateWorkspace);
+	const openDuplicateWorkspaceDialog = useAppStore(
+		(s) => s.openDuplicateWorkspaceDialog,
+	);
 	const fetchWorkspaceDiff = useAppStore((s) => s.fetchWorkspaceDiff);
 	const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
 	const persistWorkspaceSettings = useAppStore(
@@ -68,7 +78,7 @@ export function LeftSidebarContent() {
 	}
 
 	return (
-		<>
+		<TooltipProvider>
 			<aside className='flex h-full w-full min-w-[14rem] flex-col overflow-hidden border-r border-border bg-sidebar'>
 				<div className='flex items-center justify-between border-b border-sidebar-border px-2 py-2'>
 					<span className='text-xs font-semibold'>
@@ -113,39 +123,58 @@ export function LeftSidebarContent() {
 											<span className='ml-1 text-amber-500'>●</span>
 										)}
 									</button>
-									<Button
-										variant='ghost'
-										size='icon-xs'
-										title='差分確認'
-										onClick={async (e) => {
-											e.stopPropagation();
-											await fetchWorkspaceDiff(ws.id);
-											setDiffDialogWs(ws.id);
-										}}
-									>
-										<GitCompare className='size-3' />
-									</Button>
-									<Button
-										variant='ghost'
-										size='icon-xs'
-										title='ワークスペースをコピー'
-										onClick={(e) => {
-											e.stopPropagation();
-											void duplicateWorkspace(ws.id);
-										}}
-									>
-										<Copy className='size-3' />
-									</Button>
-									<Button
-										variant='ghost'
-										size='icon-xs'
-										onClick={(e) => {
-											e.stopPropagation();
-											deleteWorkspace(ws.id);
-										}}
-									>
-										<Trash2 className='size-3' />
-									</Button>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant='ghost'
+												size='icon-xs'
+												onClick={async (e) => {
+													e.stopPropagation();
+													await fetchWorkspaceDiff(ws.id);
+													setDiffDialogWs(ws.id);
+												}}
+											>
+												<GitCompare className='size-3' />
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>
+											{messages.sidebar.diffSummary}
+										</TooltipContent>
+									</Tooltip>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant='ghost'
+												size='icon-xs'
+												onClick={(e) => {
+													e.stopPropagation();
+													openDuplicateWorkspaceDialog(ws.id);
+												}}
+											>
+												<Copy className='size-3' />
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>
+											{messages.sidebar.duplicateWorkspace}
+										</TooltipContent>
+									</Tooltip>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant='ghost'
+												size='icon-xs'
+												onClick={(e) => {
+													e.stopPropagation();
+													openDeleteWorkspaceDialog(ws.id);
+												}}
+											>
+												<Trash2 className='size-3' />
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>
+											{messages.sidebar.deleteWorkspace}
+										</TooltipContent>
+									</Tooltip>
 								</div>
 							);
 						})
@@ -246,7 +275,7 @@ export function LeftSidebarContent() {
 					</DialogContent>
 				</Dialog>
 			)}
-		</>
+		</TooltipProvider>
 	);
 }
 

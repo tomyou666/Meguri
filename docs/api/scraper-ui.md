@@ -60,7 +60,8 @@ payload: `CrawlEventPayload`（`workspaceId`, `runId` + イベント固有フィ
 | `ListWorkspaces` | `listWorkspaces` | `GET /api/v1/workspaces` | WS 一覧（id / name / updatedAt） |
 | `LoadWorkspace` | `loadWorkspace` | `GET /api/v1/workspaces/{id}` | WS + グラフ + 設定 |
 | `SaveWorkspace` | `saveWorkspace` | `PUT /api/v1/workspaces/{id}` | 永続化 |
-| `DuplicateWorkspace` | `duplicateWorkspace` | `POST /api/v1/workspaces/{id}/duplicate` | 複製 |
+| `DuplicateWorkspace` | `duplicateWorkspace` | `POST /api/v1/workspaces/{id}/duplicate` | 複製。**引数 `name`**（空ならコピー元名） |
+| `DeleteWorkspace` | `deleteWorkspace` | `DELETE /api/v1/workspaces/{id}` | WS 削除（CASCADE） |
 
 ## Settings save
 

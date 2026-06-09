@@ -133,8 +133,12 @@ export class CompositeScraperAdapter implements ScraperPort {
 		return { ok: res.ok, scope: res.scope as SaveSettingsResponse['scope'] };
 	}
 
-	async duplicateWorkspace(id: string): Promise<Workspace> {
-		const dto = await StoreService.DuplicateWorkspace(id);
+	async deleteWorkspace(id: string): Promise<void> {
+		await StoreService.DeleteWorkspace(id);
+	}
+
+	async duplicateWorkspace(id: string, name: string): Promise<Workspace> {
+		const dto = await StoreService.DuplicateWorkspace(id, name);
 		if (!dto) throw new Error('Workspace not found');
 		return workspaceFromDTO(dto);
 	}

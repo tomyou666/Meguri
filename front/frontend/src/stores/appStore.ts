@@ -128,6 +128,8 @@ interface AppState {
 	showNewWorkspaceDialog: boolean;
 	showAddNodeDialog: boolean;
 	showDeleteNodeDialog: boolean;
+	pendingDeleteWorkspaceId: string | null;
+	pendingDuplicateWorkspaceId: string | null;
 	addNodeContextPosition: { x: number; y: number } | null;
 
 	_abortController: AbortController | null;
@@ -150,7 +152,12 @@ interface AppState {
 	closeNewWorkspaceDialog: () => void;
 	createWorkspace: (name: string, seedUrl: string) => void;
 	setActiveWorkspace: (id: string) => void;
-	deleteWorkspace: (id: string) => void;
+	openDeleteWorkspaceDialog: (id: string) => void;
+	closeDeleteWorkspaceDialog: () => void;
+	openDuplicateWorkspaceDialog: (id: string) => void;
+	closeDuplicateWorkspaceDialog: () => void;
+	confirmDeleteWorkspace: () => Promise<void>;
+	confirmDuplicateWorkspace: (name: string) => Promise<void>;
 	loadWorkspaceFromServer: (id: string) => Promise<void>;
 	selectNode: (
 		id: string | null,
@@ -176,7 +183,6 @@ interface AppState {
 	expandAllNodes: () => void;
 	collapseAllNodes: () => void;
 	deleteSelectedNodes: () => void;
-	duplicateWorkspace: (id: string) => Promise<void>;
 	fetchSelectedNodeResult: () => Promise<void>;
 	previewSelectedResults: () => Promise<void>;
 	mergeAllResults: () => Promise<void>;
@@ -243,6 +249,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 	showNewWorkspaceDialog: true,
 	showAddNodeDialog: false,
 	showDeleteNodeDialog: false,
+	pendingDeleteWorkspaceId: null,
+	pendingDuplicateWorkspaceId: null,
 	addNodeContextPosition: null,
 	_abortController: null,
 	_activeRunId: null as string | null,
@@ -405,15 +413,68 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedDomain: null,
 		}),
 
-	deleteWorkspace: (id) =>
-		set((s) => {
-			const workspaces = s.workspaces.filter((w) => w.id !== id);
-			const activeWorkspaceId =
-				s.activeWorkspaceId === id
-					? (workspaces[0]?.id ?? null)
-					: s.activeWorkspaceId;
-			return { workspaces, activeWorkspaceId };
-		}),
+	openDeleteWorkspaceDialog: (id) => set({ pendingDeleteWorkspaceId: id }),
+	closeDeleteWorkspaceDialog: () => set({ pendingDeleteWorkspaceId: null }),
+	openDuplicateWorkspaceDialog: (id) =>
+		set({ pendingDuplicateWorkspaceId: id }),
+	closeDuplicateWorkspaceDialog: () =>
+		set({ pendingDuplicateWorkspaceId: null }),
+
+	confirmDeleteWorkspace: async () => {
+		const id = get().pendingDeleteWorkspaceId;
+		if (!id) return;
+		try {
+			await scraperPort.deleteWorkspace(id);
+			set((s) => {
+				const workspaces = s.workspaces.filter((w) => w.id !== id);
+				const activeWorkspaceId =
+					s.activeWorkspaceId === id
+						? (workspaces[0]?.id ?? null)
+						: s.activeWorkspaceId;
+				const { [id]: _removed, ...workspaceDiffCache } = s.workspaceDiffCache;
+				return {
+					workspaces,
+					activeWorkspaceId,
+					workspaceDiffCache,
+					selectedNodeId: null,
+					selectedNodeIds: [],
+					selectedDomain: null,
+					pendingDeleteWorkspaceId: null,
+				};
+			});
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			notifyError(messages.error.deleteWorkspaceFailed, {
+				description: message,
+			});
+		}
+	},
+
+	confirmDuplicateWorkspace: async (name) => {
+		const id = get().pendingDuplicateWorkspaceId;
+		if (!id) return;
+		const trimmed = name.trim();
+		if (!trimmed) return;
+		try {
+			const copy = await scraperPort.duplicateWorkspace(id, trimmed);
+			set((s) => {
+				const workspaces = [...s.workspaces, copy];
+				syncHistory(workspaces, copy.id);
+				return {
+					workspaces,
+					activeWorkspaceId: copy.id,
+					selectedNodeId: copy.nodes[0]?.id ?? null,
+					selectedNodeIds: copy.nodes[0]?.id ? [copy.nodes[0].id] : [],
+					pendingDuplicateWorkspaceId: null,
+				};
+			});
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			notifyError(messages.error.duplicateWorkspaceFailed, {
+				description: message,
+			});
+		}
+	},
 
 	loadWorkspaceFromServer: async (id) => {
 		const ws = await scraperPort.loadWorkspace(id);
@@ -1165,20 +1226,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedNodeId: null,
 			selectedNodeIds: [],
 			showDeleteNodeDialog: false,
-		});
-	},
-
-	duplicateWorkspace: async (id) => {
-		const copy = await scraperPort.duplicateWorkspace(id);
-		set((s) => {
-			const workspaces = [...s.workspaces, copy];
-			syncHistory(workspaces, copy.id);
-			return {
-				workspaces,
-				activeWorkspaceId: copy.id,
-				selectedNodeId: copy.nodes[0]?.id ?? null,
-				selectedNodeIds: copy.nodes[0]?.id ? [copy.nodes[0].id] : [],
-			};
 		});
 	},
 

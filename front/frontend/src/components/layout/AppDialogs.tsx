@@ -1,4 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -28,9 +38,38 @@ export function AppDialogs() {
 	const selectedNode = useAppStore((s) => s.getSelectedNode());
 	const ws = useAppStore((s) => s.getActiveWorkspace());
 
+	const pendingDeleteWorkspaceId = useAppStore(
+		(s) => s.pendingDeleteWorkspaceId,
+	);
+	const closeDeleteWorkspaceDialog = useAppStore(
+		(s) => s.closeDeleteWorkspaceDialog,
+	);
+	const confirmDeleteWorkspace = useAppStore((s) => s.confirmDeleteWorkspace);
+
+	const pendingDuplicateWorkspaceId = useAppStore(
+		(s) => s.pendingDuplicateWorkspaceId,
+	);
+	const closeDuplicateWorkspaceDialog = useAppStore(
+		(s) => s.closeDuplicateWorkspaceDialog,
+	);
+	const confirmDuplicateWorkspace = useAppStore(
+		(s) => s.confirmDuplicateWorkspace,
+	);
+
+	const pendingDeleteWorkspace = workspaces.find(
+		(w) => w.id === pendingDeleteWorkspaceId,
+	);
+
 	const [wsName, setWsName] = useState('My Workspace');
 	const [wsUrl, setWsUrl] = useState('https://example.com/');
 	const [nodeUrl, setNodeUrl] = useState('https://');
+	const [duplicateName, setDuplicateName] = useState('');
+
+	useEffect(() => {
+		if (!pendingDuplicateWorkspaceId) return;
+		const source = workspaces.find((w) => w.id === pendingDuplicateWorkspaceId);
+		setDuplicateName(source?.name ?? '');
+	}, [pendingDuplicateWorkspaceId, workspaces]);
 
 	const mustShowNewWs = showNewWorkspaceDialog || workspaces.length === 0;
 
@@ -124,6 +163,73 @@ export function AppDialogs() {
 							onClick={deleteSelectedSubtree}
 						>
 							{messages.dialog.delete}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<AlertDialog
+				open={!!pendingDeleteWorkspaceId}
+				onOpenChange={(open) => {
+					if (!open) closeDeleteWorkspaceDialog();
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							{messages.dialog.deleteWorkspaceTitle}
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							{messages.dialog.deleteWorkspaceConfirm}
+							{pendingDeleteWorkspace && (
+								<span className='mt-2 block font-medium text-foreground'>
+									{pendingDeleteWorkspace.name}
+								</span>
+							)}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>{messages.dialog.cancel}</AlertDialogCancel>
+						<AlertDialogAction
+							variant='destructive'
+							onClick={() => void confirmDeleteWorkspace()}
+						>
+							{messages.dialog.delete}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<Dialog
+				open={!!pendingDuplicateWorkspaceId}
+				onOpenChange={(open) => {
+					if (!open) closeDuplicateWorkspaceDialog();
+				}}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{messages.dialog.duplicateWorkspaceTitle}</DialogTitle>
+					</DialogHeader>
+					<Label>{messages.dialog.duplicateWorkspaceName}</Label>
+					<Input
+						className='mt-1'
+						value={duplicateName}
+						onChange={(e) => setDuplicateName(e.target.value)}
+					/>
+					<DialogFooter>
+						<Button
+							variant='outline'
+							size='sm'
+							onClick={closeDuplicateWorkspaceDialog}
+						>
+							{messages.dialog.cancel}
+						</Button>
+						<Button
+							size='sm'
+							disabled={!duplicateName.trim()}
+							onClick={() => void confirmDuplicateWorkspace(duplicateName)}
+						>
+							{messages.dialog.copy}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

@@ -46,10 +46,20 @@ export function DeleteResults(workspaceID: string, nodeIDs: string[]): $Cancella
 }
 
 /**
- * DuplicateWorkspace は WS を複製する。
+ * DeleteWorkspace は WS を削除する。
  */
-export function DuplicateWorkspace(id: string): $CancellablePromise<model$0.WorkspaceDTO | null> {
-    return $Call.ByID(2954192207, id).then(($result: any) => {
+export function DeleteWorkspace(id: string): $CancellablePromise<void> {
+    return $Call.ByID(1996277139, id);
+}
+
+/**
+ * DuplicateWorkspace は WS を複製する。
+ * 
+ * name は複製先 WS 名。
+ * 空文字の場合はコピー元の名前を使用する。
+ */
+export function DuplicateWorkspace(id: string, name: string): $CancellablePromise<model$0.WorkspaceDTO | null> {
+    return $Call.ByID(2954192207, id, name).then(($result: any) => {
         return $$createType1($result);
     });
 }

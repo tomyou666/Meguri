@@ -94,9 +94,17 @@ func (s *StoreService) SaveNodeSettings(workspaceID, nodeID string, settings jso
 	return model.SaveSettingsResponseDTO{OK: true, Scope: "node"}, nil
 }
 
+// DeleteWorkspace は WS を削除する。
+func (s *StoreService) DeleteWorkspace(id string) error {
+	return s.workspaces.Delete(s.ctx(), id)
+}
+
 // DuplicateWorkspace は WS を複製する。
-func (s *StoreService) DuplicateWorkspace(id string) (*model.WorkspaceDTO, error) {
-	return s.workspaces.Duplicate(s.ctx(), id)
+//
+// name は複製先 WS 名。
+// 空文字の場合はコピー元の名前を使用する。
+func (s *StoreService) DuplicateWorkspace(id, name string) (*model.WorkspaceDTO, error) {
+	return s.workspaces.Duplicate(s.ctx(), id, name)
 }
 
 // GetNodeResult はノード結果を返す。

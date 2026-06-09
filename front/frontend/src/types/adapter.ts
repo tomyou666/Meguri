@@ -101,7 +101,8 @@ export interface ScraperPort {
 		nodeId: string,
 		settings: PartialConfig,
 	): Promise<SaveSettingsResponse>;
-	duplicateWorkspace(id: string): Promise<Workspace>;
+	deleteWorkspace(id: string): Promise<void>;
+	duplicateWorkspace(id: string, name: string): Promise<Workspace>;
 
 	getNodeResult(
 		workspaceId: string,

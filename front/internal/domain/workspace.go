@@ -162,8 +162,20 @@ func (s *WorkspaceService) SaveNodeSettings(ctx context.Context, workspaceID, no
 	return fmt.Errorf("node not found")
 }
 
+// Delete は WS を削除する。
+func (s *WorkspaceService) Delete(ctx context.Context, id string) error {
+	bundle, err := s.repo.LoadWorkspaceBundle(ctx, id)
+	if err != nil || bundle == nil {
+		return fmt.Errorf("workspace not found")
+	}
+	return s.repo.DeleteWorkspace(ctx, id)
+}
+
 // Duplicate は WS を複製する。
-func (s *WorkspaceService) Duplicate(ctx context.Context, id string) (*model.WorkspaceDTO, error) {
+//
+// name は複製先 WS 名。
+// 空文字の場合はコピー元の名前を使用する。
+func (s *WorkspaceService) Duplicate(ctx context.Context, id, name string) (*model.WorkspaceDTO, error) {
 	bundle, err := s.repo.LoadWorkspaceBundle(ctx, id)
 	if err != nil || bundle == nil {
 		return nil, fmt.Errorf("workspace not found")
@@ -174,7 +186,11 @@ func (s *WorkspaceService) Duplicate(ctx context.Context, id string) (*model.Wor
 		idMap[n.ID] = genID()
 	}
 	bundle.Workspace.ID = model.StrPtr(wsID)
-	bundle.Workspace.Name = bundle.Workspace.Name + " (copy)"
+	copyName := name
+	if copyName == "" {
+		copyName = bundle.Workspace.Name
+	}
+	bundle.Workspace.Name = copyName
 	bundle.Workspace.BaselineRunID = nil
 	bundle.Workspace.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	for i := range bundle.Nodes {

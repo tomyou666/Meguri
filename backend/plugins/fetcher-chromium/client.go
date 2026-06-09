@@ -39,7 +39,7 @@ func (c *client) get(ctx context.Context, u *url.URL, headers map[string]string)
 	if lastErr == nil {
 		lastErr = errors.New("unknown chromium fetch error")
 	}
-	return nil, fmt.Errorf("Chromium取得失敗 (url=%s): %w", u.String(), lastErr)
+	return nil, fmt.Errorf("chromium取得失敗 (url=%s): %w", u.String(), lastErr)
 }
 
 func (c *client) fetchOnce(ctx context.Context, u *url.URL, headers map[string]string) (*model.Response, error) {

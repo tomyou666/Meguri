@@ -34,6 +34,8 @@ export const messages = {
 		openRight: '右サイドバーを開く',
 		workspaceSettings: 'WS 設定',
 		diffSummary: '差分サマリ',
+		deleteWorkspace: 'ワークスペースを削除',
+		duplicateWorkspace: 'ワークスペースをコピー',
 	},
 	right: {
 		runSummary: '実行サマリ',
@@ -72,8 +74,14 @@ export const messages = {
 		addNodeUrl: 'URL',
 		deleteNodeTitle: 'ノード削除',
 		deleteNodeConfirm: '選択ノードと配下のノードを削除しますか？',
+		deleteWorkspaceTitle: 'ワークスペース削除',
+		deleteWorkspaceConfirm:
+			'このワークスペースを削除しますか？関連するグラフ・結果もすべて削除されます。',
+		duplicateWorkspaceTitle: 'ワークスペースコピー',
+		duplicateWorkspaceName: '名前',
 		cancel: 'キャンセル',
 		create: '作成',
+		copy: 'コピー',
 		add: '追加',
 		delete: '削除',
 		confirm: '確認',
@@ -134,6 +142,8 @@ export const messages = {
 		globalBanner: 'アプリケーションエラー',
 		crawlFailed: 'クロールエラー',
 		nodeFailed: 'ノードエラー',
+		deleteWorkspaceFailed: 'ワークスペースの削除に失敗しました',
+		duplicateWorkspaceFailed: 'ワークスペースのコピーに失敗しました',
 	},
 	graph: {
 		layout: 'レイアウト',
