@@ -24,6 +24,12 @@ const MODE_LABELS: Record<RunMode, string> = {
 	3: messages.control.mode3,
 };
 
+const PLAY_MODE_LABELS: Record<RunMode, string> = {
+	1: messages.control.playMode1,
+	2: messages.control.playMode2,
+	3: messages.control.playMode3,
+};
+
 export function ControlBar() {
 	const runMode = useAppStore((s) => s.runMode);
 	const setRunMode = useAppStore((s) => s.setRunMode);
@@ -74,7 +80,7 @@ export function ControlBar() {
 							className='rounded-r-none'
 						>
 							<Play className='size-3.5' />
-							{messages.control.play}
+							{PLAY_MODE_LABELS[runMode]}
 						</Button>
 						<Button
 							size='sm'

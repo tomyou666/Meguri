@@ -12,6 +12,9 @@ export const messages = {
 	},
 	control: {
 		play: '再生',
+		playMode1: '再生',
+		playMode2: '選択ノードから再生',
+		playMode3: '既存ノードのみ再生',
 		pause: '一時停止',
 		stop: '停止',
 		formats: '保存形式',
@@ -158,7 +161,6 @@ export const messages = {
 		zoomIn: 'ズームイン',
 		zoomOut: 'ズームアウト',
 		fitView: '全体表示',
-		nodeSettingsTitle: 'このノードの設定',
 		contextCollapse: '折りたたむ',
 		contextExpand: '展開',
 		contextExcludeCrawl: 'クロールしない',

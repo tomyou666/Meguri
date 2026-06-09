@@ -35,9 +35,6 @@ export function NodeDetailSettings({ node }: NodeDetailSettingsProps) {
 			ref={scrollRef}
 			className='nodrag nopan nowheel max-h-[280px] overflow-y-auto overscroll-contain border-t border-border pt-2'
 		>
-			<p className='mb-2 text-[10px] font-semibold text-muted-foreground'>
-				{messages.graph.nodeSettingsTitle}
-			</p>
 			<Label className='mb-2 flex items-center gap-2 text-[10px]'>
 				<Checkbox
 					checked={node.crawlExclude}
