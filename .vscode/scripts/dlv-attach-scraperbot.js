@@ -3,12 +3,12 @@
  * Waits for scraperbot (wails3 dev) and starts legacy RPC headless delve for VS Code.
  * Use launch.json: "debugAdapter": "legacy", "apiVersion": 2, "mode": "remote"
  */
-const { spawn, execSync } = require("node:child_process");
-const { existsSync } = require("node:fs");
-const { homedir } = require("node:os");
-const { join } = require("node:path");
+const { spawn, execSync } = require('node:child_process');
+const { existsSync } = require('node:fs');
+const { homedir } = require('node:os');
+const { join } = require('node:path');
 
-const PROCESS_NAME = "scraperbot";
+const PROCESS_NAME = 'scraperbot';
 const PORT = 2345;
 const TIMEOUT_SEC = 180;
 const POLL_MS = 500;
@@ -18,30 +18,55 @@ function sleep(ms) {
 }
 
 function getDlvPath() {
+	const frontDir = join(__dirname, '..', '..', 'front');
+	const execOpts = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] };
+
 	try {
-		const which = process.platform === "win32" ? "where" : "which";
-		return execSync(`${which} dlv`, { encoding: "utf8" }).trim().split(/\r?\n/)[0];
-	} catch {
-		const candidates = [
-			join(homedir(), "go", "bin", process.platform === "win32" ? "dlv.exe" : "dlv"),
-		];
-		for (const p of candidates) {
-			if (existsSync(p)) {
-				return p;
-			}
+		const path = execSync('go tool -n dlv', { ...execOpts, cwd: frontDir })
+			.trim()
+			.split(/\r?\n/)[0];
+		if (path && existsSync(path)) {
+			return path;
 		}
-		throw new Error(
-			"dlv not found. Install: go install github.com/go-delve/delve/cmd/dlv@latest",
-		);
+	} catch {
+		// fall through
 	}
+
+	try {
+		const which = process.platform === 'win32' ? 'where' : 'which';
+		const path = execSync(`${which} dlv`, execOpts).trim().split(/\r?\n/)[0];
+		if (path && existsSync(path)) {
+			return path;
+		}
+	} catch {
+		// fall through
+	}
+
+	const candidates = [
+		join(
+			homedir(),
+			'go',
+			'bin',
+			process.platform === 'win32' ? 'dlv.exe' : 'dlv',
+		),
+	];
+	for (const p of candidates) {
+		if (existsSync(p)) {
+			return p;
+		}
+	}
+
+	throw new Error(
+		'dlv not found. Run: make tools  (or: cd front && go mod download)',
+	);
 }
 
 function findPid() {
-	if (process.platform === "win32") {
+	if (process.platform === 'win32') {
 		try {
 			const out = execSync(
 				`tasklist /FI "IMAGENAME eq ${PROCESS_NAME}.exe" /FO CSV /NH`,
-				{ encoding: "utf8" },
+				{ encoding: 'utf8' },
 			);
 			const line = out
 				.split(/\r?\n/)
@@ -59,7 +84,9 @@ function findPid() {
 	}
 
 	try {
-		const out = execSync(`pgrep -x ${PROCESS_NAME}`, { encoding: "utf8" }).trim();
+		const out = execSync(`pgrep -x ${PROCESS_NAME}`, {
+			encoding: 'utf8',
+		}).trim();
 		const pid = out.split(/\r?\n/)[0];
 		return pid ? Number.parseInt(pid, 10) : null;
 	} catch {
@@ -94,20 +121,20 @@ async function main() {
 	const child = spawn(
 		dlv,
 		[
-			"attach",
+			'attach',
 			String(pid),
-			"--headless",
-			"--listen",
+			'--headless',
+			'--listen',
 			`127.0.0.1:${PORT}`,
-			"--api-version",
-			"2",
-			"--accept-multiclient",
-			"--continue",
+			'--api-version',
+			'2',
+			'--accept-multiclient',
+			'--continue',
 		],
-		{ stdio: "inherit" },
+		{ stdio: 'inherit' },
 	);
 
-	child.on("exit", (code, signal) => {
+	child.on('exit', (code, signal) => {
 		if (signal) {
 			process.kill(process.pid, signal);
 		} else {
