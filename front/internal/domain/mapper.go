@@ -216,6 +216,12 @@ func nodeResultToPreview(row model.NodeResult) model.CrawlResultDTO {
 	if row.Markdown != nil {
 		dto.Markdown = *row.Markdown
 	}
+	if row.HTML != nil {
+		dto.HTML = *row.HTML
+	}
+	if row.RawHTML != nil {
+		dto.RawHTML = *row.RawHTML
+	}
 	if row.LinksJSON != nil && *row.LinksJSON != "" {
 		_ = json.Unmarshal([]byte(*row.LinksJSON), &dto.Links)
 	}

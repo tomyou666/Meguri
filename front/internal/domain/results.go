@@ -206,6 +206,12 @@ func (s *ResultsService) AppendNodeResultRow(ctx context.Context, req model.Appe
 	if req.Markdown != "" {
 		row.Markdown = &req.Markdown
 	}
+	if req.HTML != "" {
+		row.HTML = &req.HTML
+	}
+	if req.RawHTML != "" {
+		row.RawHTML = &req.RawHTML
+	}
 	if req.LinksJSON != "" {
 		row.LinksJSON = &req.LinksJSON
 	}

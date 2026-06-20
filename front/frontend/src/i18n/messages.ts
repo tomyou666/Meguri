@@ -67,7 +67,7 @@ export const messages = {
 		linkSkipLine: (parent: string, target: string, reason: string) =>
 			parent ? `${parent} → ${target}（${reason}）` : `${target}（${reason}）`,
 		noResultApi: '結果がありません（API未取得）',
-		formatUnsupported: (format: string) => `（モック未対応: ${format}）`,
+		transformerBadge: (name: string) => `transformer: ${name}`,
 	},
 	dialog: {
 		newWorkspaceTitle: '新規ワークスペース',
@@ -144,6 +144,8 @@ export const messages = {
 				'オン: 5秒ごとにメモリ使用率を見て上限を±1（高水位0.8超で減、低水位0.6未満で増、最小1）。オフ: 起動時の上限をジョブ中固定。',
 			respect_robots_txt: 'robots.txt の Disallow を守るか。',
 			fetcher: 'http=軽量 / chromium=JavaScript 必須ページ向け（重い）。',
+			transformer:
+				'本文の変換方式。markdown / html / raw_html / json から選択。プレビューとファイル出力の主形式になります。',
 			browser_path: 'Chromium 実行ファイルのパス。空なら自動検出。',
 			headless: '画面を表示せずバックグラウンドでブラウザを動かす。',
 			output_dir: '結果ファイルを書き出すフォルダ。',

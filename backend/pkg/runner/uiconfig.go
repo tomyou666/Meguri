@@ -300,3 +300,22 @@ func parseDuration(s string) (time.Duration, error) {
 	}
 	return time.ParseDuration(s)
 }
+
+// transformer と extract フラグから content.formats を導出する。
+func DeriveContentFormats(cfg *model.Config) {
+	if cfg == nil {
+		return
+	}
+	t := cfg.Plugins.Transformer
+	if t == "" {
+		t = "markdown"
+	}
+	formats := []model.OutputFormat{model.OutputFormat(t)}
+	if cfg.Content.ExtractMetadata {
+		formats = append(formats, model.FormatMetadata)
+	}
+	if cfg.Content.ExtractLinks {
+		formats = append(formats, model.FormatLinks)
+	}
+	cfg.Content.Formats = formats
+}

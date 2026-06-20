@@ -29,10 +29,7 @@ export const requestConfigSchema = z.object({
 });
 
 export const contentConfigSchema = z.object({
-	formats: z
-		.array(contentFormatSchema)
-		.min(1, { message: '保存形式を1つ以上選んでください' })
-		.optional(),
+	formats: z.array(contentFormatSchema).optional(),
 	only_main_content: z.boolean().optional(),
 	include_tags: z.array(z.string()).optional(),
 	exclude_tags: z.array(z.string()).optional(),
@@ -84,7 +81,7 @@ export const pluginsConfigSchema = z.object({
 	fetcher_config: fetcherConfigSchema.optional(),
 	preprocessors: z.array(z.string()).optional(),
 	parsers: z.array(z.string()).optional(),
-	transformer: z.string().optional(),
+	transformer: z.enum(['markdown', 'html', 'raw_html', 'json']).optional(),
 	filters: z.array(z.string()).optional(),
 	link_extractor: z.string().optional(),
 });

@@ -96,6 +96,8 @@ function crawlResultFromDTO(dto: CrawlResultDTO): CrawlResultPreview {
 	return {
 		url: dto.url,
 		markdown: dto.markdown,
+		html: dto.html,
+		raw_html: dto.rawHtml,
 		links: dto.links,
 		metadata: dto.metadata,
 	};

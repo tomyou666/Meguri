@@ -27,10 +27,10 @@ describe('validatePartialConfig', () => {
 		expect(errors['request.retry_count']).toContain('10以下');
 	});
 
-	it('formats を指定した場合は 1 件以上必須', () => {
+	it('空の formats 配列は受理する', () => {
 		const r = validatePartialConfig({
 			content: { formats: [] },
 		});
-		expect(r.ok).toBe(false);
+		expect(r.ok).toBe(true);
 	});
 });

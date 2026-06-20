@@ -14,10 +14,18 @@ import {
 	TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { messages } from '@/i18n/messages';
+import { hostFromUrl } from '@/lib/normalizeUrl';
+import {
+	bodySnippetForFormat,
+	getPreviewTabs,
+	getTransformerFormat,
+	mergedPreviewSettings,
+	previewTabLabel,
+	type TransformerFormat,
+} from '@/lib/previewFormats';
 import { useAppStore } from '@/stores/appStore';
 import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';
-import { getActiveFormats } from '@/types/crawl';
 import type { GraphNode } from '@/types/graph';
 
 export function RightSidebarContent() {
@@ -40,13 +48,39 @@ export function RightSidebarContent() {
 	const deleteSelectedResults = useAppStore((s) => s.deleteSelectedResults);
 	const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
 
-	const formats = useMemo(
-		() =>
-			getActiveFormats(
-				ws?.settings.content?.formats ?? appDefaults.content?.formats,
-			),
-		[ws, appDefaults],
-	);
+	const formats = useMemo(() => {
+		if (!ws) return getPreviewTabs(appDefaults);
+		if (node) {
+			const host = hostFromUrl(node.urlNormalized);
+			return getPreviewTabs(
+				mergedPreviewSettings(
+					appDefaults,
+					ws.settings,
+					host ? ws.domainSettings[host] : undefined,
+					node.nodeSettings,
+				),
+			);
+		}
+		return getPreviewTabs(mergedPreviewSettings(appDefaults, ws.settings));
+	}, [appDefaults, ws, node]);
+
+	const transformerFormat = useMemo((): TransformerFormat => {
+		if (!ws) return getTransformerFormat(appDefaults);
+		if (node) {
+			const host = hostFromUrl(node.urlNormalized);
+			return getTransformerFormat(
+				mergedPreviewSettings(
+					appDefaults,
+					ws.settings,
+					host ? ws.domainSettings[host] : undefined,
+					node.nodeSettings,
+				),
+			);
+		}
+		return getTransformerFormat(
+			mergedPreviewSettings(appDefaults, ws.settings),
+		);
+	}, [appDefaults, ws, node]);
 
 	if (rightCollapsed) {
 		return (
@@ -126,7 +160,7 @@ export function RightSidebarContent() {
 						<div key={r.url} className='mb-3 rounded border p-2 text-xs'>
 							<p className='font-medium'>{r.url}</p>
 							<pre className='mt-1 whitespace-pre-wrap text-[10px]'>
-								{r.markdown?.slice(0, 200) ?? '—'}
+								{bodySnippetForFormat(r, transformerFormat)}
 							</pre>
 						</div>
 					))}
@@ -144,6 +178,9 @@ export function RightSidebarContent() {
 						<p className='truncate text-xs text-muted-foreground'>
 							{node.urlNormalized}
 						</p>
+						<Badge variant='outline' className='mt-1 text-[10px] font-normal'>
+							{messages.right.transformerBadge(transformerFormat)}
+						</Badge>
 					</div>
 					<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
 						<PanelRightClose className='size-3.5' />
@@ -294,7 +331,7 @@ function NodeResultPanel({
 					<TabsList className='min-w-0 flex-1'>
 						{formats.map((f) => (
 							<TabsTrigger key={f} value={f}>
-								{f}
+								{previewTabLabel(f)}
 							</TabsTrigger>
 						))}
 					</TabsList>
@@ -351,10 +388,27 @@ function NodeFormatContent({
 	}
 	if (format === 'markdown') {
 		return (
-			<pre className='whitespace-pre-wrap text-xs'>
+			<pre className='whitespace-pre-wrap font-mono text-xs'>
 				{result.markdown ?? '—'}
 			</pre>
 		);
+	}
+	if (format === 'html') {
+		return (
+			<pre className='whitespace-pre-wrap font-mono text-xs'>
+				{result.html ?? '—'}
+			</pre>
+		);
+	}
+	if (format === 'raw_html') {
+		return (
+			<pre className='whitespace-pre-wrap font-mono text-xs'>
+				{result.raw_html ?? '—'}
+			</pre>
+		);
+	}
+	if (format === 'json') {
+		return <pre className='whitespace-pre-wrap font-mono text-xs'>—</pre>;
 	}
 	if (format === 'links') {
 		return (
@@ -379,9 +433,5 @@ function NodeFormatContent({
 			</dl>
 		);
 	}
-	return (
-		<p className='text-xs text-muted-foreground'>
-			{messages.right.formatUnsupported(format)}
-		</p>
-	);
+	return <p className='text-xs text-muted-foreground'>—</p>;
 }

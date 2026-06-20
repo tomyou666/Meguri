@@ -6,17 +6,7 @@ import { Label } from '@/components/ui/label';
 import { messages } from '@/i18n/messages';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
-import type { ContentFormat } from '@/types/config';
 import type { RunMode } from '@/types/crawl';
-
-const ALL_FORMATS: ContentFormat[] = [
-	'markdown',
-	'html',
-	'raw_html',
-	'json',
-	'links',
-	'metadata',
-];
 
 const MODE_LABELS: Record<RunMode, string> = {
 	1: messages.control.mode1,
@@ -41,22 +31,11 @@ export function ControlBar() {
 	const resumeCrawl = useAppStore((s) => s.resumeCrawl);
 	const stopCrawl = useAppStore((s) => s.stopCrawl);
 	const ws = useAppStore((s) => s.getActiveWorkspace());
-	const setWorkspaceFormats = useAppStore((s) => s.setWorkspaceFormats);
 	const bulkScrapeSelected = useAppStore((s) => s.bulkScrapeSelected);
 	const mergeAllResults = useAppStore((s) => s.mergeAllResults);
 	const mergeSelectedResults = useAppStore((s) => s.mergeSelectedResults);
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const [modeMenuOpen, setModeMenuOpen] = useState(false);
-
-	const formats = ws?.settings.content?.formats ?? ['markdown', 'links'];
-
-	const toggleFormat = (f: ContentFormat) => {
-		const next = formats.includes(f)
-			? formats.filter((x) => x !== f)
-			: [...formats, f];
-		if (next.length === 0) return;
-		setWorkspaceFormats({ formats: next });
-	};
 
 	const isRunning = crawlStatus === 'running';
 	const isPaused = crawlStatus === 'paused';
@@ -154,21 +133,6 @@ export function ControlBar() {
 						{messages.control.rescrapeExisting}
 					</Label>
 				</div>
-
-				<span className='text-muted-foreground'>|</span>
-				<span className='text-xs text-muted-foreground'>
-					{messages.control.formats}
-				</span>
-				{ALL_FORMATS.map((f) => (
-					<Button
-						key={f}
-						size='xs'
-						variant={formats.includes(f) ? 'default' : 'outline'}
-						onClick={() => toggleFormat(f)}
-					>
-						{f}
-					</Button>
-				))}
 
 				{selectedNodeIds.length > 1 && (
 					<>

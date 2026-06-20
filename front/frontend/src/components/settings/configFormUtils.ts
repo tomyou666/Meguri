@@ -5,11 +5,7 @@ export type ConfigLayer = 'app' | 'workspace' | 'domain' | 'node';
 
 export type FieldErrors = Record<string, string>;
 
-/** WS・ノードでは content.formats を編集・保存しない */
-export function layerShowsContentFormats(layer: ConfigLayer): boolean {
-	return layer === 'app' || layer === 'domain';
-}
-
+/** WS・ノードでは content.formats を編集・保存しない（上位で導出）。 */
 export function stripContentFormats(config: PartialConfig): PartialConfig {
 	if (!config.content) return config;
 	const { formats: _formats, ...contentRest } = config.content;
@@ -25,7 +21,10 @@ export function sanitizeConfigForLayer(
 	config: PartialConfig,
 	layer: ConfigLayer,
 ): PartialConfig {
-	return layerShowsContentFormats(layer) ? config : stripContentFormats(config);
+	if (layer === 'app' || layer === 'domain') {
+		return config;
+	}
+	return stripContentFormats(config);
 }
 
 export function fieldError(

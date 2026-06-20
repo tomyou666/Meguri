@@ -1,4 +1,3 @@
-import type { ContentFormat } from './config';
 import type { Workspace } from './workspace';
 
 export type RunMode = 1 | 2 | 3;
@@ -8,6 +7,8 @@ export type CrawlRunStatus = 'idle' | 'running' | 'paused';
 export interface CrawlResultPreview {
 	url: string;
 	markdown?: string;
+	html?: string;
+	raw_html?: string;
 	links?: string[];
 	metadata?: Record<string, string>;
 }
@@ -75,8 +76,4 @@ export interface CrawlStubOptions {
 	waitWhilePaused: () => Promise<void>;
 	debugScenario?: 'global_fail' | 'node_fail' | 'stop_mid';
 	failNodeUrl?: string;
-}
-
-export function getActiveFormats(formats?: ContentFormat[]): ContentFormat[] {
-	return formats?.length ? formats : ['markdown'];
 }

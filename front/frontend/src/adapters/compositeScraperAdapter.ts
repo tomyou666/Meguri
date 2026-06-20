@@ -152,6 +152,8 @@ export class CompositeScraperAdapter implements ScraperPort {
 		return {
 			url: dto.url,
 			markdown: dto.markdown,
+			html: dto.html,
+			raw_html: dto.rawHtml,
 			links: dto.links,
 			metadata: dto.metadata,
 		};
@@ -165,6 +167,8 @@ export class CompositeScraperAdapter implements ScraperPort {
 		return rows.map((dto) => ({
 			url: dto.url,
 			markdown: dto.markdown,
+			html: dto.html,
+			raw_html: dto.rawHtml,
 			links: dto.links,
 			metadata: dto.metadata,
 		}));

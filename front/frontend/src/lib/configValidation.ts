@@ -21,6 +21,7 @@ const FIELD_LABELS: Record<string, string> = {
 	'crawl.fetch_limits.chromium_max_inflight':
 		'Chromium 静的上限（ベースライン）',
 	'plugins.fetcher': '取得方式 (fetcher)',
+	'plugins.transformer': 'transformer',
 	'plugins.fetcher_config.browser_path': 'ブラウザパス',
 	'output.dir': '出力フォルダ',
 	'output.file_pattern': 'ファイル名パターン',

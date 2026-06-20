@@ -64,6 +64,8 @@ type SaveSettingsResponseDTO struct {
 type CrawlResultDTO struct {
 	URL      string            `json:"url"`
 	Markdown string            `json:"markdown,omitempty"`
+	HTML     string            `json:"html,omitempty"`
+	RawHTML  string            `json:"rawHtml,omitempty"`
 	Links    []string          `json:"links,omitempty"`
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
@@ -120,6 +122,8 @@ type AppendNodeResultRequest struct {
 	NodeID       string `json:"nodeId"`
 	URL          string `json:"url"`
 	Markdown     string `json:"markdown,omitempty"`
+	HTML         string `json:"html,omitempty"`
+	RawHTML      string `json:"rawHtml,omitempty"`
 	LinksJSON    string `json:"linksJson,omitempty"`
 	MetadataJSON string `json:"metadataJson,omitempty"`
 	Error        string `json:"error,omitempty"`
@@ -164,6 +168,8 @@ type StartCrawlRequest struct {
 type CrawlNodeResultDTO struct {
 	URL      string            `json:"url"`
 	Markdown string            `json:"markdown,omitempty"`
+	HTML     string            `json:"html,omitempty"`
+	RawHTML  string            `json:"rawHtml,omitempty"`
 	Links    []string          `json:"links,omitempty"`
 	Metadata map[string]string `json:"metadata,omitempty"`
 }

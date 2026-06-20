@@ -18,6 +18,8 @@ export class AppendNodeResultRequest {
     "nodeId": string;
     "url": string;
     "markdown"?: string;
+    "html"?: string;
+    "rawHtml"?: string;
     "linksJson"?: string;
     "metadataJson"?: string;
     "error"?: string;
@@ -96,6 +98,8 @@ export class BeginCrawlRunRequest {
 export class CrawlResultDTO {
     "url": string;
     "markdown"?: string;
+    "html"?: string;
+    "rawHtml"?: string;
     "links"?: string[];
     "metadata"?: { [_ in string]?: string };
 
@@ -112,14 +116,14 @@ export class CrawlResultDTO {
      * Creates a new CrawlResultDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): CrawlResultDTO {
-        const $$createField2_0 = $$createType0;
-        const $$createField3_0 = $$createType1;
+        const $$createField4_0 = $$createType0;
+        const $$createField5_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("links" in $$parsedSource) {
-            $$parsedSource["links"] = $$createField2_0($$parsedSource["links"]);
+            $$parsedSource["links"] = $$createField4_0($$parsedSource["links"]);
         }
         if ("metadata" in $$parsedSource) {
-            $$parsedSource["metadata"] = $$createField3_0($$parsedSource["metadata"]);
+            $$parsedSource["metadata"] = $$createField5_0($$parsedSource["metadata"]);
         }
         return new CrawlResultDTO($$parsedSource as Partial<CrawlResultDTO>);
     }

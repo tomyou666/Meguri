@@ -244,6 +244,8 @@ func (s *ScraperService) persistNodeSucceeded(
 		NodeID:       nodeID,
 		URL:          url,
 		Markdown:     markdown,
+		HTML:         result.HTML,
+		RawHTML:      result.RawHTML,
 		LinksJSON:    linksJSON,
 		MetadataJSON: metadataJSON,
 		FetchedAt:    domain.NowISO(),
@@ -565,6 +567,7 @@ func (st *crawlState) mergedConfig(mode int32, node model.GraphNodeDTO) (*runner
 	if err != nil {
 		return nil, err
 	}
+	runner.DeriveContentFormats(cfg)
 	exclude := make([]string, 0, len(st.excludeSet))
 	for u := range st.excludeSet {
 		exclude = append(exclude, u)
@@ -885,6 +888,12 @@ func resultToDTO(res *runner.Result) *model.CrawlNodeResultDTO {
 	dto := &model.CrawlNodeResultDTO{URL: res.URL.String()}
 	if res.Markdown != "" {
 		dto.Markdown = res.Markdown
+	}
+	if res.HTML != "" {
+		dto.HTML = res.HTML
+	}
+	if res.RawHTML != "" {
+		dto.RawHTML = res.RawHTML
 	}
 	if len(res.Links) > 0 {
 		dto.Links = make([]string, len(res.Links))

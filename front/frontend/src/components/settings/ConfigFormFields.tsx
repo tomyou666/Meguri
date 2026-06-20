@@ -5,7 +5,6 @@ import {
 	fieldInvalid,
 	formatOptionalNumber,
 	inputClassName,
-	layerShowsContentFormats,
 	parseOptionalNumber,
 	selectClassName,
 	textareaClassName,
@@ -170,61 +169,14 @@ export function RequestConfigFields({
 	);
 }
 
-const FORMATS = [
-	'markdown',
-	'html',
-	'raw_html',
-	'json',
-	'links',
-	'metadata',
-] as const;
-
 export function ContentConfigFields({
 	value,
 	onChange,
 	fieldErrors,
-	showFormats = true,
-}: FieldsProps<PartialConfig['content']> & { showFormats?: boolean }) {
+}: FieldsProps<PartialConfig['content']>) {
 	const v = value ?? {};
-	const formatsInvalid = fieldInvalid(fieldErrors, 'content.formats');
 	return (
 		<div className='space-y-3'>
-			{showFormats && (
-				<ConfigField
-					path='content.formats'
-					errors={fieldErrors}
-					label='formats'
-					help={h.formats}
-				>
-					<div
-						className={`mt-1 flex flex-wrap gap-2 rounded-lg p-1 ${formatsInvalid ? 'border border-destructive bg-destructive/5' : ''}`}
-					>
-						{FORMATS.map((f) => {
-							const formatId = configCheckboxId(`content.formats.${f}`);
-							return (
-								<label
-									key={f}
-									htmlFor={formatId}
-									className='flex items-center gap-1 text-xs'
-								>
-									<Checkbox
-										id={formatId}
-										checked={v.formats?.includes(f) ?? false}
-										onCheckedChange={(checked) => {
-											const cur = v.formats ?? [];
-											const next = checked
-												? [...cur, f]
-												: cur.filter((x) => x !== f);
-											onChange({ ...v, formats: next });
-										}}
-									/>
-									{f}
-								</label>
-							);
-						})}
-					</div>
-				</ConfigField>
-			)}
 			<ConfigCheckboxRow
 				inputId={configCheckboxId('content.only_main_content')}
 				checked={v.only_main_content ?? false}
@@ -577,6 +529,31 @@ export function PluginsConfigFields({
 	return (
 		<div className='space-y-3 text-xs'>
 			<ConfigField
+				path='plugins.transformer'
+				errors={fieldErrors}
+				label='transformer'
+				help={h.transformer}
+			>
+				<select
+					className={selectClassName(
+						fieldInvalid(fieldErrors, 'plugins.transformer'),
+						'mt-1 h-8 w-full rounded-lg border border-input bg-background px-2',
+					)}
+					value={v.transformer ?? 'markdown'}
+					onChange={(e) =>
+						onChange({
+							...v,
+							transformer: e.target.value,
+						})
+					}
+				>
+					<option value='markdown'>markdown</option>
+					<option value='html'>html</option>
+					<option value='raw_html'>raw_html</option>
+					<option value='json'>json</option>
+				</select>
+			</ConfigField>
+			<ConfigField
 				path='plugins.fetcher'
 				errors={fieldErrors}
 				label='fetcher'
@@ -764,18 +741,9 @@ export function TabsConfig({
 			{tab === 'content' && (
 				<ContentConfigFields
 					value={settings.content}
-					showFormats={layerShowsContentFormats(layer)}
 					onChange={(content) => {
 						if (!content) {
 							onChange({ ...settings, content: undefined });
-							return;
-						}
-						if (!layerShowsContentFormats(layer)) {
-							const { formats: _f, ...rest } = content;
-							onChange({
-								...settings,
-								content: Object.keys(rest).length > 0 ? rest : undefined,
-							});
 							return;
 						}
 						onChange({ ...settings, content });

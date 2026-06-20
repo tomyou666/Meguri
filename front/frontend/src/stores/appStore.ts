@@ -15,8 +15,13 @@ import {
 	getBfsNodeOrder,
 	getDescendantNodeIds,
 } from '@/lib/graph';
+import { mergeConfig } from '@/lib/mergeConfig';
 import { hostFromUrl, normalizeUrl } from '@/lib/normalizeUrl';
 import { notifyError, notifySuccess } from '@/lib/notify';
+import {
+	deriveContentFormats,
+	withDerivedContentFormats,
+} from '@/lib/previewFormats';
 import {
 	redoGraph,
 	syncGraphHistory,
@@ -208,7 +213,6 @@ interface AppState {
 	updateWorkspaceSettings: (settings: PartialConfig) => void;
 	updateNodeSettings: (nodeId: string, settings: PartialConfig) => void;
 	updateDomainSettings: (host: string, settings: PartialConfig) => void;
-	setWorkspaceFormats: (formats: PartialConfig['content']) => void;
 	clearCrawlError: () => void;
 	startCrawl: () => Promise<void>;
 	pauseCrawl: () => void;
@@ -292,7 +296,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 	},
 
 	persistAppDefaults: async (config) => {
-		const validated = validatePartialConfig(config);
+		const withFormats = withDerivedContentFormats(config);
+		const validated = validatePartialConfig(withFormats);
 		if (!validated.ok) {
 			notifyError(messages.settings.saveFailed, {
 				description: messages.settings.validationFailed,
@@ -315,7 +320,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 	persistWorkspaceSettings: async (settings) => {
 		const ws = get().getActiveWorkspace();
 		if (!ws) return false;
-		const validated = validatePartialConfig(settings);
+		const withFormats = withDerivedContentFormats(settings, get().appDefaults);
+		const validated = validatePartialConfig(withFormats);
 		if (!validated.ok) {
 			notifyError(messages.settings.saveFailed, {
 				description: messages.settings.validationFailed,
@@ -338,7 +344,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 	persistDomainSettings: async (domain, settings) => {
 		const ws = get().getActiveWorkspace();
 		if (!ws) return false;
-		const validated = validatePartialConfig(settings);
+		const merged = mergeConfig(get().appDefaults, ws.settings, settings);
+		const payload: PartialConfig = {
+			...settings,
+			content: {
+				...settings.content,
+				formats: deriveContentFormats(merged),
+			},
+		};
+		const validated = validatePartialConfig(payload);
 		if (!validated.ok) {
 			notifyError(messages.settings.saveFailed, {
 				description: messages.settings.validationFailed,
@@ -832,24 +846,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 							domainSettings: {
 								...w.domainSettings,
 								[host]: { ...w.domainSettings[host], ...settings },
-							},
-						}
-					: w,
-			),
-		}));
-	},
-
-	setWorkspaceFormats: (content) => {
-		const ws = get().getActiveWorkspace();
-		if (!ws) return;
-		set((s) => ({
-			workspaces: s.workspaces.map((w) =>
-				w.id === ws.id
-					? {
-							...w,
-							settings: {
-								...w.settings,
-								content: { ...w.settings.content, ...content },
 							},
 						}
 					: w,
