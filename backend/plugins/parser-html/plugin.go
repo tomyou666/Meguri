@@ -67,6 +67,7 @@ func (p *parser) Parse(_ context.Context, res *model.Response) (*model.Content, 
 		URL:      res.URL,
 		Format:   "html",
 		Text:     text,
+		RawHTML:  string(res.Body),
 		DOM:      doc,
 		Metadata: meta,
 	}, nil

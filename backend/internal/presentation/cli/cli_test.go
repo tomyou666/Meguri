@@ -22,7 +22,9 @@ import (
 	_ "scraperbot/plugins/parser-html"
 	_ "scraperbot/plugins/parser-pdf"
 	_ "scraperbot/plugins/preprocessor-header"
+	_ "scraperbot/plugins/transformer-html"
 	_ "scraperbot/plugins/transformer-markdown"
+	_ "scraperbot/plugins/transformer-raw-html"
 )
 
 func newCLITestServer(t *testing.T) *httptest.Server {

@@ -10,6 +10,8 @@ type Content struct {
 	Format string
 	// Text は抽出済みプレーンテキストまたは中間表現。
 	Text string
+	// RawHTML は HTTP レスポンス本文の生 HTML（P5 で設定、P7 では変更しない）。
+	RawHTML string
 	// DOM は HTML 等の構造化表現（パーサ実装依存）。
 	DOM any
 	// Metadata はタイトル・description 等のメタ情報。

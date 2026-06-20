@@ -16,7 +16,9 @@ import (
 	_ "scraperbot/plugins/parser-html"
 	_ "scraperbot/plugins/parser-pdf"
 	_ "scraperbot/plugins/preprocessor-header"
+	_ "scraperbot/plugins/transformer-html"
 	_ "scraperbot/plugins/transformer-markdown"
+	_ "scraperbot/plugins/transformer-raw-html"
 )
 
 // main は CLI を起動し、終了コードを os.Exit に渡す。

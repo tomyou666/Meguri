@@ -23,7 +23,9 @@ import (
 	_ "scraperbot/plugins/parser-html"
 	_ "scraperbot/plugins/parser-pdf"
 	_ "scraperbot/plugins/preprocessor-header"
+	_ "scraperbot/plugins/transformer-html"
 	_ "scraperbot/plugins/transformer-markdown"
+	_ "scraperbot/plugins/transformer-raw-html"
 )
 
 // setupKernel はテスト用に初期化済みカーネルを組み立てる共通関数。

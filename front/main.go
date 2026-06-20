@@ -49,10 +49,8 @@ func main() {
 
 	webApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "scraperbot",
-		Width:            1440,
-		Height:           900,
-		MinWidth:         1024,
-		MinHeight:        680,
+		Width:            1024,
+		Height:           680,
 		InitialPosition:  application.WindowCentered,
 		BackgroundColour: application.NewRGB(27, 38, 54),
 		URL:              "/",
