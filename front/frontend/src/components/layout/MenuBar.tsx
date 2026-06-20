@@ -1,3 +1,4 @@
+import { ChevronDown, FolderOpen, Save, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
 import { notifyError } from '@/lib/notify';
@@ -46,23 +55,73 @@ export function MenuBar() {
 	return (
 		<>
 			<div className='flex h-8 items-center gap-1 border-b border-border bg-card px-2 text-xs'>
-				<span className='px-2 font-medium'>{messages.menu.file}</span>
-				<Button variant='ghost' size='xs' onClick={() => void handleOpenScrb()}>
-					{messages.menu.openScrb}
-				</Button>
-				<Button
-					variant='ghost'
-					size='xs'
-					onClick={() => void handleSaveScrb()}
-					disabled={!activeWorkspaceId}
-				>
-					{messages.menu.saveScrb}
-				</Button>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant='ghost'
+							size='xs'
+							aria-label={messages.menu.openFileMenu}
+						>
+							{messages.menu.file}
+							<ChevronDown className='size-3.5' />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						align='start'
+						sideOffset={6}
+						className='min-w-44 w-auto border-border p-1 shadow-lg'
+					>
+						<DropdownMenuLabel className='px-2 py-1 text-xs font-normal text-muted-foreground'>
+							{messages.menu.file}
+						</DropdownMenuLabel>
+						<DropdownMenuSeparator className='my-1' />
+						<DropdownMenuItem
+							className='gap-2 px-2 py-1.5 text-xs'
+							onClick={() => void handleOpenScrb()}
+						>
+							<FolderOpen className='size-3.5 text-muted-foreground' />
+							{messages.menu.openScrb}
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							className='gap-2 px-2 py-1.5 text-xs'
+							disabled={!activeWorkspaceId}
+							onClick={() => void handleSaveScrb()}
+						>
+							<Save className='size-3.5 text-muted-foreground' />
+							{messages.menu.saveScrb}
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 				<span className='mx-1 text-muted-foreground'>|</span>
-				<span className='px-2 font-medium'>{messages.menu.settings}</span>
-				<Button variant='ghost' size='xs' onClick={() => setSettingsOpen(true)}>
-					{messages.menu.appDefaults}
-				</Button>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant='ghost'
+							size='xs'
+							aria-label={messages.menu.openSettingsMenu}
+						>
+							{messages.menu.settings}
+							<ChevronDown className='size-3.5' />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						align='start'
+						sideOffset={6}
+						className='min-w-44 w-auto border-border p-1 shadow-lg'
+					>
+						<DropdownMenuLabel className='px-2 py-1 text-xs font-normal text-muted-foreground'>
+							{messages.menu.settings}
+						</DropdownMenuLabel>
+						<DropdownMenuSeparator className='my-1' />
+						<DropdownMenuItem
+							className='gap-2 px-2 py-1.5 text-xs'
+							onClick={() => setSettingsOpen(true)}
+						>
+							<Settings className='size-3.5 text-muted-foreground' />
+							{messages.menu.appDefaults}
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</div>
 
 			<Dialog
