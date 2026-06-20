@@ -9,6 +9,7 @@ import {
 import { useMemo, useState } from 'react';
 import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -17,12 +18,6 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { messages } from '@/i18n/messages';
 import { hostFromUrl } from '@/lib/normalizeUrl';
 import { cn } from '@/lib/utils';
@@ -78,23 +73,33 @@ export function LeftSidebarContent() {
 	}
 
 	return (
-		<TooltipProvider>
+		<>
 			<aside className='flex h-full w-full min-w-[14rem] flex-col overflow-hidden border-r border-border bg-sidebar'>
 				<div className='flex items-center justify-between border-b border-sidebar-border px-2 py-2'>
 					<span className='text-xs font-semibold'>
 						{messages.sidebar.workspaces}
 					</span>
 					<div className='flex gap-0.5'>
-						<Button
-							variant='ghost'
-							size='icon-xs'
-							onClick={openNewWorkspaceDialog}
-						>
-							<Plus className='size-3.5' />
-						</Button>
-						<Button variant='ghost' size='icon-xs' onClick={toggleLeftSidebar}>
-							<PanelLeftClose className='size-3.5' />
-						</Button>
+						<ActionTooltip label={messages.sidebar.newWorkspace}>
+							<Button
+								variant='ghost'
+								size='icon-xs'
+								aria-label={messages.sidebar.newWorkspace}
+								onClick={openNewWorkspaceDialog}
+							>
+								<Plus className='size-3.5' />
+							</Button>
+						</ActionTooltip>
+						<ActionTooltip label={messages.sidebar.closeLeft}>
+							<Button
+								variant='ghost'
+								size='icon-xs'
+								aria-label={messages.sidebar.closeLeft}
+								onClick={toggleLeftSidebar}
+							>
+								<PanelLeftClose className='size-3.5' />
+							</Button>
+						</ActionTooltip>
 					</div>
 				</div>
 				<ScrollArea className='max-h-40 flex-none px-1 py-1'>
@@ -123,58 +128,46 @@ export function LeftSidebarContent() {
 											<span className='ml-1 text-amber-500'>●</span>
 										)}
 									</button>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant='ghost'
-												size='icon-xs'
-												onClick={async (e) => {
-													e.stopPropagation();
-													await fetchWorkspaceDiff(ws.id);
-													setDiffDialogWs(ws.id);
-												}}
-											>
-												<GitCompare className='size-3' />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>
-											{messages.sidebar.diffSummary}
-										</TooltipContent>
-									</Tooltip>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant='ghost'
-												size='icon-xs'
-												onClick={(e) => {
-													e.stopPropagation();
-													openDuplicateWorkspaceDialog(ws.id);
-												}}
-											>
-												<Copy className='size-3' />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>
-											{messages.sidebar.duplicateWorkspace}
-										</TooltipContent>
-									</Tooltip>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant='ghost'
-												size='icon-xs'
-												onClick={(e) => {
-													e.stopPropagation();
-													openDeleteWorkspaceDialog(ws.id);
-												}}
-											>
-												<Trash2 className='size-3' />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>
-											{messages.sidebar.deleteWorkspace}
-										</TooltipContent>
-									</Tooltip>
+									<ActionTooltip label={messages.sidebar.diffSummary}>
+										<Button
+											variant='ghost'
+											size='icon-xs'
+											aria-label={messages.sidebar.diffSummary}
+											onClick={async (e) => {
+												e.stopPropagation();
+												await fetchWorkspaceDiff(ws.id);
+												setDiffDialogWs(ws.id);
+											}}
+										>
+											<GitCompare className='size-3' />
+										</Button>
+									</ActionTooltip>
+									<ActionTooltip label={messages.sidebar.duplicateWorkspace}>
+										<Button
+											variant='ghost'
+											size='icon-xs'
+											aria-label={messages.sidebar.duplicateWorkspace}
+											onClick={(e) => {
+												e.stopPropagation();
+												openDuplicateWorkspaceDialog(ws.id);
+											}}
+										>
+											<Copy className='size-3' />
+										</Button>
+									</ActionTooltip>
+									<ActionTooltip label={messages.sidebar.deleteWorkspace}>
+										<Button
+											variant='ghost'
+											size='icon-xs'
+											aria-label={messages.sidebar.deleteWorkspace}
+											onClick={(e) => {
+												e.stopPropagation();
+												openDeleteWorkspaceDialog(ws.id);
+											}}
+										>
+											<Trash2 className='size-3' />
+										</Button>
+									</ActionTooltip>
 								</div>
 							);
 						})
@@ -198,21 +191,27 @@ export function LeftSidebarContent() {
 							{messages.sidebar.domains}
 						</span>
 						<div className='flex gap-0.5'>
-							<Button
-								variant='ghost'
-								size='icon-xs'
-								onClick={() => openAddNodeDialog()}
-							>
-								<Plus className='size-3.5' />
-							</Button>
-							<Button
-								variant='ghost'
-								size='icon-xs'
-								disabled={!selectedNodeId || crawlStatus !== 'idle'}
-								onClick={openDeleteNodeDialog}
-							>
-								<Trash2 className='size-3.5' />
-							</Button>
+							<ActionTooltip label={messages.sidebar.newNode}>
+								<Button
+									variant='ghost'
+									size='icon-xs'
+									aria-label={messages.sidebar.newNode}
+									onClick={() => openAddNodeDialog()}
+								>
+									<Plus className='size-3.5' />
+								</Button>
+							</ActionTooltip>
+							<ActionTooltip label={messages.sidebar.deleteNode}>
+								<Button
+									variant='ghost'
+									size='icon-xs'
+									disabled={!selectedNodeId || crawlStatus !== 'idle'}
+									aria-label={messages.sidebar.deleteNode}
+									onClick={openDeleteNodeDialog}
+								>
+									<Trash2 className='size-3.5' />
+								</Button>
+							</ActionTooltip>
 						</div>
 					</div>
 					<ScrollArea className='flex-1 px-1 pb-2'>
@@ -275,7 +274,7 @@ export function LeftSidebarContent() {
 					</DialogContent>
 				</Dialog>
 			)}
-		</TooltipProvider>
+		</>
 	);
 }
 

@@ -1,5 +1,6 @@
 import { MiniMap, Panel } from '@xyflow/react';
 import { Map as MapIcon, Minimize2 } from 'lucide-react';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Button } from '@/components/ui/button';
 import { messages } from '@/i18n/messages';
 import { useAppStore } from '@/stores/appStore';
@@ -15,16 +16,17 @@ export function GraphMinimap() {
 	if (minimapCollapsed) {
 		return (
 			<Panel position='bottom-right' className='graph-minimap-collapsed'>
-				<Button
-					type='button'
-					variant='outline'
-					size='icon-sm'
-					onClick={toggleMinimap}
-					title={messages.graph.minimapOpen}
-					aria-label={messages.graph.minimapOpen}
-				>
-					<MapIcon className='size-4' strokeWidth={2} />
-				</Button>
+				<ActionTooltip label={messages.graph.minimapOpen}>
+					<Button
+						type='button'
+						variant='outline'
+						size='icon-sm'
+						onClick={toggleMinimap}
+						aria-label={messages.graph.minimapOpen}
+					>
+						<MapIcon className='size-4' strokeWidth={2} />
+					</Button>
+				</ActionTooltip>
 			</Panel>
 		);
 	}
@@ -43,16 +45,17 @@ export function GraphMinimap() {
 					<span className='graph-minimap-label'>
 						{messages.graph.minimapTitle}
 					</span>
-					<Button
-						type='button'
-						variant='ghost'
-						size='icon-xs'
-						onClick={toggleMinimap}
-						title={messages.graph.minimapClose}
-						aria-label={messages.graph.minimapClose}
-					>
-						<Minimize2 className='size-3.5' strokeWidth={2} />
-					</Button>
+					<ActionTooltip label={messages.graph.minimapClose}>
+						<Button
+							type='button'
+							variant='ghost'
+							size='icon-xs'
+							onClick={toggleMinimap}
+							aria-label={messages.graph.minimapClose}
+						>
+							<Minimize2 className='size-3.5' strokeWidth={2} />
+						</Button>
+					</ActionTooltip>
 				</div>
 			</Panel>
 			<MiniMap

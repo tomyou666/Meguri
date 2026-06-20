@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Group, Panel, Separator, usePanelRef } from 'react-resizable-panels';
 import { CrawlGraph } from '@/components/graph/CrawlGraph';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAppStore } from '@/stores/appStore';
 import { AppBootstrap } from './AppBootstrap';
 import { AppDialogs } from './AppDialogs';
@@ -73,16 +74,18 @@ function SidebarPanels() {
 export function AppShell() {
 	return (
 		<AppBootstrap>
-			<AppKeyboardShortcuts />
-			<div className='flex h-screen w-full flex-col overflow-hidden'>
-				<MenuBar />
-				<ControlBar />
-				<Group orientation='horizontal' className='min-h-0 w-full flex-1'>
-					<SidebarPanels />
-				</Group>
-				<AppDialogs />
-				<MergeSheet />
-			</div>
+			<TooltipProvider>
+				<AppKeyboardShortcuts />
+				<div className='flex h-screen w-full flex-col overflow-hidden'>
+					<MenuBar />
+					<ControlBar />
+					<Group orientation='horizontal' className='min-h-0 w-full flex-1'>
+						<SidebarPanels />
+					</Group>
+					<AppDialogs />
+					<MergeSheet />
+				</div>
+			</TooltipProvider>
 		</AppBootstrap>
 	);
 }

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { memo, type ReactNode } from 'react';
 import { NodeDetailSettings } from '@/components/graph/NodeDetailSettings';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { messages } from '@/i18n/messages';
 import {
@@ -79,18 +80,19 @@ function NodeIconButton({
 	children: ReactNode;
 }) {
 	return (
-		<button
-			type='button'
-			className='nodrag nopan flex size-5 shrink-0 items-center justify-center rounded hover:bg-muted'
-			title={title}
-			aria-label={title}
-			onClick={(e) => {
-				e.stopPropagation();
-				onClick();
-			}}
-		>
-			{children}
-		</button>
+		<ActionTooltip label={title}>
+			<button
+				type='button'
+				className='nodrag nopan flex size-5 shrink-0 items-center justify-center rounded hover:bg-muted'
+				aria-label={title}
+				onClick={(e) => {
+					e.stopPropagation();
+					onClick();
+				}}
+			>
+				{children}
+			</button>
+		</ActionTooltip>
 	);
 }
 

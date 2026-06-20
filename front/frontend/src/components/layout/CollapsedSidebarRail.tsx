@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { cn } from '@/lib/utils';
 
 type CollapsedSidebarRailProps = {
@@ -18,24 +19,25 @@ export function CollapsedSidebarRail({
 	className,
 }: CollapsedSidebarRailProps) {
 	return (
-		<button
-			type='button'
-			className={cn(
-				'flex h-full w-full min-w-[2.75rem] cursor-pointer flex-col items-center justify-start gap-2 border-border bg-sidebar px-1 py-3 transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-				borderSide === 'left' ? 'border-r' : 'border-l',
-				className,
-			)}
-			onClick={onClick}
-			title={label}
-			aria-label={label}
-		>
-			<Icon className='size-5 shrink-0' strokeWidth={2} />
-			<span
-				className='text-[9px] font-medium text-muted-foreground [writing-mode:vertical-rl]'
-				aria-hidden
+		<ActionTooltip label={label}>
+			<button
+				type='button'
+				className={cn(
+					'flex h-full w-full min-w-[2.75rem] cursor-pointer flex-col items-center justify-start gap-2 border-border bg-sidebar px-1 py-3 transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+					borderSide === 'left' ? 'border-r' : 'border-l',
+					className,
+				)}
+				onClick={onClick}
+				aria-label={label}
 			>
-				{label}
-			</span>
-		</button>
+				<Icon className='size-5 shrink-0' strokeWidth={2} />
+				<span
+					className='text-[9px] font-medium text-muted-foreground [writing-mode:vertical-rl]'
+					aria-hidden
+				>
+					{label}
+				</span>
+			</button>
+		</ActionTooltip>
 	);
 }

@@ -2,17 +2,12 @@ import { PanelRightClose, PanelRightOpen, Settings } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { messages } from '@/i18n/messages';
 import { hostFromUrl } from '@/lib/normalizeUrl';
 import {
@@ -27,6 +22,21 @@ import { useAppStore } from '@/stores/appStore';
 import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';
 import type { GraphNode } from '@/types/graph';
+
+function CloseRightSidebarButton({ onClick }: { onClick: () => void }) {
+	return (
+		<ActionTooltip label={messages.sidebar.closeRight}>
+			<Button
+				variant='ghost'
+				size='icon-xs'
+				aria-label={messages.sidebar.closeRight}
+				onClick={onClick}
+			>
+				<PanelRightClose className='size-3.5' />
+			</Button>
+		</ActionTooltip>
+	);
+}
 
 export function RightSidebarContent() {
 	const ws = useAppStore((s) => s.getActiveWorkspace());
@@ -108,9 +118,7 @@ export function RightSidebarContent() {
 					<span className='text-xs font-semibold'>
 						{messages.right.domainSettings}: {selectedDomain}
 					</span>
-					<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
-						<PanelRightClose className='size-3.5' />
-					</Button>
+					<CloseRightSidebarButton onClick={toggleRightSidebar} />
 				</div>
 				<ScrollArea className='flex-1 p-3'>
 					<ConfigEditor
@@ -132,9 +140,7 @@ export function RightSidebarContent() {
 					<p className='text-xs font-semibold'>
 						{messages.right.multiSelectCount(selectedNodeIds.length)}
 					</p>
-					<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
-						<PanelRightClose className='size-3.5' />
-					</Button>
+					<CloseRightSidebarButton onClick={toggleRightSidebar} />
 				</div>
 				<div className='flex flex-wrap gap-1 p-3'>
 					<Button size='xs' onClick={() => previewSelectedResults()}>
@@ -182,9 +188,7 @@ export function RightSidebarContent() {
 							{messages.right.transformerBadge(transformerFormat)}
 						</Badge>
 					</div>
-					<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
-						<PanelRightClose className='size-3.5' />
-					</Button>
+					<CloseRightSidebarButton onClick={toggleRightSidebar} />
 				</div>
 				{node.status === 'error' && node.lastError && (
 					<Alert variant='destructive' className='m-2 text-xs'>
@@ -205,9 +209,7 @@ export function RightSidebarContent() {
 		<aside className={shellClass}>
 			<div className='flex items-center justify-between border-b border-border px-3 py-2 text-xs font-semibold'>
 				{messages.right.runSummary}
-				<Button variant='ghost' size='icon-xs' onClick={toggleRightSidebar}>
-					<PanelRightClose className='size-3.5' />
-				</Button>
+				<CloseRightSidebarButton onClick={toggleRightSidebar} />
 			</div>
 			{crawlError && (
 				<Alert variant='destructive' className='m-2 text-xs'>
@@ -318,57 +320,53 @@ function NodeResultPanel({
 	const [showNodeSettings, setShowNodeSettings] = useState(false);
 
 	return (
-		<TooltipProvider>
-			<Tabs
-				value={tab}
-				onValueChange={(v) => {
-					setTab(v as ContentFormat);
-					setShowNodeSettings(false);
-				}}
-				className='flex min-h-0 flex-1 flex-col px-3'
-			>
-				<div className='flex items-center gap-1'>
-					<TabsList className='min-w-0 flex-1'>
-						{formats.map((f) => (
-							<TabsTrigger key={f} value={f}>
-								{previewTabLabel(f)}
-							</TabsTrigger>
-						))}
-					</TabsList>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								variant={showNodeSettings ? 'secondary' : 'ghost'}
-								size='icon-xs'
-								onClick={() => setShowNodeSettings((v) => !v)}
-							>
-								<Settings className='size-3.5' />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>{messages.right.nodeSettings}</TooltipContent>
-					</Tooltip>
-				</div>
-				<ScrollArea className='flex-1 pb-3'>
-					{showNodeSettings ? (
-						<ConfigEditor
-							layer='node'
-							settings={node.nodeSettings ?? {}}
-							compact
-							onSave={(settings) => persistNodeSettings(node.id, settings)}
-						/>
-					) : (
-						formats.map((f) => (
-							<TabsContent key={f} value={f}>
-								<NodeFormatContent
-									format={f}
-									result={result ?? node.lastResult}
-								/>
-							</TabsContent>
-						))
-					)}
-				</ScrollArea>
-			</Tabs>
-		</TooltipProvider>
+		<Tabs
+			value={tab}
+			onValueChange={(v) => {
+				setTab(v as ContentFormat);
+				setShowNodeSettings(false);
+			}}
+			className='flex min-h-0 flex-1 flex-col px-3'
+		>
+			<div className='flex items-center gap-1'>
+				<TabsList className='min-w-0 flex-1'>
+					{formats.map((f) => (
+						<TabsTrigger key={f} value={f}>
+							{previewTabLabel(f)}
+						</TabsTrigger>
+					))}
+				</TabsList>
+				<ActionTooltip label={messages.right.nodeSettings}>
+					<Button
+						variant={showNodeSettings ? 'secondary' : 'ghost'}
+						size='icon-xs'
+						aria-label={messages.right.nodeSettings}
+						onClick={() => setShowNodeSettings((v) => !v)}
+					>
+						<Settings className='size-3.5' />
+					</Button>
+				</ActionTooltip>
+			</div>
+			<ScrollArea className='flex-1 pb-3'>
+				{showNodeSettings ? (
+					<ConfigEditor
+						layer='node'
+						settings={node.nodeSettings ?? {}}
+						compact
+						onSave={(settings) => persistNodeSettings(node.id, settings)}
+					/>
+				) : (
+					formats.map((f) => (
+						<TabsContent key={f} value={f}>
+							<NodeFormatContent
+								format={f}
+								result={result ?? node.lastResult}
+							/>
+						</TabsContent>
+					))
+				)}
+			</ScrollArea>
+		</Tabs>
 	);
 }
 
