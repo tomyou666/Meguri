@@ -41,6 +41,7 @@ export const messages = {
 		diffSummary: '差分サマリ',
 		deleteWorkspace: 'ワークスペースを削除',
 		duplicateWorkspace: 'ワークスペースをコピー',
+		openWorkspaceMenu: 'ワークスペースのその他操作',
 	},
 	right: {
 		runSummary: '実行サマリ',

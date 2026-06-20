@@ -1,9 +1,11 @@
 import {
 	Copy,
 	GitCompare,
+	Menu,
 	PanelLeftClose,
 	PanelLeftOpen,
 	Plus,
+	Settings,
 	Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -17,6 +19,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
 import { hostFromUrl } from '@/lib/normalizeUrl';
@@ -128,20 +138,6 @@ export function LeftSidebarContent() {
 											<span className='ml-1 text-amber-500'>●</span>
 										)}
 									</button>
-									<ActionTooltip label={messages.sidebar.diffSummary}>
-										<Button
-											variant='ghost'
-											size='icon-xs'
-											aria-label={messages.sidebar.diffSummary}
-											onClick={async (e) => {
-												e.stopPropagation();
-												await fetchWorkspaceDiff(ws.id);
-												setDiffDialogWs(ws.id);
-											}}
-										>
-											<GitCompare className='size-3' />
-										</Button>
-									</ActionTooltip>
 									<ActionTooltip label={messages.sidebar.duplicateWorkspace}>
 										<Button
 											variant='ghost'
@@ -168,22 +164,61 @@ export function LeftSidebarContent() {
 											<Trash2 className='size-3' />
 										</Button>
 									</ActionTooltip>
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												variant='ghost'
+												size='icon-xs'
+												aria-label={messages.sidebar.openWorkspaceMenu}
+												onClick={(e) => e.stopPropagation()}
+											>
+												<Menu className='size-3' />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent
+											align='end'
+											sideOffset={6}
+											className='min-w-44 w-auto border-border p-1 shadow-lg'
+										>
+											<DropdownMenuLabel className='max-w-44 truncate px-2 py-1 text-xs font-normal text-muted-foreground'>
+												{ws.name}
+											</DropdownMenuLabel>
+											<DropdownMenuSeparator className='my-1' />
+											<DropdownMenuItem
+												className='gap-2 px-2 py-1.5 text-xs'
+												onClick={() => {
+													setActiveWorkspace(ws.id);
+													setWsSettingsOpen(true);
+												}}
+											>
+												<Settings className='size-3.5 text-muted-foreground' />
+												{messages.sidebar.workspaceSettings}
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												className='gap-2 px-2 py-1.5 text-xs'
+												onClick={async () => {
+													await fetchWorkspaceDiff(ws.id);
+													setDiffDialogWs(ws.id);
+												}}
+											>
+												<GitCompare className='size-3.5 text-muted-foreground' />
+												<span className='flex-1'>
+													{messages.sidebar.diffSummary}
+												</span>
+												{diff?.hasDiff && (
+													<span
+														className='size-1.5 shrink-0 rounded-full bg-amber-500'
+														aria-hidden
+													/>
+												)}
+											</DropdownMenuItem>
+										</DropdownMenuContent>
+									</DropdownMenu>
 								</div>
 							);
 						})
 					)}
 				</ScrollArea>
-
-				{activeWorkspace && (
-					<Button
-						variant='outline'
-						size='xs'
-						className='mx-2 my-1'
-						onClick={() => setWsSettingsOpen(true)}
-					>
-						{messages.sidebar.workspaceSettings}
-					</Button>
-				)}
 
 				<div className='flex flex-1 flex-col border-t border-sidebar-border'>
 					<div className='flex items-center justify-between px-2 py-2'>
