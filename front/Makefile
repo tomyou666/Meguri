@@ -6,13 +6,13 @@
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
 NPM ?= npm
-WAILS ?= wails3
+WAILS ?= $(GO) tool wails3
 FRONTEND_DIR ?= frontend
 
 DB ?= data/scraperbot.db
 MIGRATIONS_PATH ?= internal/app/migrations
 MIGRATE_DATABASE ?= sqlite://$(DB)
-MIGRATE ?= migrate
+MIGRATE ?= $(GO) tool migrate
 
 all: check
 
@@ -27,7 +27,7 @@ help:
 	@echo "  clean       Remove generated frontend dist"
 	@echo ""
 	@echo "Codegen / DB targets:"
-	@echo "  tools           Install migrate, gentool, wire CLIs"
+	@echo "  tools           Download Go tool dependencies (dlv, migrate, wails3)"
 	@echo "  migrate-up      Apply pending SQL migrations"
 	@echo "  migrate-down    Roll back one migration"
 	@echo "  migrate-version Show current DB migration version"
@@ -50,9 +50,11 @@ help:
 setup: frontend-install
 
 tools:
-	$(GO) install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-	$(GO) install gorm.io/gen/tools/gentool@latest
-	$(GO) install github.com/google/wire/cmd/wire@latest
+	$(GO) mod download
+	$(GO) tool -n dlv
+	$(GO) tool -n migrate
+	$(GO) tool -n wails3
+	@echo Go tools ready: dlv, migrate, wails3
 
 ifeq ($(OS),Windows_NT)
 MIGRATE_MKDIR = powershell -NoProfile -Command "New-Item -ItemType Directory -Path (Split-Path '$(DB)') -Force | Out-Null"

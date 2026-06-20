@@ -55,18 +55,9 @@ RUN groupadd --gid "${GID}" "${USERNAME}" \
     && mkdir -p "/home/${USERNAME}/go/pkg/mod" \
     && chown -R "${USERNAME}:${USERNAME}" /go "/home/${USERNAME}/go"
 
-# ginkgo (テストランナー)
 # gopls (Go 言語サーバー)
-# wails3 (デスクトップアプリフレームワーク CLI)
-# migrate (データベースマイグレーションツール)
-# gentool (GORM Gen ツール)
-をインストール。
-RUN go install github.com/onsi/ginkgo/v2/ginkgo@latest \
-    && go install golang.org/x/tools/gopls@latest \
-    && go install github.com/wailsapp/wails/v3/cmd/wails3@latest \
-    && go install -tags sqlite github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-    && go install gorm.io/gen/tools/gentool@latest \
-    && wails3 doctor
+# dlv / migrate / wails3 は postCreateCommand (make tools) で front/go.mod から取得
+RUN go install golang.org/x/tools/gopls@latest
 
 USER ${USERNAME}
 

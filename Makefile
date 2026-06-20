@@ -1,6 +1,6 @@
-.PHONY: help all check fmt vet lint test build tidy wire \
+.PHONY: help all check fmt vet lint test build tidy wire tools \
 	backend-check backend-build backend-tidy backend-wire \
-	front-dev front-build front-run front-test front-lint front-format front-check front-setup
+	front-dev front-build front-run front-test front-lint front-format front-check front-setup front-tools
 
 BACKEND_DIR ?= backend
 FRONT_DIR ?= front
@@ -18,6 +18,7 @@ help:
 	@echo "  fmt           Run backend fmt and front lint:fix"
 	@echo "  tidy          Run backend go mod tidy"
 	@echo "  wire          Regenerate backend wire_gen.go"
+	@echo "  tools         Download front Go tool dependencies (dlv, migrate, wails3)"
 	@echo ""
 	@echo "Backend shortcuts:"
 	@echo "  backend-check backend-build backend-tidy backend-wire"
@@ -45,6 +46,11 @@ fmt:
 tidy: backend-tidy
 
 wire: backend-wire
+
+tools: front-tools
+
+front-tools:
+	$(MAKE) -C $(FRONT_DIR) tools
 
 backend-check:
 	$(MAKE) -C $(BACKEND_DIR) check
