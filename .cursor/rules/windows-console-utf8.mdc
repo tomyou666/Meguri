@@ -1,0 +1,12 @@
+---
+description: Prevent Japanese mojibake in Windows shell output
+alwaysApply: true
+---
+
+# Windows Console UTF-8
+
+Prefix shell commands that may emit non-ASCII text:
+
+```powershell
+chcp 65001 > $null; [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); <command>
+```
