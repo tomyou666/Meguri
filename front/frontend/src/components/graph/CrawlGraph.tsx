@@ -239,8 +239,10 @@ export function CrawlGraph() {
 				selectionMode={SelectionMode.Partial}
 				selectionKeyCode={null}
 				multiSelectionKeyCode={['Control', 'Meta']}
-				panOnScroll
+				panOnScroll={false}
 				zoomOnScroll
+				panActivationKeyCode={['Shift', 'Alt', 'Meta']}
+				zoomActivationKeyCode={null}
 				minZoom={GRAPH_MIN_ZOOM}
 				fitView
 				fitViewOptions={graphFitViewOptions}
