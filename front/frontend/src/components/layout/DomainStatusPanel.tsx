@@ -73,15 +73,21 @@ export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
 	const [robotsByHost, setRobotsByHost] = useState<Record<string, RobotsInfo>>(
 		{},
 	);
+	const robotsByHostRef = useRef(robotsByHost);
+	robotsByHostRef.current = robotsByHost;
+	const fetchGenRef = useRef(0);
 
 	useEffect(() => {
+		const fetchGen = ++fetchGenRef.current;
+
 		if (fetchTargets.size === 0) {
 			setRobotsByHost({});
 			return;
 		}
 
-		let cancelled = false;
-		const hostsToFetch: string[] = [];
+		const hostsToFetch = [...fetchTargets.keys()].filter(
+			(host) => !isRobotsCacheHit(robotsByHostRef.current[host]),
+		);
 
 		setRobotsByHost((prev) => {
 			const next: Record<string, RobotsInfo> = {};
@@ -89,7 +95,6 @@ export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
 				if (isRobotsCacheHit(prev[host])) {
 					next[host] = prev[host];
 				} else {
-					hostsToFetch.push(host);
 					next[host] = { status: 'loading' };
 				}
 			}
@@ -100,41 +105,45 @@ export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
 			return;
 		}
 
+		const targetsSnapshot = fetchTargets;
+
 		void Promise.allSettled(
 			hostsToFetch.map(async (host) => {
-				const baseURL = fetchTargets.get(host)!;
+				const baseURL = targetsSnapshot.get(host)!;
 				const info = await ScraperService.FetchRobotsTxt(host, baseURL);
 				return { host, info };
 			}),
 		).then((results) => {
-			if (cancelled) return;
+			if (fetchGen !== fetchGenRef.current) return;
 			setRobotsByHost((prev) => {
 				const next = { ...prev };
-				for (const result of results) {
-					if (result.status !== 'fulfilled') {
-						continue;
+				for (let i = 0; i < results.length; i++) {
+					const result = results[i];
+					const host = hostsToFetch[i]!;
+					if (!targetsSnapshot.has(host)) continue;
+					if (result.status === 'fulfilled') {
+						const { info } = result.value;
+						next[host] = {
+							status: info.status as RobotsStatus,
+							statusCode: info.statusCode,
+							body: info.body,
+							error: info.error,
+						};
+					} else {
+						next[host] = {
+							status: 'error',
+							error: String(result.reason),
+						};
 					}
-					const { host, info } = result.value;
-					if (!fetchTargets.has(host)) continue;
-					next[host] = {
-						status: info.status as RobotsStatus,
-						statusCode: info.statusCode,
-						body: info.body,
-						error: info.error,
-					};
 				}
 				for (const host of Object.keys(next)) {
-					if (!fetchTargets.has(host)) {
+					if (!targetsSnapshot.has(host)) {
 						delete next[host];
 					}
 				}
 				return next;
 			});
 		});
-
-		return () => {
-			cancelled = true;
-		};
 	}, [fetchTargets]);
 
 	if (hosts.length === 0) {
