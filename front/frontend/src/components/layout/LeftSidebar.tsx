@@ -8,8 +8,9 @@ import {
 	Settings,
 	Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
+import { DomainStatusPanel } from '@/components/layout/DomainStatusPanel';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
-import { hostFromUrl } from '@/lib/normalizeUrl';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
 
@@ -43,8 +43,6 @@ export function LeftSidebarContent() {
 		(s) => s.openDeleteWorkspaceDialog,
 	);
 	const openNewWorkspaceDialog = useAppStore((s) => s.openNewWorkspaceDialog);
-	const openAddNodeDialog = useAppStore((s) => s.openAddNodeDialog);
-	const openDeleteNodeDialog = useAppStore((s) => s.openDeleteNodeDialog);
 	const openDuplicateWorkspaceDialog = useAppStore(
 		(s) => s.openDuplicateWorkspaceDialog,
 	);
@@ -53,23 +51,11 @@ export function LeftSidebarContent() {
 	const persistWorkspaceSettings = useAppStore(
 		(s) => s.persistWorkspaceSettings,
 	);
-	const selectedNodeId = useAppStore((s) => s.selectedNodeId);
-	const selectedDomain = useAppStore((s) => s.selectedDomain);
-	const selectDomain = useAppStore((s) => s.selectDomain);
 	const activeWorkspace = useAppStore((s) =>
 		s.workspaces.find((w) => w.id === s.activeWorkspaceId),
 	);
-	const crawlStatus = useAppStore((s) => s.crawlStatus);
 	const [wsSettingsOpen, setWsSettingsOpen] = useState(false);
 	const [diffDialogWs, setDiffDialogWs] = useState<string | null>(null);
-
-	const domains = useMemo(() => {
-		if (!activeWorkspace) return [];
-		const hosts = new Set(
-			activeWorkspace.nodes.map((n) => hostFromUrl(n.urlNormalized)),
-		);
-		return [...hosts].sort();
-	}, [activeWorkspace]);
 
 	if (leftCollapsed) {
 		return (
@@ -221,53 +207,18 @@ export function LeftSidebarContent() {
 				</ScrollArea>
 
 				<div className='flex flex-1 flex-col border-t border-sidebar-border'>
-					<div className='flex items-center justify-between px-2 py-2'>
+					<div className='px-2 py-2'>
 						<span className='text-xs font-semibold'>
-							{messages.sidebar.domains}
+							{messages.sidebar.domainStatus}
 						</span>
-						<div className='flex gap-0.5'>
-							<ActionTooltip label={messages.sidebar.newNode}>
-								<Button
-									variant='ghost'
-									size='icon-xs'
-									aria-label={messages.sidebar.newNode}
-									onClick={() => openAddNodeDialog()}
-								>
-									<Plus className='size-3.5' />
-								</Button>
-							</ActionTooltip>
-							<ActionTooltip label={messages.sidebar.deleteNode}>
-								<Button
-									variant='ghost'
-									size='icon-xs'
-									disabled={!selectedNodeId || crawlStatus !== 'idle'}
-									aria-label={messages.sidebar.deleteNode}
-									onClick={openDeleteNodeDialog}
-								>
-									<Trash2 className='size-3.5' />
-								</Button>
-							</ActionTooltip>
-						</div>
 					</div>
 					<ScrollArea className='flex-1 px-1 pb-2'>
-						{domains.length === 0 ? (
+						{activeWorkspace ? (
+							<DomainStatusPanel nodes={activeWorkspace.nodes} />
+						) : (
 							<p className='px-2 py-2 text-xs text-muted-foreground'>
 								{messages.sidebar.emptyDomains}
 							</p>
-						) : (
-							domains.map((host) => (
-								<button
-									key={host}
-									type='button'
-									className={cn(
-										'block w-full truncate rounded-md px-2 py-1.5 text-left text-xs hover:bg-sidebar-accent',
-										selectedDomain === host && 'bg-sidebar-accent font-medium',
-									)}
-									onClick={() => selectDomain(host)}
-								>
-									{host}
-								</button>
-							))
 						)}
 					</ScrollArea>
 				</div>

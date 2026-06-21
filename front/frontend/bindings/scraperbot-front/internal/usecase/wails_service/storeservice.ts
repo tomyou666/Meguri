@@ -149,15 +149,6 @@ export function SaveAppDefaults(config: json$0.RawMessage): $CancellablePromise<
 }
 
 /**
- * SaveDomainSettings はドメイン設定を保存する。
- */
-export function SaveDomainSettings(workspaceID: string, host: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
-    return $Call.ByID(319574929, workspaceID, host, settings).then(($result: any) => {
-        return $$createType9($result);
-    });
-}
-
-/**
  * SaveNodeSettings はノード設定を保存する。
  */
 export function SaveNodeSettings(workspaceID: string, nodeID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {

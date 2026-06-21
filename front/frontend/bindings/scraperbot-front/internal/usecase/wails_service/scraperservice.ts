@@ -18,6 +18,17 @@ import * as application$0 from "../../../../github.com/wailsapp/wails/v3/pkg/app
 import * as model$0 from "../../model/models.js";
 
 /**
+ * FetchRobotsTxt は host の robots.txt を取得する。
+ * 
+ * baseURL は scheme 推定用（ノード URL）。空の場合は https を使用する。
+ */
+export function FetchRobotsTxt(host: string, baseURL: string): $CancellablePromise<model$0.RobotsTxtInfoDTO> {
+    return $Call.ByID(1213100313, host, baseURL).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+/**
  * PauseCrawl は実行中 crawl を一時停止する。
  */
 export function PauseCrawl(runID: string): $CancellablePromise<void> {
@@ -51,3 +62,6 @@ export function StartCrawl(req: model$0.StartCrawlRequest): $CancellablePromise<
 export function StopCrawl(runID: string): $CancellablePromise<void> {
     return $Call.ByID(126324029, runID);
 }
+
+// Private type creation functions
+const $$createType0 = model$0.RobotsTxtInfoDTO.createFrom;

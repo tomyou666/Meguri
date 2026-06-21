@@ -12,7 +12,6 @@ export interface Workspace {
 	edges: GraphEdge[];
 	/** dagre 自動配置の向き（TB=縦, LR=横） */
 	graphLayoutDirection: DagreLayoutDirection;
-	domainSettings: Record<string, PartialConfig>;
 	/** Phase4: baseline crawl run id */
 	baselineRunId?: string;
 	/** 折りたたみ中のルートノード ID（配下を非表示） */

@@ -2,11 +2,10 @@ package model
 
 // WorkspaceBundle は WS 関連行の集合。
 type WorkspaceBundle struct {
-	Workspace      Workspace
-	Nodes          []GraphNode
-	Edges          []GraphEdge
-	DomainSettings []DomainSetting
-	UIState        *GraphUIState
+	Workspace Workspace
+	Nodes     []GraphNode
+	Edges     []GraphEdge
+	UIState   *GraphUIState
 }
 
 // WorkspaceListItem は WS 一覧用。

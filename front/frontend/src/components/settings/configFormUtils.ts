@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import type { PartialConfig } from '@/types/config';
 
-export type ConfigLayer = 'app' | 'workspace' | 'domain' | 'node';
+export type ConfigLayer = 'app' | 'workspace' | 'node';
 
 export type FieldErrors = Record<string, string>;
 
@@ -21,7 +21,7 @@ export function sanitizeConfigForLayer(
 	config: PartialConfig,
 	layer: ConfigLayer,
 ): PartialConfig {
-	if (layer === 'app' || layer === 'domain') {
+	if (layer === 'app') {
 		return config;
 	}
 	return stripContentFormats(config);

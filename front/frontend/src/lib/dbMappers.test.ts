@@ -24,7 +24,6 @@ describe('dbMappers', () => {
 			],
 			edges: [],
 			graphLayoutDirection: 'LR',
-			domainSettings: {},
 			collapsedNodeIds: ['n1'],
 		};
 		const bundle = workspaceToDb(ws);

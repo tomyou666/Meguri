@@ -89,49 +89,6 @@ func (s *WorkspaceService) SaveWorkspaceSettings(ctx context.Context, workspaceI
 	return s.repo.SaveWorkspaceBundle(ctx, *bundle)
 }
 
-// SaveDomainSettings はドメイン設定を更新する。
-func (s *WorkspaceService) SaveDomainSettings(ctx context.Context, workspaceID, host string, settings json.RawMessage) error {
-	bundle, err := s.repo.LoadWorkspaceBundle(ctx, workspaceID)
-	if err != nil || bundle == nil {
-		return fmt.Errorf("workspace not found")
-	}
-	found := false
-	for i, d := range bundle.DomainSettings {
-		if d.Host == host {
-			cur, err := unmarshalConfigMap(d.SettingsJSON)
-			if err != nil {
-				return err
-			}
-			patch, err := unmarshalConfigMap(string(settings))
-			if err != nil {
-				return err
-			}
-			for k, v := range patch {
-				cur[k] = v
-			}
-			merged, err := json.Marshal(cur)
-			if err != nil {
-				return err
-			}
-			bundle.DomainSettings[i].SettingsJSON = string(merged)
-			found = true
-			break
-		}
-	}
-	if !found {
-		settingsJSON, err := settingsJSONFromRaw(settings)
-		if err != nil {
-			return err
-		}
-		bundle.DomainSettings = append(bundle.DomainSettings, model.DomainSetting{
-			WorkspaceID:  workspaceID,
-			Host:         host,
-			SettingsJSON: settingsJSON,
-		})
-	}
-	return s.repo.SaveWorkspaceBundle(ctx, *bundle)
-}
-
 // SaveNodeSettings はノード設定を更新する。
 func (s *WorkspaceService) SaveNodeSettings(ctx context.Context, workspaceID, nodeID string, settings json.RawMessage) error {
 	bundle, err := s.repo.LoadWorkspaceBundle(ctx, workspaceID)
@@ -206,9 +163,6 @@ func (s *WorkspaceService) Duplicate(ctx context.Context, id, name string) (*mod
 		bundle.Edges[i].SourceNodeID = idMap[bundle.Edges[i].SourceNodeID]
 		bundle.Edges[i].TargetNodeID = idMap[bundle.Edges[i].TargetNodeID]
 	}
-	for i := range bundle.DomainSettings {
-		bundle.DomainSettings[i].WorkspaceID = wsID
-	}
 	if bundle.UIState != nil {
 		bundle.UIState.WorkspaceID = model.StrPtr(wsID)
 	}
@@ -238,9 +192,6 @@ func (s *WorkspaceService) ImportBundle(ctx context.Context, bundle model.Worksp
 		bundle.Edges[i].SourceNodeID = idMap[bundle.Edges[i].SourceNodeID]
 		bundle.Edges[i].TargetNodeID = idMap[bundle.Edges[i].TargetNodeID]
 		bundle.Edges[i].ID = fmt.Sprintf("e-%s-%s", bundle.Edges[i].SourceNodeID, bundle.Edges[i].TargetNodeID)
-	}
-	for i := range bundle.DomainSettings {
-		bundle.DomainSettings[i].WorkspaceID = wsID
 	}
 	if bundle.UIState != nil {
 		bundle.UIState.WorkspaceID = model.StrPtr(wsID)

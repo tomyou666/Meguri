@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { messages } from '@/i18n/messages';
-import { hostFromUrl } from '@/lib/normalizeUrl';
 import {
 	bodySnippetForFormat,
 	getPreviewTabs,
@@ -42,7 +41,6 @@ export function RightSidebarContent() {
 	const ws = useAppStore((s) => s.getActiveWorkspace());
 	const node = useAppStore((s) => s.getSelectedNode());
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
-	const selectedDomain = useAppStore((s) => s.selectedDomain);
 	const rightCollapsed = useAppStore((s) => s.rightSidebarCollapsed);
 	const runHistory = useAppStore((s) => s.runHistory);
 	const crawlLogs = useAppStore((s) => s.crawlLogs);
@@ -52,7 +50,6 @@ export function RightSidebarContent() {
 	const resultPreview = useAppStore((s) => s.resultPreview);
 	const clearCrawlError = useAppStore((s) => s.clearCrawlError);
 	const appDefaults = useAppStore((s) => s.appDefaults);
-	const persistDomainSettings = useAppStore((s) => s.persistDomainSettings);
 	const previewSelectedResults = useAppStore((s) => s.previewSelectedResults);
 	const saveSelectedResults = useAppStore((s) => s.saveSelectedResults);
 	const deleteSelectedResults = useAppStore((s) => s.deleteSelectedResults);
@@ -61,14 +58,8 @@ export function RightSidebarContent() {
 	const formats = useMemo(() => {
 		if (!ws) return getPreviewTabs(appDefaults);
 		if (node) {
-			const host = hostFromUrl(node.urlNormalized);
 			return getPreviewTabs(
-				mergedPreviewSettings(
-					appDefaults,
-					ws.settings,
-					host ? ws.domainSettings[host] : undefined,
-					node.nodeSettings,
-				),
+				mergedPreviewSettings(appDefaults, ws.settings, node.nodeSettings),
 			);
 		}
 		return getPreviewTabs(mergedPreviewSettings(appDefaults, ws.settings));
@@ -77,14 +68,8 @@ export function RightSidebarContent() {
 	const transformerFormat = useMemo((): TransformerFormat => {
 		if (!ws) return getTransformerFormat(appDefaults);
 		if (node) {
-			const host = hostFromUrl(node.urlNormalized);
 			return getTransformerFormat(
-				mergedPreviewSettings(
-					appDefaults,
-					ws.settings,
-					host ? ws.domainSettings[host] : undefined,
-					node.nodeSettings,
-				),
+				mergedPreviewSettings(appDefaults, ws.settings, node.nodeSettings),
 			);
 		}
 		return getTransformerFormat(
@@ -109,29 +94,6 @@ export function RightSidebarContent() {
 
 	const resultForDisplay: CrawlResultPreview | null =
 		selectedNodeIds.length === 1 ? loadedNodeResult : null;
-
-	if (selectedDomain && ws) {
-		const domainCfg = ws.domainSettings[selectedDomain] ?? {};
-		return (
-			<aside className={shellClass}>
-				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
-					<span className='text-xs font-semibold'>
-						{messages.right.domainSettings}: {selectedDomain}
-					</span>
-					<CloseRightSidebarButton onClick={toggleRightSidebar} />
-				</div>
-				<ScrollArea className='flex-1 p-3'>
-					<ConfigEditor
-						layer='domain'
-						settings={domainCfg}
-						onSave={(settings) =>
-							persistDomainSettings(selectedDomain, settings)
-						}
-					/>
-				</ScrollArea>
-			</aside>
-		);
-	}
 
 	if (selectedNodeIds.length > 1) {
 		return (

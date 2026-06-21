@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -419,7 +421,6 @@ type crawlState struct {
 	outEdges         map[string][]string
 	appDefaults      json.RawMessage
 	wsSettings       json.RawMessage
-	domainMap        map[string]json.RawMessage
 	rescrapeExisting bool
 	linkSkippedCount int
 }
@@ -435,7 +436,6 @@ func newCrawlState(req model.StartCrawlRequest) *crawlState {
 		outEdges:         map[string][]string{},
 		appDefaults:      req.AppDefaults,
 		wsSettings:       ws.Settings,
-		domainMap:        ws.DomainSettings,
 		rescrapeExisting: req.RescrapeExisting,
 	}
 	for _, u := range ws.ExcludeURLs {
@@ -538,26 +538,11 @@ func (s *ScraperService) emitLinkSkipped(
 	})
 }
 
-func (st *crawlState) hostFromURL(raw string) string {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return ""
-	}
-	return strings.ToLower(u.Host)
-}
-
 func (st *crawlState) mergedConfig(mode int32, node model.GraphNodeDTO) (*runner.Config, error) {
 	layers := []json.RawMessage{st.appDefaults}
 	if mode != 2 {
 		layers = append(layers, st.wsSettings)
-		if host := st.hostFromURL(node.URLNormalized); host != "" {
-			if d, ok := st.domainMap[host]; ok {
-				layers = append(layers, d)
-			}
-		}
-		if mode != 2 {
-			layers = append(layers, node.NodeSettings)
-		}
+		layers = append(layers, node.NodeSettings)
 	}
 	merged, err := runner.MergeUIConfigLayers(layers...)
 	if err != nil {
@@ -905,4 +890,80 @@ func resultToDTO(res *runner.Result) *model.CrawlNodeResultDTO {
 		dto.Metadata = res.Metadata
 	}
 	return dto
+}
+
+const robotsFetchTimeout = 30 * time.Second
+
+// FetchRobotsTxt は host の robots.txt を取得する。
+//
+// baseURL は scheme 推定用（ノード URL）。空の場合は https を使用する。
+func (s *ScraperService) FetchRobotsTxt(host, baseURL string) (model.RobotsTxtInfoDTO, error) {
+	host = strings.TrimSpace(strings.ToLower(host))
+	if host == "" {
+		return model.RobotsTxtInfoDTO{}, fmt.Errorf("host is required")
+	}
+
+	scheme := "https"
+	if baseURL != "" {
+		if u, err := url.Parse(baseURL); err == nil && u.Scheme != "" {
+			scheme = u.Scheme
+		}
+	}
+
+	robotsURL := fmt.Sprintf("%s://%s/robots.txt", scheme, host)
+	ctx, cancel := context.WithTimeout(context.Background(), robotsFetchTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, robotsURL, nil)
+	if err != nil {
+		return model.RobotsTxtInfoDTO{
+			Host:   host,
+			Status: "error",
+			Error:  err.Error(),
+		}, nil
+	}
+	req.Header.Set("User-Agent", "scraperbot/0.1")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return model.RobotsTxtInfoDTO{
+			Host:   host,
+			Status: "error",
+			Error:  err.Error(),
+		}, nil
+	}
+	defer res.Body.Close()
+
+	bodyBytes, err := io.ReadAll(io.LimitReader(res.Body, 512*1024))
+	if err != nil {
+		return model.RobotsTxtInfoDTO{
+			Host:       host,
+			Status:     "error",
+			StatusCode: res.StatusCode,
+			Error:      err.Error(),
+		}, nil
+	}
+
+	if res.StatusCode == http.StatusNotFound {
+		return model.RobotsTxtInfoDTO{
+			Host:       host,
+			Status:     "not_found",
+			StatusCode: res.StatusCode,
+		}, nil
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 400 {
+		return model.RobotsTxtInfoDTO{
+			Host:       host,
+			Status:     "error",
+			StatusCode: res.StatusCode,
+			Error:      fmt.Sprintf("HTTP %d", res.StatusCode),
+		}, nil
+	}
+
+	return model.RobotsTxtInfoDTO{
+		Host:       host,
+		Status:     "found",
+		StatusCode: res.StatusCode,
+		Body:       string(bodyBytes),
+	}, nil
 }

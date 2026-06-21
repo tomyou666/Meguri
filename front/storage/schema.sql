@@ -103,20 +103,6 @@ CREATE TABLE graph_edges (
 );
 
 -- ---------------------------------------------------------------------------
--- domain_settings — ドメイン別設定（host 単位の PartialConfig 上書き）
---   workspace_id:  所属ワークスペース ID
---   host:          URL の host 部分（小文字化推奨）
---   settings_json: PartialConfig の JSON
--- ---------------------------------------------------------------------------
-CREATE TABLE domain_settings (
-    workspace_id    TEXT NOT NULL,
-    host            TEXT NOT NULL,
-    settings_json   TEXT NOT NULL DEFAULT '{}',
-    PRIMARY KEY (workspace_id, host),
-    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
-);
-
--- ---------------------------------------------------------------------------
 -- crawl_runs — クロール実行履歴（UI runHistory・baseline 参照）
 -- WS あたり直近 20 件をアプリ層で保持する想定（DB にはそれ以上残してもよい）
 --   id:            実行 ID

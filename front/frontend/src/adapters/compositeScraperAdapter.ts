@@ -107,19 +107,6 @@ export class CompositeScraperAdapter implements ScraperPort {
 		return { ok: res.ok, scope: res.scope as SaveSettingsResponse['scope'] };
 	}
 
-	async saveDomainSettings(
-		workspaceId: string,
-		domain: string,
-		settings: PartialConfig,
-	): Promise<SaveSettingsResponse> {
-		const res = await StoreService.SaveDomainSettings(
-			workspaceId,
-			domain,
-			partialConfigToRaw(settings),
-		);
-		return { ok: res.ok, scope: res.scope as SaveSettingsResponse['scope'] };
-	}
-
 	async saveNodeSettings(
 		workspaceId: string,
 		nodeId: string,

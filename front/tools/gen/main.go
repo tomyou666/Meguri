@@ -41,7 +41,6 @@ func main() {
 			stripIntDefault("crawl_exclude"),
 		),
 		g.GenerateModel("graph_edges"),
-		g.GenerateModel("domain_settings"),
 		g.GenerateModel("crawl_runs"),
 		g.GenerateModel("node_results"),
 		g.GenerateModel("graph_ui_state"),

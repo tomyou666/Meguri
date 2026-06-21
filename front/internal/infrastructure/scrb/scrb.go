@@ -43,9 +43,6 @@ func Export(bundle model.WorkspaceBundle) ([]byte, error) {
 	if err := writeJSON(w, "edges.json", bundle.Edges); err != nil {
 		return nil, err
 	}
-	if err := writeJSON(w, "domain_settings.json", bundle.DomainSettings); err != nil {
-		return nil, err
-	}
 	ui := bundle.UIState
 	if ui == nil {
 		ui = &model.GraphUIState{CollapsedNodeIdsJSON: `{"collapsed":[],"expandedDetail":[]}`}
@@ -93,9 +90,6 @@ func Import(data []byte) (model.WorkspaceBundle, error) {
 		return model.WorkspaceBundle{}, err
 	}
 	if err := json.Unmarshal(files["edges.json"], &bundle.Edges); err != nil {
-		return model.WorkspaceBundle{}, err
-	}
-	if err := json.Unmarshal(files["domain_settings.json"], &bundle.DomainSettings); err != nil {
 		return model.WorkspaceBundle{}, err
 	}
 	if b, ok := files["ui_state.json"]; ok {

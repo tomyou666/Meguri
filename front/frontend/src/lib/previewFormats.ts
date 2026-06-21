@@ -54,17 +54,15 @@ export function withDerivedContentFormats(
 	};
 }
 
-/** プレビュー用に app / ws / domain / node をマージした設定。 */
+/** プレビュー用に app / ws / node をマージした設定。 */
 export function mergedPreviewSettings(
 	appDefaults: PartialConfig,
 	wsSettings?: PartialConfig,
-	domainSettings?: PartialConfig,
 	nodeSettings?: PartialConfig,
 ): PartialConfig {
 	return mergeConfig(
 		appDefaults ?? DEFAULT_APP_CONFIG,
 		wsSettings,
-		domainSettings,
 		nodeSettings,
 	);
 }

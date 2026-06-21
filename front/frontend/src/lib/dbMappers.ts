@@ -1,4 +1,3 @@
-import type { PartialConfig } from '@/types/config';
 import type { DbGraphEdge, DbGraphNode, WorkspaceBundle } from '@/types/db';
 import { parseSettingsJson, stringifySettings } from '@/types/db';
 import type { GraphEdge, GraphNode } from '@/types/graph';
@@ -19,13 +18,6 @@ export function workspaceToDb(ws: Workspace): WorkspaceBundle {
 		},
 		nodes: ws.nodes.map((n) => graphNodeToDb(ws.id, n)),
 		edges: ws.edges.map((e) => graphEdgeToDb(ws.id, e)),
-		domainSettings: Object.entries(ws.domainSettings).map(
-			([host, settings]) => ({
-				workspace_id: ws.id,
-				host,
-				settings_json: stringifySettings(settings),
-			}),
-		),
 		uiState: {
 			workspace_id: ws.id,
 			collapsed_node_ids_json: JSON.stringify({
@@ -44,10 +36,6 @@ export function workspaceFromDb(
 	const exclude_urls = JSON.parse(
 		bundle.workspace.exclude_urls_json,
 	) as string[];
-	const domainSettings: Record<string, PartialConfig> = {};
-	for (const d of bundle.domainSettings) {
-		domainSettings[d.host] = parseSettingsJson(d.settings_json);
-	}
 	let collapsedNodeIds: string[] = [];
 	let expandedDetailNodeIds: string[] = [];
 	if (bundle.uiState) {
@@ -73,7 +61,6 @@ export function workspaceFromDb(
 		),
 		edges: bundle.edges.map(graphEdgeFromDb),
 		graphLayoutDirection: bundle.workspace.graph_layout_direction,
-		domainSettings,
 		baselineRunId: bundle.workspace.baseline_run_id ?? undefined,
 		collapsedNodeIds,
 		expandedDetailNodeIds,

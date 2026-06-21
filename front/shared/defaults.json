@@ -1,0 +1,55 @@
+{
+  "request": {
+    "headers": { "User-Agent": "scraperbot/0.1" },
+    "timeout": "60s",
+    "retry_count": 2,
+    "retry_interval": "1s"
+  },
+  "content": {
+    "formats": ["markdown", "links"],
+    "only_main_content": true,
+    "include_tags": [],
+    "exclude_tags": ["script", "style", "noscript"],
+    "selector": "",
+    "extract_links": true,
+    "extract_metadata": true
+  },
+  "pdf": {
+    "enabled": true,
+    "mode": "auto",
+    "max_pages": 0,
+    "output": "text"
+  },
+  "crawl": {
+    "enabled": true,
+    "max_depth": 2,
+    "max_pages": 100,
+    "include_paths": [],
+    "exclude_paths": [],
+    "allow_external_links": false,
+    "allow_subdomains": false,
+    "request_delay": "0s",
+    "max_concurrency": 4,
+    "respect_robots_txt": true,
+    "fetch_limits": {
+      "http_max_inflight": 16,
+      "chromium_max_inflight": 2,
+      "auto_calibrate": true,
+      "dynamic_chromium": true,
+      "memory_high_watermark": 0.8,
+      "memory_low_watermark": 0.6
+    }
+  },
+  "plugins": {
+    "fetcher": "http",
+    "preprocessors": ["header"],
+    "parsers": ["html", "pdf"],
+    "transformer": "markdown",
+    "filters": ["maincontent"],
+    "link_extractor": "default"
+  },
+  "output": {
+    "dir": "./out",
+    "file_pattern": "{seq}-{host}-{path}.{ext}"
+  }
+}

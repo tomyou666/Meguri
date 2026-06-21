@@ -15,13 +15,9 @@ import {
 	getBfsNodeOrder,
 	getDescendantNodeIds,
 } from '@/lib/graph';
-import { mergeConfig } from '@/lib/mergeConfig';
-import { hostFromUrl, normalizeUrl } from '@/lib/normalizeUrl';
+import { normalizeUrl } from '@/lib/normalizeUrl';
 import { notifyError, notifySuccess } from '@/lib/notify';
-import {
-	deriveContentFormats,
-	withDerivedContentFormats,
-} from '@/lib/previewFormats';
+import { withDerivedContentFormats } from '@/lib/previewFormats';
 import {
 	redoGraph,
 	syncGraphHistory,
@@ -93,7 +89,6 @@ function emptyWorkspace(name: string, seedUrl: string): Workspace {
 		],
 		edges: [],
 		graphLayoutDirection: 'LR',
-		domainSettings: {},
 		collapsedNodeIds: [],
 		expandedDetailNodeIds: [],
 		createdAt: new Date().toISOString(),
@@ -108,7 +103,6 @@ interface AppState {
 	selectedNodeId: string | null;
 	selectedNodeIds: string[];
 	selectionAnchorId: string | null;
-	selectedDomain: string | null;
 	/** クリック選択時に useOnSelectionChange による上書きを防ぐ */
 	_suppressSelectionSync: boolean;
 	graphToolMode: 'pan' | 'select';
@@ -145,10 +139,6 @@ interface AppState {
 	setAppDefaults: (config: PartialConfig) => void;
 	persistAppDefaults: (config: PartialConfig) => Promise<boolean>;
 	persistWorkspaceSettings: (settings: PartialConfig) => Promise<boolean>;
-	persistDomainSettings: (
-		domain: string,
-		settings: PartialConfig,
-	) => Promise<boolean>;
 	persistNodeSettings: (
 		nodeId: string,
 		settings: PartialConfig,
@@ -172,7 +162,6 @@ interface AppState {
 	setGraphToolMode: (mode: 'pan' | 'select') => void;
 	selectAllNodes: () => void;
 	clearNodeSelection: () => void;
-	selectDomain: (host: string | null) => void;
 	toggleLeftSidebar: () => void;
 	toggleRightSidebar: () => void;
 	toggleMinimap: () => void;
@@ -212,7 +201,6 @@ interface AppState {
 	setNodeCrawlExclude: (nodeId: string, excluded: boolean) => void;
 	updateWorkspaceSettings: (settings: PartialConfig) => void;
 	updateNodeSettings: (nodeId: string, settings: PartialConfig) => void;
-	updateDomainSettings: (host: string, settings: PartialConfig) => void;
 	clearCrawlError: () => void;
 	startCrawl: () => Promise<void>;
 	pauseCrawl: () => void;
@@ -221,7 +209,6 @@ interface AppState {
 
 	getActiveWorkspace: () => Workspace | null;
 	getSelectedNode: () => GraphNode | null;
-	getDomains: () => string[];
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -232,7 +219,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 	selectedNodeId: null,
 	selectedNodeIds: [],
 	selectionAnchorId: null,
-	selectedDomain: null,
 	_suppressSelectionSync: false,
 	graphToolMode: 'pan',
 	leftSidebarCollapsed: false,
@@ -341,37 +327,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 		}
 	},
 
-	persistDomainSettings: async (domain, settings) => {
-		const ws = get().getActiveWorkspace();
-		if (!ws) return false;
-		const merged = mergeConfig(get().appDefaults, ws.settings, settings);
-		const payload: PartialConfig = {
-			...settings,
-			content: {
-				...settings.content,
-				formats: deriveContentFormats(merged),
-			},
-		};
-		const validated = validatePartialConfig(payload);
-		if (!validated.ok) {
-			notifyError(messages.settings.saveFailed, {
-				description: messages.settings.validationFailed,
-			});
-			return false;
-		}
-		try {
-			await scraperPort.saveDomainSettings(ws.id, domain, validated.data);
-			get().updateDomainSettings(domain, validated.data);
-			notifySuccess(messages.settings.saveSuccess);
-			return true;
-		} catch (err) {
-			notifyError(messages.settings.saveFailed, {
-				description: err instanceof Error ? err.message : undefined,
-			});
-			return false;
-		}
-	},
-
 	persistNodeSettings: async (nodeId, settings) => {
 		const ws = get().getActiveWorkspace();
 		if (!ws) return false;
@@ -424,7 +379,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 		set({
 			activeWorkspaceId: id,
 			selectedNodeId: null,
-			selectedDomain: null,
 		}),
 
 	openDeleteWorkspaceDialog: (id) => set({ pendingDeleteWorkspaceId: id }),
@@ -452,7 +406,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 					workspaceDiffCache,
 					selectedNodeId: null,
 					selectedNodeIds: [],
-					selectedDomain: null,
 					pendingDeleteWorkspaceId: null,
 				};
 			});
@@ -516,7 +469,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 				selectedNodeId: null,
 				selectedNodeIds: [],
 				selectionAnchorId: null,
-				selectedDomain: null,
 				loadedNodeResult: null,
 				resultPreview: null,
 			});
@@ -560,7 +512,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedNodeId: primary,
 			selectedNodeIds,
 			selectionAnchorId,
-			selectedDomain: null,
 			loadedNodeResult: null,
 			resultPreview: null,
 		});
@@ -578,7 +529,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedNodeIds: ids,
 			selectedNodeId: primary,
 			selectionAnchorId: primary,
-			selectedDomain: null,
 			loadedNodeResult: null,
 			resultPreview: null,
 		});
@@ -610,13 +560,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedNodeId: null,
 			selectedNodeIds: [],
 			selectionAnchorId: null,
-		}),
-
-	selectDomain: (host) =>
-		set({
-			selectedDomain: host,
-			selectedNodeId: null,
-			selectedNodeIds: [],
 		}),
 
 	toggleLeftSidebar: () =>
@@ -757,7 +700,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const removeUrls = new Set(
 			ws.nodes.filter((n) => removeIds.has(n.id)).map((n) => n.urlNormalized),
 		);
-		const hostsToCheck = new Set([...removeUrls].map((u) => hostFromUrl(u)));
 
 		set((s) => ({
 			workspaces: s.workspaces.map((w) => {
@@ -767,13 +709,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 					(e) => !removeIds.has(e.source) && !removeIds.has(e.target),
 				);
 				const exclude_urls = w.exclude_urls.filter((u) => !removeUrls.has(u));
-				const domainSettings = { ...w.domainSettings };
-				for (const host of hostsToCheck) {
-					if (!nodes.some((n) => hostFromUrl(n.urlNormalized) === host)) {
-						delete domainSettings[host];
-					}
-				}
-				return { ...w, nodes, edges, exclude_urls, domainSettings };
+				return { ...w, nodes, edges, exclude_urls };
 			}),
 			selectedNodeId: null,
 			showDeleteNodeDialog: false,
@@ -829,24 +765,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 									? { ...n, nodeSettings: { ...n.nodeSettings, ...settings } }
 									: n,
 							),
-						}
-					: w,
-			),
-		}));
-	},
-
-	updateDomainSettings: (host, settings) => {
-		const ws = get().getActiveWorkspace();
-		if (!ws) return;
-		set((s) => ({
-			workspaces: s.workspaces.map((w) =>
-				w.id === ws.id
-					? {
-							...w,
-							domainSettings: {
-								...w.domainSettings,
-								[host]: { ...w.domainSettings[host], ...settings },
-							},
 						}
 					: w,
 			),
@@ -1299,12 +1217,5 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const id = get().selectedNodeId;
 		if (!ws || !id) return null;
 		return ws.nodes.find((n) => n.id === id) ?? null;
-	},
-
-	getDomains: () => {
-		const ws = get().getActiveWorkspace();
-		if (!ws) return [];
-		const hosts = new Set(ws.nodes.map((n) => hostFromUrl(n.urlNormalized)));
-		return [...hosts].sort();
 	},
 }));

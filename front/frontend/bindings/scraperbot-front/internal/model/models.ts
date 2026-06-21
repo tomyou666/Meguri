@@ -416,6 +416,43 @@ export class PositionDTO {
 }
 
 /**
+ * RobotsTxtInfoDTO は robots.txt 取得結果。
+ */
+export class RobotsTxtInfoDTO {
+    "host": string;
+    "status": string;
+    "statusCode": number;
+    "body": string;
+    "error"?: string;
+
+    /** Creates a new RobotsTxtInfoDTO instance. */
+    constructor($$source: Partial<RobotsTxtInfoDTO> = {}) {
+        if (!("host" in $$source)) {
+            this["host"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+        if (!("statusCode" in $$source)) {
+            this["statusCode"] = 0;
+        }
+        if (!("body" in $$source)) {
+            this["body"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RobotsTxtInfoDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): RobotsTxtInfoDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new RobotsTxtInfoDTO($$parsedSource as Partial<RobotsTxtInfoDTO>);
+    }
+}
+
+/**
  * SaveSettingsResponseDTO は設定保存レスポンス。
  */
 export class SaveSettingsResponseDTO {
@@ -545,7 +582,6 @@ export class WorkspaceDTO {
     "nodes": GraphNodeDTO[];
     "edges": GraphEdgeDTO[];
     "graphLayoutDirection": string;
-    "domainSettings": { [_ in string]?: json$0.RawMessage };
     "baselineRunId"?: string;
     "collapsedNodeIds"?: string[];
     "expandedDetailNodeIds"?: string[];
@@ -577,9 +613,6 @@ export class WorkspaceDTO {
         if (!("graphLayoutDirection" in $$source)) {
             this["graphLayoutDirection"] = "";
         }
-        if (!("domainSettings" in $$source)) {
-            this["domainSettings"] = {};
-        }
 
         Object.assign(this, $$source);
     }
@@ -591,9 +624,8 @@ export class WorkspaceDTO {
         const $$createField4_0 = $$createType0;
         const $$createField5_0 = $$createType7;
         const $$createField6_0 = $$createType9;
-        const $$createField8_0 = $$createType10;
+        const $$createField9_0 = $$createType0;
         const $$createField10_0 = $$createType0;
-        const $$createField11_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("exclude_urls" in $$parsedSource) {
             $$parsedSource["exclude_urls"] = $$createField4_0($$parsedSource["exclude_urls"]);
@@ -604,14 +636,11 @@ export class WorkspaceDTO {
         if ("edges" in $$parsedSource) {
             $$parsedSource["edges"] = $$createField6_0($$parsedSource["edges"]);
         }
-        if ("domainSettings" in $$parsedSource) {
-            $$parsedSource["domainSettings"] = $$createField8_0($$parsedSource["domainSettings"]);
-        }
         if ("collapsedNodeIds" in $$parsedSource) {
-            $$parsedSource["collapsedNodeIds"] = $$createField10_0($$parsedSource["collapsedNodeIds"]);
+            $$parsedSource["collapsedNodeIds"] = $$createField9_0($$parsedSource["collapsedNodeIds"]);
         }
         if ("expandedDetailNodeIds" in $$parsedSource) {
-            $$parsedSource["expandedDetailNodeIds"] = $$createField11_0($$parsedSource["expandedDetailNodeIds"]);
+            $$parsedSource["expandedDetailNodeIds"] = $$createField10_0($$parsedSource["expandedDetailNodeIds"]);
         }
         return new WorkspaceDTO($$parsedSource as Partial<WorkspaceDTO>);
     }
@@ -649,7 +678,7 @@ export class WorkspaceDiffDTO {
      * Creates a new WorkspaceDiffDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): WorkspaceDiffDTO {
-        const $$createField3_0 = $$createType12;
+        const $$createField3_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nodes" in $$parsedSource) {
             $$parsedSource["nodes"] = $$createField3_0($$parsedSource["nodes"]);
@@ -701,6 +730,5 @@ const $$createType6 = GraphNodeDTO.createFrom;
 const $$createType7 = $Create.Array($$createType6);
 const $$createType8 = GraphEdgeDTO.createFrom;
 const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = $Create.Map($Create.Any, $Create.Any);
-const $$createType11 = NodeDiffDTO.createFrom;
-const $$createType12 = $Create.Array($$createType11);
+const $$createType10 = NodeDiffDTO.createFrom;
+const $$createType11 = $Create.Array($$createType10);

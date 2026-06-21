@@ -32,19 +32,18 @@ type GraphEdgeDTO struct {
 
 // WorkspaceDTO は Wails 公開ワークスペース。
 type WorkspaceDTO struct {
-	ID                    string                     `json:"id"`
-	Name                  string                     `json:"name"`
-	SeedURL               string                     `json:"seedUrl"`
-	Settings              json.RawMessage            `json:"settings"`
-	ExcludeURLs           []string                   `json:"exclude_urls"`
-	Nodes                 []GraphNodeDTO             `json:"nodes"`
-	Edges                 []GraphEdgeDTO             `json:"edges"`
-	GraphLayoutDirection  string                     `json:"graphLayoutDirection"`
-	DomainSettings        map[string]json.RawMessage `json:"domainSettings"`
-	BaselineRunID         string                     `json:"baselineRunId,omitempty"`
-	CollapsedNodeIDs      []string                   `json:"collapsedNodeIds,omitempty"`
-	ExpandedDetailNodeIDs []string                   `json:"expandedDetailNodeIds,omitempty"`
-	CreatedAt             string                     `json:"createdAt,omitempty"`
+	ID                    string          `json:"id"`
+	Name                  string          `json:"name"`
+	SeedURL               string          `json:"seedUrl"`
+	Settings              json.RawMessage `json:"settings"`
+	ExcludeURLs           []string        `json:"exclude_urls"`
+	Nodes                 []GraphNodeDTO  `json:"nodes"`
+	Edges                 []GraphEdgeDTO  `json:"edges"`
+	GraphLayoutDirection  string          `json:"graphLayoutDirection"`
+	BaselineRunID         string          `json:"baselineRunId,omitempty"`
+	CollapsedNodeIDs      []string        `json:"collapsedNodeIds,omitempty"`
+	ExpandedDetailNodeIDs []string        `json:"expandedDetailNodeIds,omitempty"`
+	CreatedAt             string          `json:"createdAt,omitempty"`
 }
 
 // WorkspaceListItemDTO は WS 一覧行。
@@ -200,4 +199,13 @@ type CrawlSummaryDTO struct {
 	Skipped               int    `json:"skipped"`
 	SkippedDuplicateLinks int    `json:"skippedDuplicateLinks"`
 	StoppedReason         string `json:"stoppedReason,omitempty"`
+}
+
+// RobotsTxtInfoDTO は robots.txt 取得結果。
+type RobotsTxtInfoDTO struct {
+	Host       string `json:"host"`
+	Status     string `json:"status"`
+	StatusCode int    `json:"statusCode"`
+	Body       string `json:"body"`
+	Error      string `json:"error,omitempty"`
 }

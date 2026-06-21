@@ -80,19 +80,6 @@ func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 		}
 	}
 
-	domains := make([]model.DomainSetting, 0, len(dto.DomainSettings))
-	for host, raw := range dto.DomainSettings {
-		domainJSON, err := settingsJSONFromRaw(raw)
-		if err != nil {
-			return model.WorkspaceBundle{}, err
-		}
-		domains = append(domains, model.DomainSetting{
-			WorkspaceID:  dto.ID,
-			Host:         host,
-			SettingsJSON: domainJSON,
-		})
-	}
-
 	uiJSON, err := json.Marshal(map[string][]string{
 		"collapsed":      dto.CollapsedNodeIDs,
 		"expandedDetail": dto.ExpandedDetailNodeIDs,
@@ -106,11 +93,10 @@ func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 	}
 
 	return model.WorkspaceBundle{
-		Workspace:      ws,
-		Nodes:          nodes,
-		Edges:          edges,
-		DomainSettings: domains,
-		UIState:        ui,
+		Workspace: ws,
+		Nodes:     nodes,
+		Edges:     edges,
+		UIState:   ui,
 	}, nil
 }
 
@@ -155,11 +141,6 @@ func bundleToDTO(bundle *model.WorkspaceBundle, previews map[string]*model.Crawl
 		edges[i] = model.GraphEdgeDTO{ID: e.ID, Source: e.SourceNodeID, Target: e.TargetNodeID}
 	}
 
-	domainMap := make(map[string]json.RawMessage, len(bundle.DomainSettings))
-	for _, d := range bundle.DomainSettings {
-		domainMap[d.Host] = json.RawMessage(d.SettingsJSON)
-	}
-
 	dto := model.WorkspaceDTO{
 		ID:                   model.StrVal(ws.ID),
 		Name:                 ws.Name,
@@ -169,7 +150,6 @@ func bundleToDTO(bundle *model.WorkspaceBundle, previews map[string]*model.Crawl
 		Nodes:                nodes,
 		Edges:                edges,
 		GraphLayoutDirection: model.StrVal(ws.GraphLayoutDirection),
-		DomainSettings:       domainMap,
 		CreatedAt:            ws.CreatedAt,
 	}
 	if ws.BaselineRunID != nil {

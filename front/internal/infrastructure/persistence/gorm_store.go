@@ -102,11 +102,6 @@ func (s *Store) LoadWorkspaceBundle(ctx context.Context, id string) (*model.Work
 	if err != nil {
 		return nil, err
 	}
-	ds := s.q.DomainSetting
-	domains, err := ds.WithContext(ctx).Where(ds.WorkspaceID.Eq(id)).Find()
-	if err != nil {
-		return nil, err
-	}
 
 	var uiPtr *model.GraphUIState
 	gu := s.q.GraphUIState
@@ -118,11 +113,10 @@ func (s *Store) LoadWorkspaceBundle(ctx context.Context, id string) (*model.Work
 	}
 
 	return &model.WorkspaceBundle{
-		Workspace:      derefWorkspace(ws),
-		Nodes:          derefGraphNodes(nodes),
-		Edges:          derefGraphEdges(edges),
-		DomainSettings: derefDomainSettings(domains),
-		UIState:        uiPtr,
+		Workspace: derefWorkspace(ws),
+		Nodes:     derefGraphNodes(nodes),
+		Edges:     derefGraphEdges(edges),
+		UIState:   uiPtr,
 	}, nil
 }
 
@@ -154,10 +148,6 @@ func (s *Store) SaveWorkspaceBundle(ctx context.Context, bundle model.WorkspaceB
 		if _, err := ge.WithContext(ctx).Where(ge.WorkspaceID.Eq(wid)).Delete(); err != nil {
 			return err
 		}
-		ds := txQ.DomainSetting
-		if _, err := ds.WithContext(ctx).Where(ds.WorkspaceID.Eq(wid)).Delete(); err != nil {
-			return err
-		}
 
 		if len(bundle.Nodes) > 0 {
 			if err := txQ.GraphNode.WithContext(ctx).Create(ptrGraphNodes(bundle.Nodes)...); err != nil {
@@ -166,11 +156,6 @@ func (s *Store) SaveWorkspaceBundle(ctx context.Context, bundle model.WorkspaceB
 		}
 		if len(bundle.Edges) > 0 {
 			if err := txQ.GraphEdge.WithContext(ctx).Create(ptrGraphEdges(bundle.Edges)...); err != nil {
-				return err
-			}
-		}
-		if len(bundle.DomainSettings) > 0 {
-			if err := txQ.DomainSetting.WithContext(ctx).Create(ptrDomainSettings(bundle.DomainSettings)...); err != nil {
 				return err
 			}
 		}
@@ -410,16 +395,6 @@ func derefGraphEdges(ptrs []*model.GraphEdge) []model.GraphEdge {
 	return out
 }
 
-func derefDomainSettings(ptrs []*model.DomainSetting) []model.DomainSetting {
-	out := make([]model.DomainSetting, len(ptrs))
-	for i, p := range ptrs {
-		if p != nil {
-			out[i] = *p
-		}
-	}
-	return out
-}
-
 func derefNodeResults(ptrs []*model.NodeResult) []model.NodeResult {
 	out := make([]model.NodeResult, len(ptrs))
 	for i, p := range ptrs {
@@ -450,14 +425,6 @@ func ptrGraphNodes(rows []model.GraphNode) []*model.GraphNode {
 
 func ptrGraphEdges(rows []model.GraphEdge) []*model.GraphEdge {
 	out := make([]*model.GraphEdge, len(rows))
-	for i := range rows {
-		out[i] = &rows[i]
-	}
-	return out
-}
-
-func ptrDomainSettings(rows []model.DomainSetting) []*model.DomainSetting {
-	out := make([]*model.DomainSetting, len(rows))
 	for i := range rows {
 		out[i] = &rows[i]
 	}

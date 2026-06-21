@@ -33,7 +33,6 @@ function deepMerge<T extends Record<string, unknown>>(
 export function mergeConfig(
 	app: PartialConfig,
 	ws?: PartialConfig,
-	domain?: PartialConfig,
 	node?: PartialConfig,
 ): AppConfig {
 	let cfg = deepMerge(
@@ -46,12 +45,6 @@ export function mergeConfig(
 			ws as Record<string, unknown>,
 		) as AppConfig;
 	}
-	if (domain) {
-		cfg = deepMerge(
-			cfg as unknown as Record<string, unknown>,
-			domain as Record<string, unknown>,
-		) as AppConfig;
-	}
 	if (node) {
 		cfg = deepMerge(
 			cfg as unknown as Record<string, unknown>,
@@ -61,7 +54,7 @@ export function mergeConfig(
 	return cfg;
 }
 
-/** モード2: アプリデフォルトのみ（WS/ドメイン/ノード上書きなし） */
+/** モード2: アプリデフォルトのみ（WS/ノード上書きなし） */
 export function configForMode2(app: PartialConfig): AppConfig {
 	return mergeConfig(app);
 }

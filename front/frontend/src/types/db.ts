@@ -43,12 +43,6 @@ export interface DbGraphEdge {
 	target_node_id: string;
 }
 
-export interface DbDomainSetting {
-	workspace_id: string;
-	host: string;
-	settings_json: string;
-}
-
 export interface DbCrawlRun {
 	id: string;
 	workspace_id: string;
@@ -86,7 +80,6 @@ export interface WorkspaceBundle {
 	workspace: DbWorkspace;
 	nodes: DbGraphNode[];
 	edges: DbGraphEdge[];
-	domainSettings: DbDomainSetting[];
 	uiState: DbGraphUiState | null;
 }
 

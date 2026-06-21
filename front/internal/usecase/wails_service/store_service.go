@@ -78,14 +78,6 @@ func (s *StoreService) SaveWorkspaceSettings(workspaceID string, settings json.R
 	return model.SaveSettingsResponseDTO{OK: true, Scope: "workspace"}, nil
 }
 
-// SaveDomainSettings はドメイン設定を保存する。
-func (s *StoreService) SaveDomainSettings(workspaceID, host string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error) {
-	if err := s.workspaces.SaveDomainSettings(s.ctx(), workspaceID, host, settings); err != nil {
-		return model.SaveSettingsResponseDTO{}, err
-	}
-	return model.SaveSettingsResponseDTO{OK: true, Scope: "domain"}, nil
-}
-
 // SaveNodeSettings はノード設定を保存する。
 func (s *StoreService) SaveNodeSettings(workspaceID, nodeID string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error) {
 	if err := s.workspaces.SaveNodeSettings(s.ctx(), workspaceID, nodeID, settings); err != nil {

@@ -13,6 +13,7 @@ export {
     OpenScrbResponse,
     PatchGraphNodeStatusRequest,
     PositionDTO,
+    RobotsTxtInfoDTO,
     SaveSettingsResponseDTO,
     StartCrawlRequest,
     UpsertDiscoveredGraphRequest,

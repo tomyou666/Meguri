@@ -9,10 +9,6 @@ import type {
 
 export function workspaceFromDTO(dto: WorkspaceDTO): Workspace {
 	const settings = parseJSON<PartialConfig>(dto.settings, {});
-	const domainSettings: Record<string, PartialConfig> = {};
-	for (const [host, raw] of Object.entries(dto.domainSettings ?? {})) {
-		domainSettings[host] = parseJSON<PartialConfig>(raw, {});
-	}
 	return {
 		id: dto.id,
 		name: dto.name,
@@ -23,7 +19,6 @@ export function workspaceFromDTO(dto: WorkspaceDTO): Workspace {
 		edges: (dto.edges ?? []).map(edgeFromDTO),
 		graphLayoutDirection:
 			(dto.graphLayoutDirection as Workspace['graphLayoutDirection']) ?? 'LR',
-		domainSettings,
 		baselineRunId: dto.baselineRunId || undefined,
 		collapsedNodeIds: dto.collapsedNodeIds ?? [],
 		expandedDetailNodeIds: dto.expandedDetailNodeIds ?? [],
@@ -32,10 +27,6 @@ export function workspaceFromDTO(dto: WorkspaceDTO): Workspace {
 }
 
 export function workspaceToDTO(ws: Workspace): WorkspaceDTO {
-	const domainSettings: Record<string, PartialConfig> = {};
-	for (const [host, cfg] of Object.entries(ws.domainSettings)) {
-		domainSettings[host] = cfg;
-	}
 	return {
 		id: ws.id,
 		name: ws.name,
@@ -45,7 +36,6 @@ export function workspaceToDTO(ws: Workspace): WorkspaceDTO {
 		nodes: ws.nodes.map(nodeToDTO),
 		edges: ws.edges.map(edgeToDTO),
 		graphLayoutDirection: ws.graphLayoutDirection,
-		domainSettings,
 		baselineRunId: ws.baselineRunId ?? '',
 		collapsedNodeIds: ws.collapsedNodeIds ?? [],
 		expandedDetailNodeIds: ws.expandedDetailNodeIds ?? [],

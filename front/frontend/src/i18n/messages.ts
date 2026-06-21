@@ -29,7 +29,7 @@ export const messages = {
 	},
 	sidebar: {
 		workspaces: 'ワークスペース',
-		domains: 'ドメイン',
+		domainStatus: 'ドメインステータス',
 		newWorkspace: '新規ワークスペース',
 		newNode: 'ノード追加',
 		deleteNode: 'ノード削除',
@@ -45,10 +45,53 @@ export const messages = {
 		duplicateWorkspace: 'ワークスペースをコピー',
 		openWorkspaceMenu: 'ワークスペースのその他操作',
 	},
+	domainStatus: {
+		statusLabel: (status: string, count: number) => {
+			const labels: Record<string, string> = {
+				success: '成功',
+				error: '失敗',
+				skipped: 'スキップ',
+				running: '実行中',
+				idle: '待機',
+			};
+			return `${labels[status] ?? status} ${count}`;
+		},
+		statusSummary: (counts: {
+			success: number;
+			error: number;
+			skipped: number;
+			running: number;
+			idle: number;
+		}) => {
+			const parts: string[] = [];
+			if (counts.success > 0) parts.push(`成功 ${counts.success}`);
+			if (counts.error > 0) parts.push(`失敗 ${counts.error}`);
+			if (counts.skipped > 0) parts.push(`スキップ ${counts.skipped}`);
+			if (counts.running > 0) parts.push(`実行中 ${counts.running}`);
+			if (counts.idle > 0) parts.push(`待機 ${counts.idle}`);
+			return parts.join(' / ') || '—';
+		},
+		robotsLoading: 'robots 取得中…',
+		robotsFound: 'robots あり',
+		robotsNotFound: 'robots なし',
+		robotsError: '取得失敗',
+		robotsEmpty: '（空）',
+		robotsNotFoundDetail: (code?: number) =>
+			code
+				? `robots.txt は見つかりませんでした（HTTP ${code}）`
+				: 'robots.txt は見つかりませんでした',
+		robotsErrorDetail: (error?: string, code?: number) => {
+			const parts: string[] = [];
+			if (code) parts.push(`HTTP ${code}`);
+			if (error) parts.push(error);
+			return parts.length > 0
+				? `robots.txt の取得に失敗しました（${parts.join(' / ')}）`
+				: 'robots.txt の取得に失敗しました';
+		},
+	},
 	right: {
 		runSummary: '実行サマリ',
 		nodeResult: 'ノード結果',
-		domainSettings: 'ドメイン設定',
 		nodeSettings: 'ノード設定',
 		noSelection: 'ノードを選択するか、クロールを実行してください',
 		crawlExclude: 'このノードと配下をクロールしない',

@@ -34,7 +34,6 @@ export function CrawlGraph() {
 	const proOptions = { hideAttribution: true };
 	const ws = useAppStore((s) => s.getActiveWorkspace());
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
-	const selectedDomain = useAppStore((s) => s.selectedDomain);
 	const workspaceDiffCache = useAppStore((s) => s.workspaceDiffCache);
 	const selectNode = useAppStore((s) => s.selectNode);
 	const clearNodeSelection = useAppStore((s) => s.clearNodeSelection);
@@ -257,11 +256,6 @@ export function CrawlGraph() {
 				<GraphSelectionSync />
 				<GraphCanvasControls />
 			</ReactFlow>
-			{selectedDomain && (
-				<div className='pointer-events-none absolute bottom-2 left-2 rounded bg-card/90 px-2 py-1 text-xs text-muted-foreground'>
-					ドメイン: {selectedDomain}
-				</div>
-			)}
 			{contextMenu && (
 				<div
 					className='fixed z-50 min-w-40 rounded-md border border-border bg-popover p-1 shadow-md'
