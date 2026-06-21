@@ -9,7 +9,7 @@ Phase 3 実装状況の記録。設計の前提は [scraper-ui.md](./api/scraper
 - [x] **`ScrapeWithConfig`** — `pkg/runner`（案 A: 呼び出しごと Kernel Init）
 - [x] **`CrawlWithProgress`** — `pkg/runner`
 - [x] **公開 API** — `backend/pkg/runner`（front は `internal/` 直 import なし）
-- [x] **front `ScraperService`** — オーケストレーション、Wails Event、mode 1/2/3 + manual 後段
+- [x] **front `ScraperService`** — オーケストレーション、Wails Event、mode 1/2/3/4 + manual 後段
 - [x] **`GraphNode.origin`** — DDL マイグレーション `000002_origin`
 - [x] **TS adapter** — Event 購読 + StoreService 永続化、`crawlStub` 削除
 
@@ -32,7 +32,8 @@ Phase 3 実装状況の記録。設計の前提は [scraper-ui.md](./api/scraper
 | 経路 | モード | backend API |
 |------|--------|-------------|
 | 本流 BFS | 1, 2 | `runner.CrawlWithProgress` |
-| 既存ノードのみ | 3 | `runner.ScrapeWithConfig` × N |
+| 既存ノードを辿る | 3 | `runner.ScrapeWithConfig` × N（`startNodeId` から有向到達） |
+| 選択ノードのみ | 4 | `runner.ScrapeWithConfig` × N（明示 `nodeIds`、入力順） |
 | manual 後段 | 1, 2, 3 | `runner.ScrapeWithConfig`（`origin=manual`、本流未到達のみ） |
 
 ## Grill 合意ログ
@@ -44,6 +45,7 @@ Phase 3 実装状況の記録。設計の前提は [scraper-ui.md](./api/scraper
 | `exclude_urls` | backend に追加（完了） |
 | 進捗 | backend が URL 単位で emit（完了） |
 | pause | v2 `PauseController`（ScraperService がジョブごとに注入） |
-| モード 3 | `Crawler.Run` 不使用、`ScrapeWithConfig` × N |
+| モード 3 | `Crawler.Run` 不使用、`ScrapeWithConfig` × N（有向到達） |
+| モード 4 | `ScrapeWithConfig` × N（明示 `nodeIds`、manual 後段なし） |
 | 永続化 | TS adapter + StoreService |
 | module 境界 | `pkg/runner` ファサード |

@@ -34,6 +34,7 @@ isProject: false
 | 永続化 | **Phase 1 は useState / コンテキストのみ**（SQLite は Phase 2） |
 | ノード同一性 | 正規化 URL 1 件 = ノード 1 個（重複なし） |
 | 実行モード 3 | 選択ノードから**有向エッジの向き**に、**既存ノードのみ**再クロール。新規 URL は無視。枝先（出辺なし既存ノード）まで |
+| 実行モード 4 | **選択ノードのみ**取得（リンク探索なし）。`nodeIds` を入力順に scrape。右クリック「スクレイプ」/ ControlBar「選択をスクレイプ」のデフォルト |
 | 設定優先順位 | ノード > ドメイン > ワークスペース > アプリ（**フィールド単位マージ**） |
 | サブツリースキップ | ノードオプション「クロールしない」→ 当該ノード + 子孫 URL を `workspace.exclude_urls` にマージ |
 | エッジ | 発見リンクのみ自動生成。手動削除可・手動追加不可 |
@@ -45,9 +46,9 @@ isProject: false
 | 保存形式 | `content.formats` の WS 単位オーバーライド |
 | ドメイン設定 | **左 SB 下半**にドメイン一覧。選択でハイライト + 右 SB で編集 |
 | 左 SB レイアウト | 上: WS 一覧 / 下: 現在 WS のドメイン一覧 |
-| 実行 UI | 再生ボタン + ドロップダウンで 3 モード |
+| 実行 UI | 再生ボタン + ドロップダウンで 4 モード |
 | ノード見た目 | 未訪問 / 実行中 / 成功 / エラー / スキップを枠色・アイコンで表示 |
-| Phase 1 完了条件 | 3モード/FSM/エラー/設定マージ/exclude_urls まで動作確認できること |
+| Phase 1 完了条件 | 4モード/FSM/エラー/設定マージ/exclude_urls まで動作確認できること |
 | ノード削除 | 選択ノード + 子孫ノードを一括削除 |
 | 削除時クリーンアップ | 削除対象に紐づく `exclude_urls`/ノード設定/結果キャッシュを削除 |
 | URL 正規化 | query保持（キー順ソート）、fragment除去、既定ポート除去などを適用 |
@@ -70,6 +71,10 @@ isProject: false
 | 実行履歴保持 | 最新20件（メモリ） |
 | モード2の `exclude_urls` | 常時適用（安全制約） |
 | モード3走査順 | BFS |
+
+**モード 3 / 4 の差分**
+- モード 3: 選択ノードから有向に既存ノードを**辿る**（子孫既存ノードまで）
+- モード 4: **選択ノードのみ**（辿らない）。1 件以上の `nodeIds` 必須
 
 **モード 1 / 2 の補足（推奨どおり採用）**
 - モード 1: ワークスペース起点 URL（ノード未選択でも可）
@@ -214,11 +219,12 @@ type GraphNode = {
 
 [`front/frontend/src/services/crawlStub.ts`](front/frontend/src/services/crawlStub.ts)（新規）:
 
-- **入力**: `RunMode`, `startNodeId?`, `workspace`, `appDefaults`, `AbortSignal`
+- **入力**: `RunMode`, `startNodeId?`, `nodeIds?`, `workspace`, `appDefaults`, `AbortSignal`
 - **処理**: BFS で既存グラフ + モードに応じた隣接探索
   - モード 1: `seedUrl` から、`crawl.enabled` 相当を WS 設定で ON 想定
   - モード 2: 選択ノードから、マージ設定は `appDefaults` のみ
   - モード 3: 選択ノードから出辺を辿り **既存ノード ID のみ**訪問（新規 URL 無視）
+  - モード 4: **`nodeIds` のみ**を入力順に scrape（リンク探索なし）
 - **exclude**: `exclude_urls` + `crawlExclude` 子孫をスキップ（status=skipped）。モード2でも適用
 - **出力イベント**（コールバック）: `nodeStarted`, `nodeSucceeded`, `nodeFailed`, `crawlCompleted`, `crawlError`
 - **一時停止**: `pause()` でキュー停止、`resume()` で再開

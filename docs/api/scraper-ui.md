@@ -45,6 +45,28 @@ Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `Sc
 
 payload: `CrawlEventPayload`（`workspaceId`, `runId` + イベント固有フィールド）。TS adapter が `runId` でフィルタし `StartCrawlParams` コールバック（UI 更新）へ橋渡し。ノード永続化は `ScraperService` が Go 内で完結。
 
+### RunMode（`StartCrawlRequest.mode`）
+
+| mode | 意味 | 必須入力 | リンク探索 | manual 後段 |
+|------|------|----------|-----------|-------------|
+| 1 | 起点 URL から BFS | — | あり | あり |
+| 2 | 選択ノードから BFS（app 設定のみ） | `startNodeId` | あり | あり |
+| 3 | 選択ノードから有向に**既存ノードを辿る** | `startNodeId` | なし | あり |
+| 4 | **選択ノードのみ**取得（辿らない） | `nodeIds`（1 件以上） | なし | なし |
+
+`StartCrawlRequest` フィールド:
+
+| フィールド | 説明 |
+|-----------|------|
+| `startNodeId` | mode 2 / 3 の起点ノード ID |
+| `nodeIds` | mode 4 の訪問対象（入力順で scrape。未知 ID はスキップ） |
+| `rescrapeExisting` | `false` 時、status=success のノードは fetch せず `linkSkipped` |
+
+UI トリガー:
+
+- ControlBar 再生ボタン: ドロップダウンで選択した mode を実行
+- ControlBar「選択をスクレイプ」/ グラフ右クリック「スクレイプ」: **mode 4**（`runMode` は変更しない）
+
 ## App config
 
 | Wails (`StoreService`) | ScraperPort | HTTP | 説明 |

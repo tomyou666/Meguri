@@ -222,7 +222,10 @@ interface AppState {
 	updateWorkspaceSettings: (settings: PartialConfig) => void;
 	updateNodeSettings: (nodeId: string, settings: PartialConfig) => void;
 	clearCrawlError: () => void;
-	startCrawl: () => Promise<void>;
+	startCrawl: (override?: {
+		mode?: RunMode;
+		nodeIds?: string[];
+	}) => Promise<void>;
 	pauseCrawl: () => void;
 	resumeCrawl: () => void;
 	stopCrawl: () => void;
@@ -821,12 +824,26 @@ export const useAppStore = create<AppState>((set, get) => ({
 		set({ crawlStatus: 'idle', _paused: false, _activeRunId: null });
 	},
 
-	startCrawl: async () => {
+	startCrawl: async (override) => {
 		const state = get();
 		const ws = state.getActiveWorkspace();
 		if (!ws) return;
 
-		if (state.runMode !== 1 && !state.selectedNodeId) {
+		const mode = override?.mode ?? state.runMode;
+
+		if (mode === 4) {
+			const nodeIds = override?.nodeIds ?? state.selectedNodeIds;
+			if (nodeIds.length === 0) {
+				set({
+					crawlError: {
+						type: 'crawl',
+						message: 'モード 4 ではノードを 1 件以上選択してください',
+						at: new Date().toISOString(),
+					},
+				});
+				return;
+			}
+		} else if (mode !== 1 && !state.selectedNodeId) {
 			set({
 				crawlError: {
 					type: 'crawl',
@@ -867,16 +884,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 		const getWs = () => get().getActiveWorkspace()!;
 
-		const bulkIds =
-			state.selectedNodeIds.length > 1 && state.runMode === 2
-				? state.selectedNodeIds
+		const nodeIds =
+			mode === 4
+				? (override?.nodeIds ?? state.selectedNodeIds)
 				: undefined;
 
 		runId = await scraperPort.startCrawl({
 			workspaceId: ws.id,
-			mode: state.runMode,
+			mode,
 			startNodeId: state.selectedNodeId ?? undefined,
-			nodeIds: bulkIds,
+			nodeIds,
 			rescrapeExisting: state.rescrapeExisting,
 			appDefaults: state.appDefaults,
 			signal: ac.signal,
@@ -1222,8 +1239,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	bulkScrapeSelected: async () => {
 		const ids = get().selectedNodeIds;
 		if (ids.length === 0) return;
-		set({ runMode: 2 });
-		await get().startCrawl();
+		await get().startCrawl({ mode: 4, nodeIds: ids });
 	},
 
 	fetchWorkspaceDiff: async (workspaceId) => {

@@ -107,7 +107,7 @@ CREATE TABLE graph_edges (
 -- WS あたり直近 20 件をアプリ層で保持する想定（DB にはそれ以上残してもよい）
 --   id:            実行 ID
 --   workspace_id:  所属ワークスペース ID
---   mode:          RunMode: 1=WS 全体, 2=選択ノード（アプリ既定のみ）, 3=既存ノード再クロール
+--   mode:          RunMode: 1=WS 全体, 2=選択ノード（アプリ既定のみ）, 3=既存ノードを辿る, 4=選択ノードのみ
 --   status:        running | paused | completed | stopped | error
 --   started_at:    開始日時（ISO 8601）
 --   finished_at:   終了日時（ISO 8601）
@@ -117,7 +117,7 @@ CREATE TABLE graph_edges (
 CREATE TABLE crawl_runs (
     id              TEXT PRIMARY KEY,
     workspace_id    TEXT NOT NULL,
-    mode            INTEGER NOT NULL CHECK (mode IN (1, 2, 3)),
+    mode            INTEGER NOT NULL CHECK (mode IN (1, 2, 3, 4)),
     status          TEXT NOT NULL
                     CHECK (status IN ('running', 'paused', 'completed', 'stopped', 'error')),
     started_at      TEXT NOT NULL,

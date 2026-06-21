@@ -12,12 +12,14 @@ const MODE_LABELS: Record<RunMode, string> = {
 	1: messages.control.mode1,
 	2: messages.control.mode2,
 	3: messages.control.mode3,
+	4: messages.control.mode4,
 };
 
 const PLAY_MODE_LABELS: Record<RunMode, string> = {
 	1: messages.control.playMode1,
 	2: messages.control.playMode2,
 	3: messages.control.playMode3,
+	4: messages.control.playMode4,
 };
 
 export function ControlBar() {
@@ -31,7 +33,6 @@ export function ControlBar() {
 	const resumeCrawl = useAppStore((s) => s.resumeCrawl);
 	const stopCrawl = useAppStore((s) => s.stopCrawl);
 	const ws = useAppStore((s) => s.getActiveWorkspace());
-	const bulkScrapeSelected = useAppStore((s) => s.bulkScrapeSelected);
 	const mergeAllResults = useAppStore((s) => s.mergeAllResults);
 	const mergeSelectedResults = useAppStore((s) => s.mergeSelectedResults);
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
@@ -79,7 +80,7 @@ export function ControlBar() {
 								onClick={() => setModeMenuOpen(false)}
 							/>
 							<div className='absolute left-0 top-full z-50 mt-1 min-w-56 rounded-lg border border-border bg-popover py-1 shadow-lg'>
-								{([1, 2, 3] as RunMode[]).map((m) => (
+								{([1, 2, 3, 4] as RunMode[]).map((m) => (
 									<button
 										key={m}
 										type='button'
@@ -133,20 +134,6 @@ export function ControlBar() {
 						{messages.control.rescrapeExisting}
 					</Label>
 				</div>
-
-				{selectedNodeIds.length > 1 && (
-					<>
-						<span className='text-muted-foreground'>|</span>
-						<Button
-							size='xs'
-							variant='outline'
-							disabled={crawlStatus !== 'idle'}
-							onClick={() => bulkScrapeSelected()}
-						>
-							{messages.control.bulkScrapeSelected}
-						</Button>
-					</>
-				)}
 			</div>
 
 			<div className='flex shrink-0 items-center gap-2'>

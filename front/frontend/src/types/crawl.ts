@@ -1,6 +1,6 @@
 import type { Workspace } from './workspace';
 
-export type RunMode = 1 | 2 | 3;
+export type RunMode = 1 | 2 | 3 | 4;
 
 export type CrawlRunStatus = 'idle' | 'running' | 'paused';
 

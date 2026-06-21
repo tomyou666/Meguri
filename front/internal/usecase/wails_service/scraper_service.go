@@ -399,6 +399,15 @@ func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 			}
 			return err
 		}
+	case 4:
+		if err := s.runMode4(ctx, req, state, opts, &enqueued, &succeeded, &failed, &skipped); err != nil {
+			if ctx.Err() != nil {
+				stoppedReason = "stopped"
+				emitSummary()
+				return nil
+			}
+			return err
+		}
 	default:
 		return fmt.Errorf("unsupported mode %d", req.Mode)
 	}
@@ -730,7 +739,44 @@ func (s *ScraperService) runMode3(
 	}
 	order := domain.ForwardReachableExisting(req.StartNodeID, nodeIDs, st.outEdges)
 	visit := append([]string{req.StartNodeID}, order...)
+	return s.scrapeExistingNodesInOrder(ctx, req, st, visit, opts, enqueued, succeeded, failed, skipped)
+}
 
+// runMode4 は明示 nodeIds の既存ノードのみを入力順に scrape する（リンク探索なし）。
+func (s *ScraperService) runMode4(
+	ctx context.Context,
+	req model.StartCrawlRequest,
+	st *crawlState,
+	opts *runner.RunOptions,
+	enqueued, succeeded, failed, skipped *int,
+) error {
+	if len(req.NodeIDs) == 0 {
+		return fmt.Errorf("mode 4 requires nodeIds")
+	}
+	visit := filterExistingNodeIDs(req.NodeIDs, st.nodeByID)
+	return s.scrapeExistingNodesInOrder(ctx, req, st, visit, opts, enqueued, succeeded, failed, skipped)
+}
+
+// filterExistingNodeIDs は nodeByID に存在する ID のみを入力順で返す。
+func filterExistingNodeIDs(nodeIDs []string, nodeByID map[string]model.GraphNodeDTO) []string {
+	visit := make([]string, 0, len(nodeIDs))
+	for _, nodeID := range nodeIDs {
+		if _, ok := nodeByID[nodeID]; ok {
+			visit = append(visit, nodeID)
+		}
+	}
+	return visit
+}
+
+// scrapeExistingNodesInOrder は visit 順に既存ノードを scrape する（mode 3 / 4 共通）。
+func (s *ScraperService) scrapeExistingNodesInOrder(
+	ctx context.Context,
+	req model.StartCrawlRequest,
+	st *crawlState,
+	visit []string,
+	opts *runner.RunOptions,
+	enqueued, succeeded, failed, skipped *int,
+) error {
 	for _, nodeID := range visit {
 		node, ok := st.nodeByID[nodeID]
 		if !ok {
