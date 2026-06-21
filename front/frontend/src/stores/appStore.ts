@@ -115,6 +115,17 @@ function emptyWorkspace(name: string, seedUrl: string): Workspace {
 	};
 }
 
+function applyDagreLayout(
+	ws: Workspace,
+	direction: DagreLayoutDirection,
+): GraphNode[] {
+	const positions = computeDagrePositions(ws.nodes, ws.edges, direction);
+	return ws.nodes.map((n) => {
+		const pos = positions.get(n.id);
+		return pos ? { ...n, position: pos, userPositioned: false } : n;
+	});
+}
+
 interface AppState {
 	bootstrapped: boolean;
 	appDefaults: PartialConfig;
@@ -634,31 +645,37 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const ws = get().getActiveWorkspace();
 		if (!ws || ws.nodes.length === 0) return;
 		const direction = ws.graphLayoutDirection ?? 'LR';
-		const positions = computeDagrePositions(ws.nodes, ws.edges, direction);
-		set((s) => ({
-			workspaces: s.workspaces.map((w) =>
-				w.id !== ws.id
-					? w
-					: {
-							...w,
-							nodes: w.nodes.map((n) => {
-								const pos = positions.get(n.id);
-								return pos ? { ...n, position: pos, userPositioned: false } : n;
-							}),
-						},
-			),
-		}));
+		patchWorkspaces(
+			set,
+			get,
+			(workspaces) =>
+				workspaces.map((w) =>
+					w.id !== ws.id
+						? w
+						: { ...w, nodes: applyDagreLayout(w, direction) },
+				),
+			{ persist: { kind: 'workspace' } },
+		);
 	},
 
 	setGraphLayoutDirection: (direction) => {
 		const ws = get().getActiveWorkspace();
 		if (!ws) return;
-		set((s) => ({
-			workspaces: s.workspaces.map((w) =>
-				w.id === ws.id ? { ...w, graphLayoutDirection: direction } : w,
-			),
-		}));
-		get().layoutWorkspaceGraph();
+		patchWorkspaces(
+			set,
+			get,
+			(workspaces) =>
+				workspaces.map((w) =>
+					w.id !== ws.id
+						? w
+						: {
+								...w,
+								graphLayoutDirection: direction,
+								nodes: applyDagreLayout(w, direction),
+							},
+				),
+			{ persist: { kind: 'workspace' } },
+		);
 	},
 
 	removeEdges: (edgeIds) => {
