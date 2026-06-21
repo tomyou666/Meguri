@@ -52,6 +52,7 @@
             "apiVersion": 2,
             "host": "127.0.0.1",
             "port": 2345,
+            "cwd": "${workspaceFolder}/front",
             "showLog": true,
             "preLaunchTask": "dlv: attach scraperbot",
             "postDebugTask": "dlv: kill"
