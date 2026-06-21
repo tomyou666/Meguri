@@ -14,6 +14,12 @@ func ResolveDBPath() (string, error) {
 	return filepath.Join(dir, dbFileName), nil
 }
 
+// SQLiteDSN は GORM 用 SQLite DSN を返す。
+// SQLite は接続ごとに外部キーが無効なため、ON DELETE CASCADE を有効にする。
+func SQLiteDSN(dbPath string) string {
+	return dbPath + "?_pragma=foreign_keys(1)"
+}
+
 // sqliteURL は golang-migrate 用の sqlite:// URL を返す。
 func sqliteURL(dbPath string) (string, error) {
 	abs, err := filepath.Abs(dbPath)

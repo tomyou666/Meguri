@@ -27,7 +27,7 @@ func ProvideDB(dbPath string) (*gorm.DB, func(), error) {
 	if err := RunMigrations(dbPath); err != nil {
 		return nil, nil, err
 	}
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(SQLiteDSN(dbPath)), &gorm.Config{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("open db: %w", err)
 	}

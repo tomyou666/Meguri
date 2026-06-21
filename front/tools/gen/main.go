@@ -23,7 +23,7 @@ func main() {
 	if dbPath == "" {
 		dbPath = "data/scraperbot.db"
 	}
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(dbPath+"?_pragma=foreign_keys(1)"), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}

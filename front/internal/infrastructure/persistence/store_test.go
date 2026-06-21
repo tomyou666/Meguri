@@ -32,7 +32,7 @@ func TestStore(t *testing.T) {
 		dir := t.TempDir()
 		dbPath := filepath.Join(dir, "test.db")
 
-		db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+		db, err := gorm.Open(sqlite.Open(dbPath+"?_pragma=foreign_keys(1)"), &gorm.Config{})
 		if err != nil {
 			t.Fatalf("open: %v", err)
 		}
