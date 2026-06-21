@@ -8,7 +8,11 @@ import {
 	fallbackNearParent,
 	positionForDiscoveredNode,
 } from '@/lib/dagreLayout';
-import { debouncedSaveWorkspace } from '@/lib/debouncedWorkspaceSave';
+import {
+	debouncedPatchNodePositions,
+	debouncedSaveWorkspace,
+	type NodePositionPatch,
+} from '@/lib/debouncedWorkspaceSave';
 import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
 import {
 	collectDescendantUrls,
@@ -41,27 +45,43 @@ function uid(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+type PersistOptions =
+	| { kind: 'workspace' }
+	| { kind: 'positions'; workspaceId: string; update: NodePositionPatch };
+
 function syncHistory(
 	workspaces: Workspace[],
 	activeWorkspaceId: string | null,
+	persist: PersistOptions = { kind: 'workspace' },
 ) {
 	syncGraphHistory(workspaces, activeWorkspaceId);
+	if (persist.kind === 'positions') {
+		debouncedPatchNodePositions(persist.workspaceId, persist.update);
+		return;
+	}
 	const active = workspaces.find((w) => w.id === activeWorkspaceId);
 	if (active) {
 		debouncedSaveWorkspace(active);
 	}
 }
 
+type PatchWorkspacesOptions = {
+	recordHistory?: boolean;
+	persist?: PersistOptions;
+};
+
 function patchWorkspaces(
 	set: (fn: (s: AppState) => Partial<AppState>) => void,
 	_get: () => AppState,
 	updater: (workspaces: Workspace[]) => Workspace[],
-	recordHistory = true,
+	options: PatchWorkspacesOptions = {},
 ) {
+	const recordHistory = options.recordHistory ?? true;
+	const persist = options.persist ?? { kind: 'workspace' };
 	set((s) => {
 		const workspaces = updater(s.workspaces);
 		if (recordHistory) {
-			syncHistory(workspaces, s.activeWorkspaceId);
+			syncHistory(workspaces, s.activeWorkspaceId, persist);
 		}
 		return { workspaces };
 	});
@@ -583,17 +603,27 @@ export const useAppStore = create<AppState>((set, get) => ({
 	updateNodePosition: (id, position) => {
 		const ws = get().getActiveWorkspace();
 		if (!ws) return;
-		patchWorkspaces(set, get, (workspaces) =>
-			workspaces.map((w) =>
-				w.id !== ws.id
-					? w
-					: {
-							...w,
-							nodes: w.nodes.map((n) =>
-								n.id === id ? { ...n, position, userPositioned: true } : n,
-							),
-						},
-			),
+		patchWorkspaces(
+			set,
+			get,
+			(workspaces) =>
+				workspaces.map((w) =>
+					w.id !== ws.id
+						? w
+						: {
+								...w,
+								nodes: w.nodes.map((n) =>
+									n.id === id ? { ...n, position, userPositioned: true } : n,
+								),
+							},
+				),
+			{
+				persist: {
+					kind: 'positions',
+					workspaceId: ws.id,
+					update: { nodeId: id, position, userPositioned: true },
+				},
+			},
 		);
 	},
 

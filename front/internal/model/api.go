@@ -138,6 +138,19 @@ type PatchGraphNodeStatusRequest struct {
 	LastError   string `json:"lastError,omitempty"`
 }
 
+// NodePositionPatchDTO はノード座標の部分更新。
+type NodePositionPatchDTO struct {
+	NodeID         string      `json:"nodeId"`
+	Position       PositionDTO `json:"position"`
+	UserPositioned bool        `json:"userPositioned"`
+}
+
+// PatchGraphNodePositionsRequest はノード座標のバッチ部分更新。
+type PatchGraphNodePositionsRequest struct {
+	WorkspaceID string                 `json:"workspaceId"`
+	Updates     []NodePositionPatchDTO `json:"updates"`
+}
+
 // UpsertDiscoveredGraphRequest は crawl 中に発見したノードとエッジを永続化する。
 type UpsertDiscoveredGraphRequest struct {
 	WorkspaceID string `json:"workspaceId"`

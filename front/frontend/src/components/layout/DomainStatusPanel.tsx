@@ -1,12 +1,15 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { messages } from '@/i18n/messages';
 import {
-	baseURLForHost,
 	countNodesByStatus,
+	domainStatusKey,
 	groupNodesByHost,
+	isRobotsCacheHit,
 	type NodeStatusCounts,
+	robotsTargetsFromNodes,
+	robotsTargetsKey,
 } from '@/lib/domainStats';
 import { cn } from '@/lib/utils';
 import type { GraphNode } from '@/types/graph';
@@ -36,11 +39,35 @@ const STATUS_BADGE: Record<
 	idle: 'outline',
 };
 
+/** key が変わったときだけ value スナップショットを更新する。 */
+function useSnapshotWhenKeyChanges<T>(value: T, key: string): T {
+	const snapshotRef = useRef(value);
+	const keyRef = useRef(key);
+	if (keyRef.current !== key) {
+		keyRef.current = key;
+		snapshotRef.current = value;
+	}
+	return snapshotRef.current;
+}
+
 export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
-	const hosts = useMemo(() => {
-		const map = groupNodesByHost(nodes);
-		return [...map.keys()].sort();
-	}, [nodes]);
+	const statusKey = useMemo(() => domainStatusKey(nodes), [nodes]);
+	const statusNodes = useSnapshotWhenKeyChanges(nodes, statusKey);
+	const hostNodes = useMemo(() => groupNodesByHost(statusNodes), [statusNodes]);
+	const hosts = useMemo(() => [...hostNodes.keys()].sort(), [hostNodes]);
+
+	const robotsTargets = useMemo(
+		() => robotsTargetsFromNodes(statusNodes),
+		[statusNodes],
+	);
+	const robotsTargetsKeyValue = useMemo(
+		() => robotsTargetsKey(robotsTargets),
+		[robotsTargets],
+	);
+	const fetchTargets = useSnapshotWhenKeyChanges(
+		robotsTargets,
+		robotsTargetsKeyValue,
+	);
 
 	const [expandedHost, setExpandedHost] = useState<string | null>(null);
 	const [robotsByHost, setRobotsByHost] = useState<Record<string, RobotsInfo>>(
@@ -48,46 +75,67 @@ export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
 	);
 
 	useEffect(() => {
-		if (hosts.length === 0) {
+		if (fetchTargets.size === 0) {
 			setRobotsByHost({});
 			return;
 		}
 
 		let cancelled = false;
-		const loading: Record<string, RobotsInfo> = {};
-		for (const host of hosts) {
-			loading[host] = { status: 'loading' };
+		const hostsToFetch: string[] = [];
+
+		setRobotsByHost((prev) => {
+			const next: Record<string, RobotsInfo> = {};
+			for (const host of fetchTargets.keys()) {
+				if (isRobotsCacheHit(prev[host])) {
+					next[host] = prev[host];
+				} else {
+					hostsToFetch.push(host);
+					next[host] = { status: 'loading' };
+				}
+			}
+			return next;
+		});
+
+		if (hostsToFetch.length === 0) {
+			return;
 		}
-		setRobotsByHost(loading);
 
 		void Promise.allSettled(
-			hosts.map(async (host) => {
-				const baseURL = baseURLForHost(host, nodes);
+			hostsToFetch.map(async (host) => {
+				const baseURL = fetchTargets.get(host)!;
 				const info = await ScraperService.FetchRobotsTxt(host, baseURL);
 				return { host, info };
 			}),
 		).then((results) => {
 			if (cancelled) return;
-			const next: Record<string, RobotsInfo> = {};
-			for (const result of results) {
-				if (result.status !== 'fulfilled') {
-					continue;
+			setRobotsByHost((prev) => {
+				const next = { ...prev };
+				for (const result of results) {
+					if (result.status !== 'fulfilled') {
+						continue;
+					}
+					const { host, info } = result.value;
+					if (!fetchTargets.has(host)) continue;
+					next[host] = {
+						status: info.status as RobotsStatus,
+						statusCode: info.statusCode,
+						body: info.body,
+						error: info.error,
+					};
 				}
-				const { host, info } = result.value;
-				next[host] = {
-					status: info.status as RobotsStatus,
-					statusCode: info.statusCode,
-					body: info.body,
-					error: info.error,
-				};
-			}
-			setRobotsByHost(next);
+				for (const host of Object.keys(next)) {
+					if (!fetchTargets.has(host)) {
+						delete next[host];
+					}
+				}
+				return next;
+			});
 		});
 
 		return () => {
 			cancelled = true;
 		};
-	}, [hosts, nodes]);
+	}, [fetchTargets]);
 
 	if (hosts.length === 0) {
 		return (
@@ -96,8 +144,6 @@ export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
 			</p>
 		);
 	}
-
-	const hostNodes = groupNodesByHost(nodes);
 
 	return (
 		<div className='space-y-0.5 pb-2'>

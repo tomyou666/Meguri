@@ -331,6 +331,42 @@ export class NodeDiffDTO {
 }
 
 /**
+ * NodePositionPatchDTO はノード座標の部分更新。
+ */
+export class NodePositionPatchDTO {
+    "nodeId": string;
+    "position": PositionDTO;
+    "userPositioned": boolean;
+
+    /** Creates a new NodePositionPatchDTO instance. */
+    constructor($$source: Partial<NodePositionPatchDTO> = {}) {
+        if (!("nodeId" in $$source)) {
+            this["nodeId"] = "";
+        }
+        if (!("position" in $$source)) {
+            this["position"] = (new PositionDTO());
+        }
+        if (!("userPositioned" in $$source)) {
+            this["userPositioned"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NodePositionPatchDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NodePositionPatchDTO {
+        const $$createField1_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("position" in $$parsedSource) {
+            $$parsedSource["position"] = $$createField1_0($$parsedSource["position"]);
+        }
+        return new NodePositionPatchDTO($$parsedSource as Partial<NodePositionPatchDTO>);
+    }
+}
+
+/**
  * OpenScrbResponse は .scrb インポート結果。
  */
 export class OpenScrbResponse {
@@ -351,6 +387,38 @@ export class OpenScrbResponse {
     static createFrom($$source: any = {}): OpenScrbResponse {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new OpenScrbResponse($$parsedSource as Partial<OpenScrbResponse>);
+    }
+}
+
+/**
+ * PatchGraphNodePositionsRequest はノード座標のバッチ部分更新。
+ */
+export class PatchGraphNodePositionsRequest {
+    "workspaceId": string;
+    "updates": NodePositionPatchDTO[];
+
+    /** Creates a new PatchGraphNodePositionsRequest instance. */
+    constructor($$source: Partial<PatchGraphNodePositionsRequest> = {}) {
+        if (!("workspaceId" in $$source)) {
+            this["workspaceId"] = "";
+        }
+        if (!("updates" in $$source)) {
+            this["updates"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PatchGraphNodePositionsRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PatchGraphNodePositionsRequest {
+        const $$createField1_0 = $$createType6;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("updates" in $$parsedSource) {
+            $$parsedSource["updates"] = $$createField1_0($$parsedSource["updates"]);
+        }
+        return new PatchGraphNodePositionsRequest($$parsedSource as Partial<PatchGraphNodePositionsRequest>);
     }
 }
 
@@ -522,7 +590,7 @@ export class StartCrawlRequest {
      */
     static createFrom($$source: any = {}): StartCrawlRequest {
         const $$createField4_0 = $$createType0;
-        const $$createField7_0 = $$createType5;
+        const $$createField7_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nodeIds" in $$parsedSource) {
             $$parsedSource["nodeIds"] = $$createField4_0($$parsedSource["nodeIds"]);
@@ -622,8 +690,8 @@ export class WorkspaceDTO {
      */
     static createFrom($$source: any = {}): WorkspaceDTO {
         const $$createField4_0 = $$createType0;
-        const $$createField5_0 = $$createType7;
-        const $$createField6_0 = $$createType9;
+        const $$createField5_0 = $$createType9;
+        const $$createField6_0 = $$createType11;
         const $$createField9_0 = $$createType0;
         const $$createField10_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
@@ -678,7 +746,7 @@ export class WorkspaceDiffDTO {
      * Creates a new WorkspaceDiffDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): WorkspaceDiffDTO {
-        const $$createField3_0 = $$createType11;
+        const $$createField3_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nodes" in $$parsedSource) {
             $$parsedSource["nodes"] = $$createField3_0($$parsedSource["nodes"]);
@@ -725,10 +793,12 @@ const $$createType1 = $Create.Map($Create.Any, $Create.Any);
 const $$createType2 = PositionDTO.createFrom;
 const $$createType3 = CrawlResultDTO.createFrom;
 const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = WorkspaceDTO.createFrom;
-const $$createType6 = GraphNodeDTO.createFrom;
-const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = GraphEdgeDTO.createFrom;
+const $$createType5 = NodePositionPatchDTO.createFrom;
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = WorkspaceDTO.createFrom;
+const $$createType8 = GraphNodeDTO.createFrom;
 const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = NodeDiffDTO.createFrom;
+const $$createType10 = GraphEdgeDTO.createFrom;
 const $$createType11 = $Create.Array($$createType10);
+const $$createType12 = NodeDiffDTO.createFrom;
+const $$createType13 = $Create.Array($$createType12);

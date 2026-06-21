@@ -158,6 +158,11 @@ func (s *StoreService) PatchGraphNodeStatus(req model.PatchGraphNodeStatusReques
 	return s.crawlPersist.PatchGraphNodeStatus(s.ctx(), req)
 }
 
+// PatchGraphNodePositions はノード座標を部分更新する。
+func (s *StoreService) PatchGraphNodePositions(req model.PatchGraphNodePositionsRequest) error {
+	return s.workspaces.PatchGraphNodePositions(s.ctx(), req)
+}
+
 // UpsertDiscoveredGraph は crawl 中に発見したノードとエッジを永続化する。
 func (s *StoreService) UpsertDiscoveredGraph(req model.UpsertDiscoveredGraphRequest) error {
 	return s.crawlPersist.UpsertDiscoveredGraph(s.ctx(), req)

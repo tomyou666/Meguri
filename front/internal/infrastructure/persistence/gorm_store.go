@@ -359,6 +359,40 @@ func (s *Store) PatchGraphNodeStatus(ctx context.Context, workspaceID, nodeID, s
 	return nil
 }
 
+// PatchGraphNodePositions は graph_nodes の座標を部分更新する。
+func (s *Store) PatchGraphNodePositions(ctx context.Context, workspaceID string, updates []model.NodePositionPatchDTO) error {
+	if len(updates) == 0 {
+		return nil
+	}
+	return s.q.Transaction(func(txQ *query.Query) error {
+		gn := txQ.GraphNode
+		for _, u := range updates {
+			userPos := int32(0)
+			if u.UserPositioned {
+				userPos = 1
+			}
+			info, err := gn.WithContext(ctx).
+				Where(gn.WorkspaceID.Eq(workspaceID), gn.ID.Eq(u.NodeID)).
+				UpdateSimple(
+					gn.PositionX.Value(u.Position.X),
+					gn.PositionY.Value(u.Position.Y),
+					gn.UserPositioned.Value(userPos),
+				)
+			if err != nil {
+				return err
+			}
+			if info.RowsAffected == 0 {
+				return fmt.Errorf("node not found: %s/%s", workspaceID, u.NodeID)
+			}
+		}
+		ws := txQ.Workspace
+		_, err := ws.WithContext(ctx).
+			Where(ws.ID.Eq(workspaceID)).
+			UpdateSimple(ws.UpdatedAt.Value(nowISO()))
+		return err
+	})
+}
+
 // SetBaselineRunID は baseline_run_id を更新する。
 func (s *Store) SetBaselineRunID(ctx context.Context, workspaceID, runID string) error {
 	ws := s.q.Workspace

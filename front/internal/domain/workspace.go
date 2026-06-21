@@ -119,6 +119,11 @@ func (s *WorkspaceService) SaveNodeSettings(ctx context.Context, workspaceID, no
 	return fmt.Errorf("node not found")
 }
 
+// PatchGraphNodePositions はノード座標を部分更新する。
+func (s *WorkspaceService) PatchGraphNodePositions(ctx context.Context, req model.PatchGraphNodePositionsRequest) error {
+	return s.repo.PatchGraphNodePositions(ctx, req.WorkspaceID, req.Updates)
+}
+
 // Delete は WS を削除する。
 func (s *WorkspaceService) Delete(ctx context.Context, id string) error {
 	bundle, err := s.repo.LoadWorkspaceBundle(ctx, id)

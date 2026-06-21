@@ -98,4 +98,88 @@ func TestStore(t *testing.T) {
 			t.Fatalf("load: %v", err)
 		}
 	})
+
+	t.Run("正常系: PatchGraphNodePositions で座標のみ更新できる", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+
+		db, err := gorm.Open(sqlite.Open(dbPath+"?_pragma=foreign_keys(1)"), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		ctx := context.Background()
+		store := NewStore(db)
+
+		wsID := "ws-pos"
+		bundle := model.WorkspaceBundle{
+			Workspace: model.Workspace{
+				ID:                   model.StrPtr(wsID),
+				Name:                 "Pos",
+				SeedURL:              "https://example.com",
+				SettingsJSON:         `{}`,
+				ExcludeUrlsJSON:      `[]`,
+				GraphLayoutDirection: model.StrPtr("LR"),
+				CreatedAt:            "2026-01-01T00:00:00Z",
+				UpdatedAt:            "2026-01-01T00:00:00Z",
+			},
+			Nodes: []model.GraphNode{
+				{
+					WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com",
+					Label: "example", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("idle"),
+				},
+				{
+					WorkspaceID: wsID, ID: "n2", URLNormalized: "https://example.com/a",
+					Label: "a", PositionX: 100, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+			},
+		}
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("save ws: %v", err)
+		}
+
+		err = store.PatchGraphNodePositions(ctx, wsID, []model.NodePositionPatchDTO{
+			{
+				NodeID:         "n1",
+				Position:       model.PositionDTO{X: 42, Y: 84},
+				UserPositioned: true,
+			},
+			{
+				NodeID:         "n2",
+				Position:       model.PositionDTO{X: 200, Y: 50},
+				UserPositioned: true,
+			},
+		})
+		if err != nil {
+			t.Fatalf("patch positions: %v", err)
+		}
+
+		loaded, err := store.LoadWorkspaceBundle(ctx, wsID)
+		if err != nil || loaded == nil {
+			t.Fatalf("load: %v", err)
+		}
+		byID := map[string]model.GraphNode{}
+		for _, n := range loaded.Nodes {
+			byID[n.ID] = n
+		}
+		if byID["n1"].PositionX != 42 || byID["n1"].PositionY != 84 || byID["n1"].UserPositioned != 1 {
+			t.Fatalf("n1 position: %+v", byID["n1"])
+		}
+		if byID["n2"].PositionX != 200 || byID["n2"].PositionY != 50 || byID["n2"].UserPositioned != 1 {
+			t.Fatalf("n2 position: %+v", byID["n2"])
+		}
+		if byID["n2"].Status == nil || *byID["n2"].Status != "success" {
+			t.Fatalf("n2 status should be unchanged: %+v", byID["n2"].Status)
+		}
+	})
 }

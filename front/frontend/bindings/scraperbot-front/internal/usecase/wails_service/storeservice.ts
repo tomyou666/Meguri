@@ -133,6 +133,13 @@ export function MergeResults(workspaceID: string, nodeIDs: string[], formats: st
 }
 
 /**
+ * PatchGraphNodePositions はノード座標を部分更新する。
+ */
+export function PatchGraphNodePositions(req: model$0.PatchGraphNodePositionsRequest): $CancellablePromise<void> {
+    return $Call.ByID(2701437225, req);
+}
+
+/**
  * PatchGraphNodeStatus はノード status を更新する。
  */
 export function PatchGraphNodeStatus(req: model$0.PatchGraphNodeStatusRequest): $CancellablePromise<void> {

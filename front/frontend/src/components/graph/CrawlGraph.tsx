@@ -12,7 +12,7 @@ import {
 	useEdgesState,
 	useNodesState,
 } from '@xyflow/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { messages } from '@/i18n/messages';
 import { handlePositionsForDirection } from '@/lib/dagreLayout';
 import {
@@ -29,6 +29,21 @@ import { UrlNode, type UrlNodeData } from './UrlNode';
 
 const nodeTypes = { urlNode: UrlNode };
 const graphFitViewOptions = { padding: 0.2, minZoom: GRAPH_MIN_ZOOM };
+
+function flowNodeDataEqual(a: UrlNodeData, b: UrlNodeData): boolean {
+	return (
+		a.label === b.label &&
+		a.status === b.status &&
+		a.selected === b.selected &&
+		a.detailExpanded === b.detailExpanded &&
+		a.subtreeCollapsed === b.subtreeCollapsed &&
+		a.hasChildren === b.hasChildren &&
+		a.layoutDirection === b.layoutDirection &&
+		a.grayed === b.grayed &&
+		a.url === b.url &&
+		a.diffKinds?.join('\0') === b.diffKinds?.join('\0')
+	);
+}
 
 export function CrawlGraph() {
 	const proOptions = { hideAttribution: true };
@@ -57,6 +72,9 @@ export function CrawlGraph() {
 		id?: string;
 	} | null>(null);
 
+	const skipNodesSyncRef = useRef(false);
+	const prevFlowNodesRef = useRef<Map<string, Node<UrlNodeData>>>(new Map());
+
 	const diff: WorkspaceDiff | undefined = ws
 		? workspaceDiffCache[ws.id]
 		: undefined;
@@ -67,38 +85,78 @@ export function CrawlGraph() {
 	}, [ws]);
 
 	const flowNodes: Node<UrlNodeData>[] = useMemo(() => {
-		if (!ws) return [];
+		if (!ws) {
+			prevFlowNodesRef.current = new Map();
+			return [];
+		}
 		const direction = ws.graphLayoutDirection ?? 'LR';
 		const handles = handlePositionsForDirection(direction);
-		return ws.nodes
+		const prevById = prevFlowNodesRef.current;
+		const nextById = new Map<string, Node<UrlNodeData>>();
+		const collapsedRoots = ws.collapsedNodeIds ?? [];
+
+		const result = ws.nodes
 			.filter((n) => !hiddenIds.has(n.id))
 			.map((n) => {
 				const nodeDiff = diff?.nodes.find((d) => d.nodeId === n.id);
 				const grayed = isExcludedSubtree(n.id, ws.nodes, ws.edges);
-				const collapsedRoots = ws.collapsedNodeIds ?? [];
-				return {
+				const selected = selectedNodeIds.includes(n.id);
+				const data: UrlNodeData = {
+					label: n.label,
+					status: n.status,
+					selected,
+					detailExpanded: (ws.expandedDetailNodeIds ?? []).includes(n.id),
+					subtreeCollapsed: collapsedRoots.includes(n.id),
+					hasChildren: hasChildNodes(n.id, ws.edges),
+					layoutDirection: direction,
+					grayed,
+					diffKinds: nodeDiff?.kinds,
+					url: n.urlNormalized,
+				};
+
+				const prev = prevById.get(n.id);
+				if (
+					prev &&
+					prev.position.x === n.position.x &&
+					prev.position.y === n.position.y &&
+					prev.selected === selected &&
+					prev.sourcePosition === handles.source &&
+					prev.targetPosition === handles.target &&
+					flowNodeDataEqual(prev.data, data)
+				) {
+					nextById.set(n.id, prev);
+					return prev;
+				}
+
+				if (
+					prev &&
+					prev.selected === selected &&
+					prev.sourcePosition === handles.source &&
+					prev.targetPosition === handles.target &&
+					flowNodeDataEqual(prev.data, data)
+				) {
+					const reused: Node<UrlNodeData> = { ...prev, position: n.position };
+					nextById.set(n.id, reused);
+					return reused;
+				}
+
+				const node: Node<UrlNodeData> = {
 					id: n.id,
 					type: 'urlNode',
 					position: n.position,
-					selected: selectedNodeIds.includes(n.id),
+					selected,
 					sourcePosition: handles.source,
 					targetPosition: handles.target,
 					hidden: false,
 					selectable: true,
-					data: {
-						label: n.label,
-						status: n.status,
-						selected: selectedNodeIds.includes(n.id),
-						detailExpanded: (ws.expandedDetailNodeIds ?? []).includes(n.id),
-						subtreeCollapsed: collapsedRoots.includes(n.id),
-						hasChildren: hasChildNodes(n.id, ws.edges),
-						layoutDirection: direction,
-						grayed,
-						diffKinds: nodeDiff?.kinds,
-						url: n.urlNormalized,
-					},
+					data,
 				};
+				nextById.set(n.id, node);
+				return node;
 			});
+
+		prevFlowNodesRef.current = nextById;
+		return result;
 	}, [ws, selectedNodeIds, hiddenIds, diff]);
 
 	const flowEdges: Edge[] = useMemo(() => {
@@ -117,6 +175,10 @@ export function CrawlGraph() {
 	const [edges, setEdges, onEdgesChange] = useEdgesState(flowEdges);
 
 	useEffect(() => {
+		if (skipNodesSyncRef.current) {
+			skipNodesSyncRef.current = false;
+			return;
+		}
 		setNodes(flowNodes);
 	}, [flowNodes, setNodes]);
 
@@ -129,6 +191,7 @@ export function CrawlGraph() {
 			setNodes((nds) => applyNodeChanges(changes, nds));
 			for (const ch of changes) {
 				if (ch.type === 'position' && ch.position && !ch.dragging) {
+					skipNodesSyncRef.current = true;
 					updateNodePosition(ch.id, ch.position);
 				}
 			}
