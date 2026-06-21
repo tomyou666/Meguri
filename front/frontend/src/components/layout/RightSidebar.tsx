@@ -309,7 +309,7 @@ function NodeResultPanel({
 					</Button>
 				</ActionTooltip>
 			</div>
-			<ScrollArea className='flex-1 pb-3'>
+			<ScrollArea className='flex-1 py-3'>
 				{showNodeSettings ? (
 					<ConfigEditor
 						layer='node'
