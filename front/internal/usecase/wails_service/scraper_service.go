@@ -4,10 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 
@@ -938,78 +934,20 @@ func resultToDTO(res *runner.Result) *model.CrawlNodeResultDTO {
 	return dto
 }
 
-const robotsFetchTimeout = 30 * time.Second
-
 // FetchRobotsTxt は host の robots.txt を取得する。
 //
 // baseURL は scheme 推定用（ノード URL）。空の場合は https を使用する。
-func (s *ScraperService) FetchRobotsTxt(host, baseURL string) (model.RobotsTxtInfoDTO, error) {
-	host = strings.TrimSpace(strings.ToLower(host))
-	if host == "" {
-		return model.RobotsTxtInfoDTO{}, fmt.Errorf("host is required")
-	}
-
-	scheme := "https"
-	if baseURL != "" {
-		if u, err := url.Parse(baseURL); err == nil && u.Scheme != "" {
-			scheme = u.Scheme
-		}
-	}
-
-	robotsURL := fmt.Sprintf("%s://%s/robots.txt", scheme, host)
-	ctx, cancel := context.WithTimeout(context.Background(), robotsFetchTimeout)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, robotsURL, nil)
+// appDefaults と wsSettings は MergeUIConfigLayers 用の PartialConfig JSON。
+func (s *ScraperService) FetchRobotsTxt(host, baseURL string, appDefaults, wsSettings json.RawMessage) (model.RobotsTxtInfoDTO, error) {
+	res, err := runner.FetchRobotsTxt(context.Background(), host, baseURL, appDefaults, wsSettings)
 	if err != nil {
-		return model.RobotsTxtInfoDTO{
-			Host:   host,
-			Status: "error",
-			Error:  err.Error(),
-		}, nil
+		return model.RobotsTxtInfoDTO{}, err
 	}
-	req.Header.Set("User-Agent", "scraperbot/0.1")
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return model.RobotsTxtInfoDTO{
-			Host:   host,
-			Status: "error",
-			Error:  err.Error(),
-		}, nil
-	}
-	defer res.Body.Close()
-
-	bodyBytes, err := io.ReadAll(io.LimitReader(res.Body, 512*1024))
-	if err != nil {
-		return model.RobotsTxtInfoDTO{
-			Host:       host,
-			Status:     "error",
-			StatusCode: res.StatusCode,
-			Error:      err.Error(),
-		}, nil
-	}
-
-	if res.StatusCode == http.StatusNotFound {
-		return model.RobotsTxtInfoDTO{
-			Host:       host,
-			Status:     "not_found",
-			StatusCode: res.StatusCode,
-		}, nil
-	}
-	if res.StatusCode < 200 || res.StatusCode >= 400 {
-		return model.RobotsTxtInfoDTO{
-			Host:       host,
-			Status:     "error",
-			StatusCode: res.StatusCode,
-			Error:      fmt.Sprintf("HTTP %d", res.StatusCode),
-		}, nil
-	}
-
 	return model.RobotsTxtInfoDTO{
-		Host:       host,
-		Status:     "found",
+		Host:       res.Host,
+		Status:     res.Status,
 		StatusCode: res.StatusCode,
-		Body:       string(bodyBytes),
+		Body:       res.Body,
+		Error:      res.Error,
 	}, nil
 }

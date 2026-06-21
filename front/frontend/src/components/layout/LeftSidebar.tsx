@@ -54,6 +54,7 @@ export function LeftSidebarContent() {
 	const activeWorkspace = useAppStore((s) =>
 		s.workspaces.find((w) => w.id === s.activeWorkspaceId),
 	);
+	const appDefaults = useAppStore((s) => s.appDefaults);
 	const [wsSettingsOpen, setWsSettingsOpen] = useState(false);
 	const [diffDialogWs, setDiffDialogWs] = useState<string | null>(null);
 
@@ -214,7 +215,11 @@ export function LeftSidebarContent() {
 					</div>
 					<ScrollArea className='flex-1 px-1 pb-2'>
 						{activeWorkspace ? (
-							<DomainStatusPanel nodes={activeWorkspace.nodes} />
+							<DomainStatusPanel
+								nodes={activeWorkspace.nodes}
+								appDefaults={appDefaults}
+								wsSettings={activeWorkspace.settings}
+							/>
 						) : (
 							<p className='px-2 py-2 text-xs text-muted-foreground'>
 								{messages.sidebar.emptyDomains}

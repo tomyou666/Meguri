@@ -1,11 +1,14 @@
-package wails_service
+package runner_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"scraperbot/pkg/runner"
 )
 
 // testRobotsConfigLayer は httptest 向けの最小 HTTP fetcher 設定を返す。
@@ -14,9 +17,8 @@ func testRobotsConfigLayer(t *testing.T) json.RawMessage {
 	return json.RawMessage(`{"plugins":{"fetcher":"http"},"request":{"timeout":"10s","retry_count":0}}`)
 }
 
-// FetchRobotsTxt は runner 委譲で HTTP 応答パターンを検証する。
+// TestFetchRobotsTxt は P3 Fetcher 経由の robots.txt 取得パターンを検証する。
 func TestFetchRobotsTxt(t *testing.T) {
-	svc := &ScraperService{}
 	cfgLayer := testRobotsConfigLayer(t)
 
 	t.Run("正常系: 200 応答は found と body を返す", func(t *testing.T) {
@@ -30,14 +32,14 @@ func TestFetchRobotsTxt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		info, err := svc.FetchRobotsTxt(u.Host, srv.URL+"/seed", cfgLayer, nil)
+		res, err := runner.FetchRobotsTxt(context.Background(), u.Host, srv.URL+"/seed", cfgLayer)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if info.Status != "found" {
-			t.Fatalf("status=%q", info.Status)
+		if res.Status != "found" {
+			t.Fatalf("status=%q", res.Status)
 		}
-		if info.Body == "" {
+		if res.Body == "" {
 			t.Fatal("expected body")
 		}
 	})
@@ -52,17 +54,17 @@ func TestFetchRobotsTxt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		info, err := svc.FetchRobotsTxt(u.Host, srv.URL+"/seed", cfgLayer, nil)
+		res, err := runner.FetchRobotsTxt(context.Background(), u.Host, srv.URL+"/seed", cfgLayer)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if info.Status != "not_found" {
-			t.Fatalf("status=%q", info.Status)
+		if res.Status != "not_found" {
+			t.Fatalf("status=%q", res.Status)
 		}
 	})
 
 	t.Run("異常系: host 未指定は Go error", func(t *testing.T) {
-		_, err := svc.FetchRobotsTxt("", "https://example.com/seed", cfgLayer, nil)
+		_, err := runner.FetchRobotsTxt(context.Background(), "", "https://example.com/seed", cfgLayer)
 		if err == nil {
 			t.Fatal("expected error")
 		}

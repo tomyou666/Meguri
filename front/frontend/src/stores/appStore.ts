@@ -650,9 +650,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			get,
 			(workspaces) =>
 				workspaces.map((w) =>
-					w.id !== ws.id
-						? w
-						: { ...w, nodes: applyDagreLayout(w, direction) },
+					w.id !== ws.id ? w : { ...w, nodes: applyDagreLayout(w, direction) },
 				),
 			{ persist: { kind: 'workspace' } },
 		);
@@ -902,9 +900,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const getWs = () => get().getActiveWorkspace()!;
 
 		const nodeIds =
-			mode === 4
-				? (override?.nodeIds ?? state.selectedNodeIds)
-				: undefined;
+			mode === 4 ? (override?.nodeIds ?? state.selectedNodeIds) : undefined;
 
 		runId = await scraperPort.startCrawl({
 			workspaceId: ws.id,

@@ -12,6 +12,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as json$0 from "../../../../encoding/json/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as application$0 from "../../../../github.com/wailsapp/wails/v3/pkg/application/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -21,9 +24,10 @@ import * as model$0 from "../../model/models.js";
  * FetchRobotsTxt は host の robots.txt を取得する。
  * 
  * baseURL は scheme 推定用（ノード URL）。空の場合は https を使用する。
+ * appDefaults と wsSettings は MergeUIConfigLayers 用の PartialConfig JSON。
  */
-export function FetchRobotsTxt(host: string, baseURL: string): $CancellablePromise<model$0.RobotsTxtInfoDTO> {
-    return $Call.ByID(1213100313, host, baseURL).then(($result: any) => {
+export function FetchRobotsTxt(host: string, baseURL: string, appDefaults: json$0.RawMessage, wsSettings: json$0.RawMessage): $CancellablePromise<model$0.RobotsTxtInfoDTO> {
+    return $Call.ByID(1213100313, host, baseURL, appDefaults, wsSettings).then(($result: any) => {
         return $$createType0($result);
     });
 }

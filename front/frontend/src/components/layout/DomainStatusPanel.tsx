@@ -12,6 +12,7 @@ import {
 	robotsTargetsKey,
 } from '@/lib/domainStats';
 import { cn } from '@/lib/utils';
+import type { PartialConfig } from '@/types/config';
 import type { GraphNode } from '@/types/graph';
 import * as ScraperService from '../../../bindings/scraperbot-front/internal/usecase/wails_service/scraperservice';
 
@@ -26,6 +27,8 @@ type RobotsInfo = {
 
 type DomainStatusPanelProps = {
 	nodes: GraphNode[];
+	appDefaults: PartialConfig;
+	wsSettings: PartialConfig;
 };
 
 const STATUS_BADGE: Record<
@@ -50,7 +53,11 @@ function useSnapshotWhenKeyChanges<T>(value: T, key: string): T {
 	return snapshotRef.current;
 }
 
-export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
+export function DomainStatusPanel({
+	nodes,
+	appDefaults,
+	wsSettings,
+}: DomainStatusPanelProps) {
 	const statusKey = useMemo(() => domainStatusKey(nodes), [nodes]);
 	const statusNodes = useSnapshotWhenKeyChanges(nodes, statusKey);
 	const hostNodes = useMemo(() => groupNodesByHost(statusNodes), [statusNodes]);
@@ -110,7 +117,12 @@ export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
 		void Promise.allSettled(
 			hostsToFetch.map(async (host) => {
 				const baseURL = targetsSnapshot.get(host)!;
-				const info = await ScraperService.FetchRobotsTxt(host, baseURL);
+				const info = await ScraperService.FetchRobotsTxt(
+					host,
+					baseURL,
+					appDefaults,
+					wsSettings,
+				);
 				return { host, info };
 			}),
 		).then((results) => {
@@ -144,7 +156,7 @@ export function DomainStatusPanel({ nodes }: DomainStatusPanelProps) {
 				return next;
 			});
 		});
-	}, [fetchTargets]);
+	}, [fetchTargets, appDefaults, wsSettings]);
 
 	if (hosts.length === 0) {
 		return (
