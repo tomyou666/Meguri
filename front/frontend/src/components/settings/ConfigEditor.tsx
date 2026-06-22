@@ -15,6 +15,12 @@ type ConfigEditorProps = {
 	settings: PartialConfig;
 	onSave: (settings: PartialConfig) => Promise<boolean>;
 	compact?: boolean;
+	/** 省略時 true。false のとき PDF 設定タブを非表示にする。 */
+	showPdfTab?: boolean;
+	/** 省略時 true。false のとき HTTP 設定タブを非表示にする。 */
+	showRequestTab?: boolean;
+	/** 省略時 true。false のときクロール設定タブを非表示にする。 */
+	showCrawlTab?: boolean;
 };
 
 /** ドラフト編集 + 入力時バリデーション + 保存ボタン */
@@ -23,6 +29,9 @@ export function ConfigEditor({
 	settings,
 	onSave,
 	compact,
+	showPdfTab = true,
+	showRequestTab = true,
+	showCrawlTab = true,
 }: ConfigEditorProps) {
 	const [draft, setDraft] = useState(settings);
 	const [saveErrors, setSaveErrors] = useState<string[]>([]);
@@ -67,6 +76,9 @@ export function ConfigEditor({
 				onChange={setDraft}
 				fieldErrors={fieldErrors}
 				compact={compact}
+				showPdfTab={showPdfTab}
+				showRequestTab={showRequestTab}
+				showCrawlTab={showCrawlTab}
 			/>
 			{saveErrors.length > 0 && (
 				<ul className='rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-destructive'>

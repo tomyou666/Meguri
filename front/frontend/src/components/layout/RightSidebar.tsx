@@ -17,6 +17,7 @@ import {
 	previewTabLabel,
 	type TransformerFormat,
 } from '@/lib/previewFormats';
+import { isPdfResourceResult } from '@/lib/crawlResultUtils';
 import { useAppStore } from '@/stores/appStore';
 import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';
@@ -280,6 +281,8 @@ function NodeResultPanel({
 	const persistNodeSettings = useAppStore((s) => s.persistNodeSettings);
 	const [tab, setTab] = useState<ContentFormat>(formats[0] ?? 'markdown');
 	const [showNodeSettings, setShowNodeSettings] = useState(false);
+	const displayResult = result ?? node.lastResult;
+	const showPdfTab = isPdfResourceResult(displayResult);
 
 	return (
 		<Tabs
@@ -315,6 +318,9 @@ function NodeResultPanel({
 						layer='node'
 						settings={node.nodeSettings ?? {}}
 						compact
+						showPdfTab={showPdfTab}
+						showRequestTab={false}
+						showCrawlTab={false}
 						onSave={(settings) => persistNodeSettings(node.id, settings)}
 					/>
 				) : (

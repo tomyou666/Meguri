@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { ConfigField } from '@/components/settings/ConfigField';
 import {
 	type FieldErrors,
@@ -660,8 +660,18 @@ const TAB_LABELS: Record<string, string> = {
 	output: t.output,
 };
 
-function tabsForLayer(layer: ConfigLayer, showMeta: boolean): string[] {
-	return [
+type TabVisibilityOptions = {
+	showPdfTab?: boolean;
+	showRequestTab?: boolean;
+	showCrawlTab?: boolean;
+};
+
+function tabsForLayer(
+	layer: ConfigLayer,
+	showMeta: boolean,
+	options?: TabVisibilityOptions,
+): string[] {
+	const tabs = [
 		...(showMeta ? ['general'] : []),
 		'request',
 		'content',
@@ -670,6 +680,12 @@ function tabsForLayer(layer: ConfigLayer, showMeta: boolean): string[] {
 		...(layer === 'app' || layer === 'workspace' ? ['plugins'] : []),
 		...(layer === 'app' ? ['output'] : []),
 	];
+	return tabs.filter((key) => {
+		if (key === 'pdf' && options?.showPdfTab === false) return false;
+		if (key === 'request' && options?.showRequestTab === false) return false;
+		if (key === 'crawl' && options?.showCrawlTab === false) return false;
+		return true;
+	});
 }
 
 export function TabsConfig({
@@ -681,6 +697,9 @@ export function TabsConfig({
 	onMetaChange,
 	layer = 'app',
 	compact,
+	showPdfTab = true,
+	showRequestTab = true,
+	showCrawlTab = true,
 }: {
 	settings: PartialConfig;
 	onChange: (s: PartialConfig) => void;
@@ -690,10 +709,27 @@ export function TabsConfig({
 	onMetaChange?: (m: { name: string; seedUrl: string }) => void;
 	layer?: ConfigLayer;
 	compact?: boolean;
+	showPdfTab?: boolean;
+	showRequestTab?: boolean;
+	showCrawlTab?: boolean;
 }) {
 	const [tab, setTab] = useState('request');
-	const tabs = tabsForLayer(layer, !!showMeta);
+	const tabs = useMemo(
+		() =>
+			tabsForLayer(layer, !!showMeta, {
+				showPdfTab,
+				showRequestTab,
+				showCrawlTab,
+			}),
+		[layer, showMeta, showPdfTab, showRequestTab, showCrawlTab],
+	);
 	const tabBtn = compact ? 'px-1.5 py-0.5 text-[9px]' : 'px-2 py-1 text-xs';
+
+	useEffect(() => {
+		if (!tabs.includes(tab)) {
+			setTab(tabs.includes('content') ? 'content' : (tabs[0] ?? 'request'));
+		}
+	}, [tab, tabs]);
 
 	return (
 		<div className='flex flex-col gap-2'>
