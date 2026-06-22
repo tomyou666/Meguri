@@ -9,6 +9,7 @@ import (
 
 	"scraperbot-front/internal/app"
 	"scraperbot-front/internal/logger"
+	"scraperbot-front/internal/usecase/wails_service"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -46,8 +47,10 @@ func main() {
 
 	wailsApp.ProjectService.SetApp(webApp)
 	wailsApp.ScraperService.SetApp(webApp)
+	wailsApp.StoreService.SetApp(webApp)
 
-	webApp.Window.NewWithOptions(application.WebviewWindowOptions{
+	mainWindow := webApp.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:             "main",
 		Title:            "scraperbot",
 		Width:            1024,
 		Height:           680,
@@ -60,6 +63,7 @@ func main() {
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
 	})
+	wails_service.WireMainWindow(wailsApp.StoreService, mainWindow)
 
 	if err := webApp.Run(); err != nil {
 		log.Fatal(err)

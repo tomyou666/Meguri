@@ -8,20 +8,21 @@ const TableNameNodeResult = "node_results"
 
 // NodeResult mapped from table <node_results>
 type NodeResult struct {
-	ID           *string `gorm:"column:id;primaryKey" json:"id"`
-	RunID        string  `gorm:"column:run_id;not null" json:"run_id"`
-	WorkspaceID  string  `gorm:"column:workspace_id;not null" json:"workspace_id"`
-	NodeID       string  `gorm:"column:node_id;not null" json:"node_id"`
-	URL          string  `gorm:"column:url;not null" json:"url"`
-	Markdown     *string `gorm:"column:markdown" json:"markdown"`
-	HTML         *string `gorm:"column:html" json:"html"`
-	RawHTML      *string `gorm:"column:raw_html" json:"raw_html"`
-	JSONBody     *string `gorm:"column:json_body" json:"json_body"`
-	LinksJSON    *string `gorm:"column:links_json" json:"links_json"`
-	MetadataJSON *string `gorm:"column:metadata_json" json:"metadata_json"`
-	Error        *string `gorm:"column:error" json:"error"`
-	FetchedAt    string  `gorm:"column:fetched_at;not null" json:"fetched_at"`
-	ContentHash  *string `gorm:"column:content_hash" json:"content_hash"`
+	ID             *string `gorm:"column:id;primaryKey" json:"id"`
+	RunID          string  `gorm:"column:run_id;not null" json:"run_id"`
+	WorkspaceID    string  `gorm:"column:workspace_id;not null" json:"workspace_id"`
+	NodeID         string  `gorm:"column:node_id;not null" json:"node_id"`
+	URL            string  `gorm:"column:url;not null" json:"url"`
+	Markdown       *string `gorm:"column:markdown" json:"markdown"`
+	HTML           *string `gorm:"column:html" json:"html"`
+	RawHTML        *string `gorm:"column:raw_html" json:"raw_html"`
+	JSONBody       *string `gorm:"column:json_body" json:"json_body"`
+	LinksJSON      *string `gorm:"column:links_json" json:"links_json"`
+	MetadataJSON   *string `gorm:"column:metadata_json" json:"metadata_json"`
+	Error          *string `gorm:"column:error" json:"error"`
+	FetchedAt      string  `gorm:"column:fetched_at;not null" json:"fetched_at"`
+	ContentHash    *string `gorm:"column:content_hash" json:"content_hash"`
+	ManuallyEdited int32   `gorm:"column:manually_edited;not null" json:"manually_edited"`
 }
 
 // TableName NodeResult's table name

@@ -148,6 +148,7 @@ CREATE INDEX idx_crawl_runs_workspace_started ON crawl_runs(workspace_id, starte
 --   fetched_at:    取得日時（ISO 8601）
 --   content_hash:  Phase4 content 差分: canonical markdown の SHA-256 十六進
 --                  算法: UTF-8( trim + LF 正規化した markdown ) の SHA-256（front/frontend/src/lib/contentHash.ts）
+--   manually_edited: ユーザー手動編集済みフラグ（1 = 手動編集）
 -- ---------------------------------------------------------------------------
 CREATE TABLE node_results (
     id              TEXT PRIMARY KEY,
@@ -164,6 +165,7 @@ CREATE TABLE node_results (
     error           TEXT,
     fetched_at      TEXT NOT NULL,
     content_hash    TEXT,
+    manually_edited INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (run_id) REFERENCES crawl_runs(id) ON DELETE CASCADE,
     FOREIGN KEY (workspace_id, node_id)
         REFERENCES graph_nodes(workspace_id, id) ON DELETE CASCADE,

@@ -1,15 +1,19 @@
 import { Events } from '@wailsio/runtime';
 import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
 import {
+	crawlResultFromDTO,
+	crawlResultToDTO,
 	partialConfigToRaw,
 	workspaceFromDTO,
 	workspaceToDTO,
 } from '@/lib/wailsMappers';
 import type {
+	MaximizedNodeResultSnapshot,
 	MergeResultsResponse,
 	SaveSettingsResponse,
 	ScraperPort,
 	StartCrawlParams,
+	UpdateNodeResultPatch,
 	WorkspaceDiff,
 	WorkspaceListItem,
 } from '@/types/adapter';
@@ -20,7 +24,12 @@ import type {
 	LinkSkipReason,
 } from '@/types/crawl';
 import type { Workspace } from '@/types/workspace';
-import { StartCrawlRequest } from '../../bindings/scraperbot-front/internal/model/models';
+import {
+	MaximizedNodeResultRequest,
+	StartCrawlRequest,
+	UpdateNodeResultPatchDTO,
+	UpdateNodeResultRequest,
+} from '../../bindings/scraperbot-front/internal/model/models.js';
 import * as ScraperService from '../../bindings/scraperbot-front/internal/usecase/wails_service/scraperservice';
 import * as StoreService from '../../bindings/scraperbot-front/internal/usecase/wails_service/storeservice';
 
@@ -136,14 +145,7 @@ export class CompositeScraperAdapter implements ScraperPort {
 	): Promise<CrawlResultPreview | null> {
 		const dto = await StoreService.GetNodeResult(workspaceId, nodeId);
 		if (!dto) return null;
-		return {
-			url: dto.url,
-			markdown: dto.markdown,
-			html: dto.html,
-			raw_html: dto.rawHtml,
-			links: dto.links,
-			metadata: dto.metadata,
-		};
+		return crawlResultFromDTO(dto);
 	}
 
 	async getNodeResults(
@@ -151,14 +153,57 @@ export class CompositeScraperAdapter implements ScraperPort {
 		nodeIds: string[],
 	): Promise<CrawlResultPreview[]> {
 		const rows = await StoreService.GetNodeResults(workspaceId, nodeIds);
-		return rows.map((dto) => ({
-			url: dto.url,
-			markdown: dto.markdown,
-			html: dto.html,
-			raw_html: dto.rawHtml,
-			links: dto.links,
-			metadata: dto.metadata,
-		}));
+		return rows.map((dto) => crawlResultFromDTO(dto));
+	}
+
+	async updateNodeResult(
+		workspaceId: string,
+		nodeId: string,
+		patch: UpdateNodeResultPatch,
+	): Promise<CrawlResultPreview | null> {
+		const patchDto = new UpdateNodeResultPatchDTO();
+		if (patch.markdown !== undefined) patchDto.markdown = patch.markdown;
+		if (patch.html !== undefined) patchDto.html = patch.html;
+		if (patch.raw_html !== undefined) patchDto.rawHtml = patch.raw_html;
+		if (patch.json !== undefined) patchDto.jsonBody = patch.json;
+		const dto = await StoreService.UpdateNodeResult(
+			new UpdateNodeResultRequest({
+				workspaceId,
+				nodeId,
+				patch: patchDto,
+			}),
+		);
+		return dto ? crawlResultFromDTO(dto) : null;
+	}
+
+	async showMaximizedNodeResult(
+		snapshot: MaximizedNodeResultSnapshot,
+	): Promise<void> {
+		await StoreService.ShowMaximizedNodeResult(
+			new MaximizedNodeResultRequest({
+				title: snapshot.title,
+				activeFormat: snapshot.activeFormat,
+				markdownView: snapshot.markdownView,
+				formats: snapshot.formats,
+				result: crawlResultToDTO(snapshot.result),
+			}),
+		);
+	}
+
+	async getMaximizedNodeResult(): Promise<MaximizedNodeResultSnapshot | null> {
+		try {
+			const dto = await StoreService.GetMaximizedNodeResult();
+			if (!dto?.result) return null;
+			return {
+				title: dto.title,
+				activeFormat: dto.activeFormat,
+				markdownView: dto.markdownView === 'source' ? 'source' : 'preview',
+				formats: dto.formats ?? [],
+				result: crawlResultFromDTO(dto.result),
+			};
+		} catch {
+			return null;
+		}
 	}
 
 	async mergeResults(

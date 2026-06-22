@@ -15,6 +15,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as json$0 from "../../../../encoding/json/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as application$0 from "../../../../github.com/wailsapp/wails/v3/pkg/application/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as model$0 from "../../model/models.js";
 
 /**
@@ -79,11 +82,20 @@ export function GetAppDefaults(): $CancellablePromise<json$0.RawMessage> {
 }
 
 /**
+ * GetMaximizedNodeResult は最大化ウィンドウ用の直近スナップショットを返す。
+ */
+export function GetMaximizedNodeResult(): $CancellablePromise<model$0.MaximizedNodeResultRequest> {
+    return $Call.ByID(3226355490).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
  * GetNodeResult はノード結果を返す。
  */
 export function GetNodeResult(workspaceID: string, nodeID: string): $CancellablePromise<model$0.CrawlResultDTO | null> {
     return $Call.ByID(2230381414, workspaceID, nodeID).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
@@ -92,7 +104,7 @@ export function GetNodeResult(workspaceID: string, nodeID: string): $Cancellable
  */
 export function GetNodeResults(workspaceID: string, nodeIDs: string[]): $CancellablePromise<model$0.CrawlResultDTO[]> {
     return $Call.ByID(1547833871, workspaceID, nodeIDs).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType5($result);
     });
 }
 
@@ -101,7 +113,7 @@ export function GetNodeResults(workspaceID: string, nodeIDs: string[]): $Cancell
  */
 export function GetWorkspaceDiff(workspaceID: string): $CancellablePromise<model$0.WorkspaceDiffDTO> {
     return $Call.ByID(962553539, workspaceID).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType6($result);
     });
 }
 
@@ -110,7 +122,7 @@ export function GetWorkspaceDiff(workspaceID: string): $CancellablePromise<model
  */
 export function ListWorkspaces(): $CancellablePromise<model$0.WorkspaceListItemDTO[]> {
     return $Call.ByID(2887877563).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType8($result);
     });
 }
 
@@ -128,7 +140,7 @@ export function LoadWorkspace(id: string): $CancellablePromise<model$0.Workspace
  */
 export function MergeResults(workspaceID: string, nodeIDs: string[], formats: string[]): $CancellablePromise<model$0.MergeResultsResponseDTO> {
     return $Call.ByID(1725193583, workspaceID, nodeIDs, formats).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType9($result);
     });
 }
 
@@ -151,7 +163,7 @@ export function PatchGraphNodeStatus(req: model$0.PatchGraphNodeStatusRequest): 
  */
 export function SaveAppDefaults(config: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(3060042429, config).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType10($result);
     });
 }
 
@@ -160,7 +172,7 @@ export function SaveAppDefaults(config: json$0.RawMessage): $CancellablePromise<
  */
 export function SaveNodeSettings(workspaceID: string, nodeID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(3533873137, workspaceID, nodeID, settings).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType10($result);
     });
 }
 
@@ -190,8 +202,15 @@ export function SaveWorkspace(ws: model$0.WorkspaceDTO): $CancellablePromise<voi
  */
 export function SaveWorkspaceSettings(workspaceID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(2942997632, workspaceID, settings).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType10($result);
     });
+}
+
+/**
+ * SetApp は Wails App を後から注入する（最大化ウィンドウ用）。
+ */
+export function SetApp(app: application$0.App | null): $CancellablePromise<void> {
+    return $Call.ByID(2657825710, app);
 }
 
 /**
@@ -199,6 +218,22 @@ export function SaveWorkspaceSettings(workspaceID: string, settings: json$0.RawM
  */
 export function SetAppDefaults(config: json$0.RawMessage): $CancellablePromise<void> {
     return $Call.ByID(3135309632, config);
+}
+
+/**
+ * ShowMaximizedNodeResult は別 WebviewWindow でノード結果を拡大表示する。
+ */
+export function ShowMaximizedNodeResult(req: model$0.MaximizedNodeResultRequest): $CancellablePromise<void> {
+    return $Call.ByID(510085547, req);
+}
+
+/**
+ * UpdateNodeResult はノード結果の手動編集を保存する。
+ */
+export function UpdateNodeResult(req: model$0.UpdateNodeResultRequest): $CancellablePromise<model$0.CrawlResultDTO | null> {
+    return $Call.ByID(2763335505, req).then(($result: any) => {
+        return $$createType4($result);
+    });
 }
 
 /**
@@ -211,11 +246,12 @@ export function UpsertDiscoveredGraph(req: model$0.UpsertDiscoveredGraphRequest)
 // Private type creation functions
 const $$createType0 = model$0.WorkspaceDTO.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = model$0.CrawlResultDTO.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = $Create.Array($$createType2);
-const $$createType5 = model$0.WorkspaceDiffDTO.createFrom;
-const $$createType6 = model$0.WorkspaceListItemDTO.createFrom;
-const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = model$0.MergeResultsResponseDTO.createFrom;
-const $$createType9 = model$0.SaveSettingsResponseDTO.createFrom;
+const $$createType2 = model$0.MaximizedNodeResultRequest.createFrom;
+const $$createType3 = model$0.CrawlResultDTO.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $Create.Array($$createType3);
+const $$createType6 = model$0.WorkspaceDiffDTO.createFrom;
+const $$createType7 = model$0.WorkspaceListItemDTO.createFrom;
+const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = model$0.MergeResultsResponseDTO.createFrom;
+const $$createType10 = model$0.SaveSettingsResponseDTO.createFrom;

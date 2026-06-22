@@ -61,12 +61,48 @@ type SaveSettingsResponseDTO struct {
 
 // CrawlResultDTO はノード結果プレビュー。
 type CrawlResultDTO struct {
-	URL      string            `json:"url"`
-	Markdown string            `json:"markdown,omitempty"`
-	HTML     string            `json:"html,omitempty"`
-	RawHTML  string            `json:"rawHtml,omitempty"`
-	Links    []string          `json:"links,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	URL            string            `json:"url"`
+	Markdown       string            `json:"markdown,omitempty"`
+	HTML           string            `json:"html,omitempty"`
+	RawHTML        string            `json:"rawHtml,omitempty"`
+	JSONBody       string            `json:"jsonBody,omitempty"`
+	Links          []string          `json:"links,omitempty"`
+	Metadata       map[string]string `json:"metadata,omitempty"`
+	ManuallyEdited bool              `json:"manuallyEdited,omitempty"`
+}
+
+// UpdateNodeResultPatchDTO はノード結果の部分更新フィールド。
+type UpdateNodeResultPatchDTO struct {
+	Markdown *string `json:"markdown,omitempty"`
+	HTML     *string `json:"html,omitempty"`
+	RawHTML  *string `json:"rawHtml,omitempty"`
+	JSONBody *string `json:"jsonBody,omitempty"`
+}
+
+// UpdateNodeResultRequest はノード結果手動編集の保存リクエスト。
+type UpdateNodeResultRequest struct {
+	WorkspaceID string                   `json:"workspaceId"`
+	NodeID      string                   `json:"nodeId"`
+	Patch       UpdateNodeResultPatchDTO `json:"patch"`
+}
+
+// MaximizedNodeResultRequest は最大化ウィンドウ表示用スナップショット。
+type MaximizedNodeResultRequest struct {
+	Title        string         `json:"title"`
+	ActiveFormat string         `json:"activeFormat"`
+	MarkdownView string         `json:"markdownView"`
+	Formats      []string       `json:"formats"`
+	Result       CrawlResultDTO `json:"result"`
+}
+
+// NodeResultContentPatch は node_results 本文列の部分更新。
+type NodeResultContentPatch struct {
+	Markdown       *string
+	HTML           *string
+	RawHTML        *string
+	JSONBody       *string
+	ContentHash    *string
+	ManuallyEdited bool
 }
 
 // MergeResultsResponseDTO はマージ結果。

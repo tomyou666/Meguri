@@ -51,6 +51,40 @@ func (s *ResultsService) GetNodeResults(ctx context.Context, workspaceID string,
 	return out, nil
 }
 
+// UpdateNodeResult はノードの最新成功結果を手動編集で更新する。
+func (s *ResultsService) UpdateNodeResult(
+	ctx context.Context,
+	req model.UpdateNodeResultRequest,
+) (*model.CrawlResultDTO, error) {
+	patch := model.NodeResultContentPatch{ManuallyEdited: true}
+	hasField := false
+	if req.Patch.Markdown != nil {
+		patch.Markdown = req.Patch.Markdown
+		hash := ContentHashFromMarkdown(*req.Patch.Markdown)
+		patch.ContentHash = &hash
+		hasField = true
+	}
+	if req.Patch.HTML != nil {
+		patch.HTML = req.Patch.HTML
+		hasField = true
+	}
+	if req.Patch.RawHTML != nil {
+		patch.RawHTML = req.Patch.RawHTML
+		hasField = true
+	}
+	if req.Patch.JSONBody != nil {
+		patch.JSONBody = req.Patch.JSONBody
+		hasField = true
+	}
+	if !hasField {
+		return nil, fmt.Errorf("no editable fields in patch")
+	}
+	if err := s.repo.UpdateLatestNodeResult(ctx, req.WorkspaceID, req.NodeID, patch); err != nil {
+		return nil, err
+	}
+	return s.GetNodeResult(ctx, req.WorkspaceID, req.NodeID)
+}
+
 // MergeResults は markdown を連結する。
 func (s *ResultsService) MergeResults(ctx context.Context, workspaceID string, nodeIDs []string, formats []string) (model.MergeResultsResponseDTO, error) {
 	if len(formats) == 0 {

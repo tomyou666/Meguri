@@ -42,6 +42,7 @@ func newNodeResult(db *gorm.DB, opts ...gen.DOOption) nodeResult {
 	_nodeResult.Error = field.NewString(tableName, "error")
 	_nodeResult.FetchedAt = field.NewString(tableName, "fetched_at")
 	_nodeResult.ContentHash = field.NewString(tableName, "content_hash")
+	_nodeResult.ManuallyEdited = field.NewInt32(tableName, "manually_edited")
 
 	_nodeResult.fillFieldMap()
 
@@ -51,21 +52,22 @@ func newNodeResult(db *gorm.DB, opts ...gen.DOOption) nodeResult {
 type nodeResult struct {
 	nodeResultDo nodeResultDo
 
-	ALL          field.Asterisk
-	ID           field.String
-	RunID        field.String
-	WorkspaceID  field.String
-	NodeID       field.String
-	URL          field.String
-	Markdown     field.String
-	HTML         field.String
-	RawHTML      field.String
-	JSONBody     field.String
-	LinksJSON    field.String
-	MetadataJSON field.String
-	Error        field.String
-	FetchedAt    field.String
-	ContentHash  field.String
+	ALL            field.Asterisk
+	ID             field.String
+	RunID          field.String
+	WorkspaceID    field.String
+	NodeID         field.String
+	URL            field.String
+	Markdown       field.String
+	HTML           field.String
+	RawHTML        field.String
+	JSONBody       field.String
+	LinksJSON      field.String
+	MetadataJSON   field.String
+	Error          field.String
+	FetchedAt      field.String
+	ContentHash    field.String
+	ManuallyEdited field.Int32
 
 	fieldMap map[string]field.Expr
 }
@@ -96,6 +98,7 @@ func (n *nodeResult) updateTableName(table string) *nodeResult {
 	n.Error = field.NewString(table, "error")
 	n.FetchedAt = field.NewString(table, "fetched_at")
 	n.ContentHash = field.NewString(table, "content_hash")
+	n.ManuallyEdited = field.NewInt32(table, "manually_edited")
 
 	n.fillFieldMap()
 
@@ -122,7 +125,7 @@ func (n *nodeResult) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (n *nodeResult) fillFieldMap() {
-	n.fieldMap = make(map[string]field.Expr, 14)
+	n.fieldMap = make(map[string]field.Expr, 15)
 	n.fieldMap["id"] = n.ID
 	n.fieldMap["run_id"] = n.RunID
 	n.fieldMap["workspace_id"] = n.WorkspaceID
@@ -137,6 +140,7 @@ func (n *nodeResult) fillFieldMap() {
 	n.fieldMap["error"] = n.Error
 	n.fieldMap["fetched_at"] = n.FetchedAt
 	n.fieldMap["content_hash"] = n.ContentHash
+	n.fieldMap["manually_edited"] = n.ManuallyEdited
 }
 
 func (n nodeResult) clone(db *gorm.DB) nodeResult {

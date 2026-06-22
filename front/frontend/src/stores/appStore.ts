@@ -27,7 +27,11 @@ import {
 	syncGraphHistory,
 	undoGraph,
 } from '@/stores/graphHistoryStore';
-import type { WorkspaceDiff } from '@/types/adapter';
+import type {
+	MaximizedNodeResultSnapshot,
+	UpdateNodeResultPatch,
+	WorkspaceDiff,
+} from '@/types/adapter';
 import type { PartialConfig } from '@/types/config';
 import type {
 	CrawlError,
@@ -209,6 +213,13 @@ interface AppState {
 	collapseAllNodes: () => void;
 	deleteSelectedNodes: () => void;
 	fetchSelectedNodeResult: () => Promise<void>;
+	updateNodeResult: (
+		nodeId: string,
+		patch: UpdateNodeResultPatch,
+	) => Promise<boolean>;
+	showMaximizedNodeResult: (
+		snapshot: MaximizedNodeResultSnapshot,
+	) => Promise<void>;
 	previewSelectedResults: () => Promise<void>;
 	mergeAllResults: () => Promise<void>;
 	mergeSelectedResults: () => Promise<void>;
@@ -1209,6 +1220,49 @@ export const useAppStore = create<AppState>((set, get) => ({
 		if (!ws || !nodeId) return;
 		const result = await scraperPort.getNodeResult(ws.id, nodeId);
 		set({ loadedNodeResult: result });
+	},
+
+	updateNodeResult: async (nodeId, patch) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return false;
+		try {
+			const updated = await scraperPort.updateNodeResult(ws.id, nodeId, patch);
+			if (!updated) {
+				notifyError(messages.right.updateFailed);
+				return false;
+			}
+			patchWorkspaces(set, get, (workspaces) =>
+				workspaces.map((w) => {
+					if (w.id !== ws.id) return w;
+					return {
+						...w,
+						nodes: w.nodes.map((n) =>
+							n.id === nodeId ? { ...n, lastResult: updated } : n,
+						),
+					};
+				}),
+			);
+			if (get().selectedNodeId === nodeId) {
+				set({ loadedNodeResult: updated });
+			}
+			notifySuccess(messages.right.updateSaved);
+			return true;
+		} catch (err) {
+			notifyError(messages.right.updateFailed, {
+				description: err instanceof Error ? err.message : String(err),
+			});
+			return false;
+		}
+	},
+
+	showMaximizedNodeResult: async (snapshot) => {
+		try {
+			await scraperPort.showMaximizedNodeResult(snapshot);
+		} catch (err) {
+			notifyError(messages.right.maximizeFailed, {
+				description: err instanceof Error ? err.message : String(err),
+			});
+		}
 	},
 
 	previewSelectedResults: async () => {

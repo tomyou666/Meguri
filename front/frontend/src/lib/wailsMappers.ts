@@ -5,7 +5,7 @@ import type { Workspace } from '@/types/workspace';
 import type {
 	CrawlResultDTO,
 	WorkspaceDTO,
-} from '../../bindings/scraperbot-front/internal/model/models';
+} from '../../bindings/scraperbot-front/internal/model/models.js';
 
 export function workspaceFromDTO(dto: WorkspaceDTO): Workspace {
 	const settings = parseJSON<PartialConfig>(dto.settings, {});
@@ -71,6 +71,20 @@ function nodeToDTO(n: GraphNode): WorkspaceDTO['nodes'][0] {
 		origin: n.origin ?? 'crawl',
 		status: n.status,
 		lastError: n.lastError,
+		lastResult: n.lastResult ? crawlResultToDTO(n.lastResult) : undefined,
+	};
+}
+
+function crawlResultToDTO(r: CrawlResultPreview): CrawlResultDTO {
+	return {
+		url: r.url,
+		markdown: r.markdown,
+		html: r.html,
+		rawHtml: r.raw_html,
+		jsonBody: r.json,
+		links: r.links,
+		metadata: r.metadata,
+		manuallyEdited: r.manuallyEdited,
 	};
 }
 
@@ -88,10 +102,14 @@ function crawlResultFromDTO(dto: CrawlResultDTO): CrawlResultPreview {
 		markdown: dto.markdown,
 		html: dto.html,
 		raw_html: dto.rawHtml,
+		json: dto.jsonBody,
 		links: dto.links,
 		metadata: dto.metadata,
+		manuallyEdited: dto.manuallyEdited,
 	};
 }
+
+export { crawlResultFromDTO, crawlResultToDTO };
 
 function parseJSON<T>(raw: unknown, fallback: T): T {
 	if (raw == null || raw === '') return fallback;

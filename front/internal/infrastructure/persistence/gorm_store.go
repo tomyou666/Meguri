@@ -199,6 +199,62 @@ func (s *Store) AppendNodeResult(ctx context.Context, row model.NodeResult) erro
 	return s.TrimNodeResults(ctx, row.WorkspaceID, row.NodeID, model.MaxNodeResultsPerNode)
 }
 
+// UpdateLatestNodeResult はノードの最新成功結果行を部分更新する。
+func (s *Store) UpdateLatestNodeResult(
+	ctx context.Context,
+	workspaceID, nodeID string,
+	patch model.NodeResultContentPatch,
+) error {
+	nr := s.q.NodeResult
+	rows, err := nr.WithContext(ctx).
+		Where(nr.WorkspaceID.Eq(workspaceID), nr.NodeID.Eq(nodeID)).
+		Order(nr.FetchedAt.Desc()).
+		Find()
+	if err != nil {
+		return err
+	}
+	var target *model.NodeResult
+	for _, row := range rows {
+		if row == nil {
+			continue
+		}
+		if row.Error != nil && *row.Error != "" {
+			continue
+		}
+		target = row
+		break
+	}
+	if target == nil || target.ID == nil {
+		return fmt.Errorf("no successful result for node %s", nodeID)
+	}
+	edited := int32(0)
+	if patch.ManuallyEdited {
+		edited = 1
+	}
+	updates := []field.AssignExpr{
+		nr.ManuallyEdited.Value(edited),
+	}
+	if patch.Markdown != nil {
+		updates = append(updates, nr.Markdown.Value(*patch.Markdown))
+	}
+	if patch.HTML != nil {
+		updates = append(updates, nr.HTML.Value(*patch.HTML))
+	}
+	if patch.RawHTML != nil {
+		updates = append(updates, nr.RawHTML.Value(*patch.RawHTML))
+	}
+	if patch.JSONBody != nil {
+		updates = append(updates, nr.JSONBody.Value(*patch.JSONBody))
+	}
+	if patch.ContentHash != nil {
+		updates = append(updates, nr.ContentHash.Value(*patch.ContentHash))
+	}
+	_, err = nr.WithContext(ctx).
+		Where(nr.ID.Eq(*target.ID)).
+		UpdateSimple(updates...)
+	return err
+}
+
 // DeleteLatestResults は各ノードの最新 1 行を削除する。
 func (s *Store) DeleteLatestResults(ctx context.Context, workspaceID string, nodeIDs []string) error {
 	nr := s.q.NodeResult

@@ -1,27 +1,22 @@
-import { PanelRightClose, PanelRightOpen, Settings } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { useMemo } from 'react';
 import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
-import { ConfigEditor } from '@/components/settings/ConfigEditor';
+import { NodeResultPanel } from '@/components/layout/node-result/NodeResultPanel';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { messages } from '@/i18n/messages';
-import { isPdfResourceResult } from '@/lib/crawlResultUtils';
 import {
 	bodySnippetForFormat,
 	getPreviewTabs,
 	getTransformerFormat,
 	mergedPreviewSettings,
-	previewTabLabel,
 	type TransformerFormat,
 } from '@/lib/previewFormats';
 import { useAppStore } from '@/stores/appStore';
-import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';
-import type { GraphNode } from '@/types/graph';
 
 function CloseRightSidebarButton({ onClick }: { onClick: () => void }) {
 	return (
@@ -150,6 +145,14 @@ export function RightSidebarContent() {
 						<Badge variant='outline' className='mt-1 text-[10px] font-normal'>
 							{messages.right.transformerBadge(transformerFormat)}
 						</Badge>
+						{(resultForDisplay ?? node.lastResult)?.manuallyEdited && (
+							<Badge
+								variant='secondary'
+								className='mt-1 text-[10px] font-normal'
+							>
+								{messages.right.manuallyEdited}
+							</Badge>
+						)}
 					</div>
 					<CloseRightSidebarButton onClick={toggleRightSidebar} />
 				</div>
@@ -268,136 +271,3 @@ export function RightSidebarContent() {
 
 /** @deprecated AppShell 内の Panel でラップするため RightSidebarContent を使用 */
 export const RightSidebar = RightSidebarContent;
-
-function NodeResultPanel({
-	node,
-	formats,
-	result,
-}: {
-	node: GraphNode;
-	formats: ContentFormat[];
-	result: CrawlResultPreview | null;
-}) {
-	const persistNodeSettings = useAppStore((s) => s.persistNodeSettings);
-	const [tab, setTab] = useState<ContentFormat>(formats[0] ?? 'markdown');
-	const [showNodeSettings, setShowNodeSettings] = useState(false);
-	const displayResult = result ?? node.lastResult;
-	const showPdfTab = isPdfResourceResult(displayResult);
-
-	return (
-		<Tabs
-			value={tab}
-			onValueChange={(v) => {
-				setTab(v as ContentFormat);
-				setShowNodeSettings(false);
-			}}
-			className='flex min-h-0 flex-1 flex-col px-3'
-		>
-			<div className='flex items-center gap-1'>
-				<TabsList className='min-w-0 flex-1'>
-					{formats.map((f) => (
-						<TabsTrigger key={f} value={f}>
-							{previewTabLabel(f)}
-						</TabsTrigger>
-					))}
-				</TabsList>
-				<ActionTooltip label={messages.right.nodeSettings}>
-					<Button
-						variant={showNodeSettings ? 'secondary' : 'ghost'}
-						size='icon-xs'
-						aria-label={messages.right.nodeSettings}
-						onClick={() => setShowNodeSettings((v) => !v)}
-					>
-						<Settings className='size-3.5' />
-					</Button>
-				</ActionTooltip>
-			</div>
-			<ScrollArea className='flex-1 py-3'>
-				{showNodeSettings ? (
-					<ConfigEditor
-						layer='node'
-						settings={node.nodeSettings ?? {}}
-						compact
-						showPdfTab={showPdfTab}
-						showRequestTab={false}
-						showCrawlTab={false}
-						onSave={(settings) => persistNodeSettings(node.id, settings)}
-					/>
-				) : (
-					formats.map((f) => (
-						<TabsContent key={f} value={f}>
-							<NodeFormatContent
-								format={f}
-								result={result ?? node.lastResult}
-							/>
-						</TabsContent>
-					))
-				)}
-			</ScrollArea>
-		</Tabs>
-	);
-}
-
-function NodeFormatContent({
-	format,
-	result,
-}: {
-	format: string;
-	result?: CrawlResultPreview;
-}) {
-	if (!result) {
-		return (
-			<p className='text-xs text-muted-foreground'>
-				{messages.right.noResultApi}
-			</p>
-		);
-	}
-	if (format === 'markdown') {
-		return (
-			<pre className='whitespace-pre-wrap font-mono text-xs'>
-				{result.markdown ?? '—'}
-			</pre>
-		);
-	}
-	if (format === 'html') {
-		return (
-			<pre className='whitespace-pre-wrap font-mono text-xs'>
-				{result.html ?? '—'}
-			</pre>
-		);
-	}
-	if (format === 'raw_html') {
-		return (
-			<pre className='whitespace-pre-wrap font-mono text-xs'>
-				{result.raw_html ?? '—'}
-			</pre>
-		);
-	}
-	if (format === 'json') {
-		return <pre className='whitespace-pre-wrap font-mono text-xs'>—</pre>;
-	}
-	if (format === 'links') {
-		return (
-			<ul className='list-inside list-disc text-xs'>
-				{(result.links ?? []).map((l) => (
-					<li key={l} className='truncate'>
-						{l}
-					</li>
-				))}
-			</ul>
-		);
-	}
-	if (format === 'metadata') {
-		return (
-			<dl className='space-y-1 text-xs'>
-				{Object.entries(result.metadata ?? {}).map(([k, v]) => (
-					<div key={k}>
-						<dt className='text-muted-foreground'>{k}</dt>
-						<dd>{v}</dd>
-					</div>
-				))}
-			</dl>
-		);
-	}
-	return <p className='text-xs text-muted-foreground'>—</p>;
-}

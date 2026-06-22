@@ -9,8 +9,10 @@ export interface CrawlResultPreview {
 	markdown?: string;
 	html?: string;
 	raw_html?: string;
+	json?: string;
 	links?: string[];
 	metadata?: Record<string, string>;
+	manuallyEdited?: boolean;
 }
 
 export type LinkSkipReason = 'duplicate_existing' | 'duplicate_in_run';

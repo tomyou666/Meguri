@@ -19,6 +19,7 @@ type Repository interface {
 
 	GetNodeResults(ctx context.Context, workspaceID string) ([]model.NodeResult, error)
 	AppendNodeResult(ctx context.Context, row model.NodeResult) error
+	UpdateLatestNodeResult(ctx context.Context, workspaceID, nodeID string, patch model.NodeResultContentPatch) error
 	DeleteLatestResults(ctx context.Context, workspaceID string, nodeIDs []string) error
 	TrimNodeResults(ctx context.Context, workspaceID, nodeID string, keep int) error
 

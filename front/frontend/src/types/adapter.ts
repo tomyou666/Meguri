@@ -33,6 +33,21 @@ export interface MergeResultsResponse {
 	nodeCount: number;
 }
 
+export type UpdateNodeResultPatch = {
+	markdown?: string;
+	html?: string;
+	raw_html?: string;
+	json?: string;
+};
+
+export type MaximizedNodeResultSnapshot = {
+	title: string;
+	activeFormat: string;
+	markdownView: 'source' | 'preview';
+	formats: string[];
+	result: CrawlResultPreview;
+};
+
 export interface StartCrawlParams {
 	workspaceId: string;
 	mode: RunMode;
@@ -107,6 +122,13 @@ export interface ScraperPort {
 		workspaceId: string,
 		nodeIds: string[],
 	): Promise<CrawlResultPreview[]>;
+	updateNodeResult(
+		workspaceId: string,
+		nodeId: string,
+		patch: UpdateNodeResultPatch,
+	): Promise<CrawlResultPreview | null>;
+	showMaximizedNodeResult(snapshot: MaximizedNodeResultSnapshot): Promise<void>;
+	getMaximizedNodeResult(): Promise<MaximizedNodeResultSnapshot | null>;
 	mergeResults(
 		workspaceId: string,
 		nodeIds: string[] | null,

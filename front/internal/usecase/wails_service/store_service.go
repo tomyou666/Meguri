@@ -7,15 +7,19 @@ import (
 
 	"scraperbot-front/internal/domain"
 	"scraperbot-front/internal/model"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // StoreService は Wails 公開 Store RPC。
 type StoreService struct {
-	appConfig    *domain.AppConfigService
-	workspaces   *domain.WorkspaceService
-	results      *domain.ResultsService
-	diff         *domain.DiffService
-	crawlPersist *domain.CrawlPersistService
+	app           *application.App
+	appConfig     *domain.AppConfigService
+	workspaces    *domain.WorkspaceService
+	results       *domain.ResultsService
+	diff          *domain.DiffService
+	crawlPersist  *domain.CrawlPersistService
+	nodeResultWin *NodeResultWindowManager
 }
 
 // NewStoreService は StoreService を構築する。
@@ -32,6 +36,19 @@ func NewStoreService(
 		results:      results,
 		diff:         diff,
 		crawlPersist: crawlPersist,
+	}
+}
+
+// SetApp は Wails App を後から注入する（最大化ウィンドウ用）。
+func (s *StoreService) SetApp(app *application.App) {
+	s.app = app
+	s.nodeResultWin = NewNodeResultWindowManager(app)
+}
+
+// WireMainWindow はメインウィンドウ終了時のプレビュー連動を登録する。
+func WireMainWindow(s *StoreService, w application.Window) {
+	if s.nodeResultWin != nil {
+		s.nodeResultWin.SetMainWindow(w)
 	}
 }
 
@@ -107,6 +124,27 @@ func (s *StoreService) GetNodeResult(workspaceID, nodeID string) (*model.CrawlRe
 // GetNodeResults は複数ノード結果を返す。
 func (s *StoreService) GetNodeResults(workspaceID string, nodeIDs []string) ([]model.CrawlResultDTO, error) {
 	return s.results.GetNodeResults(s.ctx(), workspaceID, nodeIDs)
+}
+
+// UpdateNodeResult はノード結果の手動編集を保存する。
+func (s *StoreService) UpdateNodeResult(req model.UpdateNodeResultRequest) (*model.CrawlResultDTO, error) {
+	return s.results.UpdateNodeResult(s.ctx(), req)
+}
+
+// ShowMaximizedNodeResult は別 WebviewWindow でノード結果を拡大表示する。
+func (s *StoreService) ShowMaximizedNodeResult(req model.MaximizedNodeResultRequest) error {
+	if s.nodeResultWin == nil {
+		return fmt.Errorf("app not initialized")
+	}
+	return s.nodeResultWin.Show(req)
+}
+
+// GetMaximizedNodeResult は最大化ウィンドウ用の直近スナップショットを返す。
+func (s *StoreService) GetMaximizedNodeResult() (model.MaximizedNodeResultRequest, error) {
+	if s.nodeResultWin == nil {
+		return model.MaximizedNodeResultRequest{}, fmt.Errorf("app not initialized")
+	}
+	return s.nodeResultWin.GetSnapshot()
 }
 
 // MergeResults は結果をマージする。
