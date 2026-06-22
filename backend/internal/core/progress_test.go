@@ -194,6 +194,55 @@ func TestCrawlerProgress(t *testing.T) {
 		assert.Empty(t, linkDiscoveredDepth3, "enqueue されない URL には linkDiscovered を出さない")
 	})
 
+	t.Run("正常系: 訪問済み URL の深い経路からの再 enqueue は duplicate になる", func(t *testing.T) {
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = true
+		cfg.Crawl.MaxDepth = 2
+		cfg.Crawl.MaxPages = 100
+		cfg.Crawl.MaxConcurrency = 4
+
+		targetURL := srv.URL + "/docs/page-a.html"
+
+		var mu sync.Mutex
+		var events []core.ProgressEvent
+		progress := func(ev core.ProgressEvent) {
+			mu.Lock()
+			defer mu.Unlock()
+			events = append(events, ev)
+		}
+
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), nil, nil, progress)
+
+		seed, err := url.Parse(srv.URL + "/parallel_dup_seed.html")
+		require.NoError(t, err)
+
+		_, err = c.Run(context.Background(), []*url.URL{seed})
+		require.NoError(t, err)
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		succeeded := map[string]bool{}
+		for _, ev := range events {
+			if ev.Kind == core.ProgressSucceeded {
+				succeeded[ev.URL] = true
+			}
+		}
+		require.True(t, succeeded[targetURL], "page-a should be fetched via shallow path")
+
+		dupSkipCount := 0
+		for _, ev := range events {
+			if ev.Kind != core.ProgressSkipped || ev.URL != targetURL {
+				continue
+			}
+			assert.Equal(t, "duplicate", ev.SkipReason,
+				"visited URL should skip as duplicate, not %s", ev.SkipReason)
+			dupSkipCount++
+		}
+		assert.Greater(t, dupSkipCount, 0, "deep path should produce duplicate skip for page-a")
+	})
+
 	t.Run("正常系: クロール無効時も sink に結果が渡される", func(t *testing.T) {
 		cfg := baseConfig()
 		cfg.Crawl.Enabled = false

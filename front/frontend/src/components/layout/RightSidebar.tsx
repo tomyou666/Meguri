@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { messages } from '@/i18n/messages';
+import { isPdfResourceResult } from '@/lib/crawlResultUtils';
 import {
 	bodySnippetForFormat,
 	getPreviewTabs,
@@ -17,7 +18,6 @@ import {
 	previewTabLabel,
 	type TransformerFormat,
 } from '@/lib/previewFormats';
-import { isPdfResourceResult } from '@/lib/crawlResultUtils';
 import { useAppStore } from '@/stores/appStore';
 import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';

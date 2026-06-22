@@ -43,3 +43,34 @@ func TestCrawlState(t *testing.T) {
 		assert.Nil(t, st.skipScrapeURLs())
 	})
 }
+
+// TestShouldSuppressNodeSkipped は到達済みノードへの nodeSkipped 抑止判定を検証する。
+func TestShouldSuppressNodeSkipped(t *testing.T) {
+	mainReached := map[string]struct{}{
+		"n-started":   {},
+		"n-succeeded": {},
+	}
+
+	tests := []struct {
+		name     string
+		nodeID   string
+		expected bool
+	}{
+		{
+			name:     "正常系: mainReached に含まれるノードは抑止する",
+			nodeID:   "n-started",
+			expected: true,
+		},
+		{
+			name:     "正常系: mainReached に含まれないノードは抑止しない",
+			nodeID:   "n-unreached",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, shouldSuppressNodeSkipped(mainReached, tt.nodeID))
+		})
+	}
+}

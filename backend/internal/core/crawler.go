@@ -237,14 +237,14 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		key := normalized.String()
 
 		stateMu.Lock()
-		if reason := c.skipReason(ctx, normalized, depth, seeds[0]); reason != "" {
-			stateMu.Unlock()
-			emitSkip(normalized, depth, parentURL, reason)
-			return false
-		}
 		if _, dup := seen[key]; dup {
 			stateMu.Unlock()
 			emitSkip(normalized, depth, parentURL, "duplicate")
+			return false
+		}
+		if reason := c.skipReason(ctx, normalized, depth, seeds[0]); reason != "" {
+			stateMu.Unlock()
+			emitSkip(normalized, depth, parentURL, reason)
 			return false
 		}
 		if visited >= c.cfg.Crawl.MaxPages {

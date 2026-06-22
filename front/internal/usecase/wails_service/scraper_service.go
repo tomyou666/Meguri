@@ -526,6 +526,12 @@ func (st *crawlState) markMaterialized(childKey string) {
 	st.materializedURLs[childKey] = struct{}{}
 }
 
+// shouldSuppressNodeSkipped は今回 run で到達済み（Started/Succeeded）のノードに nodeSkipped を出さない。
+func shouldSuppressNodeSkipped(mainReached map[string]struct{}, nodeID string) bool {
+	_, ok := mainReached[nodeID]
+	return ok
+}
+
 func (s *ScraperService) emitLinkSkipped(
 	req model.StartCrawlRequest,
 	st *crawlState,
@@ -702,6 +708,10 @@ func (s *ScraperService) runMainBFS(
 			}
 			nodeID, _ := st.resolveNodeID(ev.URL, false)
 			if nodeID == "" {
+				return
+			}
+			if shouldSuppressNodeSkipped(mainReached, nodeID) {
+				s.emitLinkSkipped(req, st, ev.ParentURL, urlKey, "duplicate_in_run")
 				return
 			}
 			s.persistNodeSkipped(ctx, req, nodeID)
