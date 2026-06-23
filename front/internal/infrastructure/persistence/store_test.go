@@ -13,7 +13,11 @@ import (
 )
 
 func applyTestSchema(db *gorm.DB) error {
-	for _, name := range []string{"000001_init.up.sql", "000002_origin.up.sql"} {
+	for _, name := range []string{
+		"000001_init.up.sql",
+		"000002_origin.up.sql",
+		"000005_node_result_manual_edit.up.sql",
+	} {
 		path := filepath.Join("..", "..", "app", "migrations", name)
 		sqlBytes, err := os.ReadFile(path)
 		if err != nil {
@@ -180,6 +184,186 @@ func TestStore(t *testing.T) {
 		}
 		if byID["n2"].Status == nil || *byID["n2"].Status != "success" {
 			t.Fatalf("n2 status should be unchanged: %+v", byID["n2"].Status)
+		}
+	})
+
+	t.Run("正常系: SaveWorkspaceBundle 再保存後も node_results が残る", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+
+		db, err := gorm.Open(sqlite.Open(dbPath+"?_pragma=foreign_keys(1)"), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		ctx := context.Background()
+		store := NewStore(db)
+
+		wsID := "ws-results"
+		runID := "run-1"
+		bundle := model.WorkspaceBundle{
+			Workspace: model.Workspace{
+				ID:                   model.StrPtr(wsID),
+				Name:                 "Results",
+				SeedURL:              "https://example.com",
+				SettingsJSON:         `{}`,
+				ExcludeUrlsJSON:      `[]`,
+				GraphLayoutDirection: model.StrPtr("LR"),
+				CreatedAt:            "2026-01-01T00:00:00Z",
+				UpdatedAt:            "2026-01-01T00:00:00Z",
+			},
+			Nodes: []model.GraphNode{
+				{
+					WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com",
+					Label: "example", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+			},
+		}
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("save ws: %v", err)
+		}
+		if err := store.BeginCrawlRun(ctx, model.CrawlRun{
+			ID:          model.StrPtr(runID),
+			WorkspaceID: wsID,
+			Mode:        1,
+			Status:      model.StrPtr("running"),
+			StartedAt:   "2026-01-01T00:00:00Z",
+		}); err != nil {
+			t.Fatalf("begin crawl run: %v", err)
+		}
+		markdown := "# hello"
+		if err := store.AppendNodeResult(ctx, model.NodeResult{
+			ID:          model.StrPtr("nr-1"),
+			RunID:       runID,
+			WorkspaceID: wsID,
+			NodeID:      "n1",
+			URL:         "https://example.com",
+			Markdown:    &markdown,
+			FetchedAt:   "2026-01-01T00:00:01Z",
+		}); err != nil {
+			t.Fatalf("append node result: %v", err)
+		}
+
+		bundle.Nodes[0].PositionX = 42
+		bundle.Nodes[0].PositionY = 84
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("resave ws: %v", err)
+		}
+
+		results, err := store.GetNodeResults(ctx, wsID)
+		if err != nil {
+			t.Fatalf("get node results: %v", err)
+		}
+		if len(results) != 1 {
+			t.Fatalf("expected 1 node result, got %d", len(results))
+		}
+		if results[0].NodeID != "n1" || model.StrVal(results[0].Markdown) != markdown {
+			t.Fatalf("unexpected node result: %+v", results[0])
+		}
+	})
+
+	t.Run("正常系: SaveWorkspaceBundle でノード除外時のみ node_results が削除される", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+
+		db, err := gorm.Open(sqlite.Open(dbPath+"?_pragma=foreign_keys(1)"), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		ctx := context.Background()
+		store := NewStore(db)
+
+		wsID := "ws-prune"
+		runID := "run-1"
+		bundle := model.WorkspaceBundle{
+			Workspace: model.Workspace{
+				ID:                   model.StrPtr(wsID),
+				Name:                 "Prune",
+				SeedURL:              "https://example.com",
+				SettingsJSON:         `{}`,
+				ExcludeUrlsJSON:      `[]`,
+				GraphLayoutDirection: model.StrPtr("LR"),
+				CreatedAt:            "2026-01-01T00:00:00Z",
+				UpdatedAt:            "2026-01-01T00:00:00Z",
+			},
+			Nodes: []model.GraphNode{
+				{
+					WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com",
+					Label: "example", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+				{
+					WorkspaceID: wsID, ID: "n2", URLNormalized: "https://example.com/a",
+					Label: "a", PositionX: 100, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+			},
+		}
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("save ws: %v", err)
+		}
+		if err := store.BeginCrawlRun(ctx, model.CrawlRun{
+			ID:          model.StrPtr(runID),
+			WorkspaceID: wsID,
+			Mode:        1,
+			Status:      model.StrPtr("running"),
+			StartedAt:   "2026-01-01T00:00:00Z",
+		}); err != nil {
+			t.Fatalf("begin crawl run: %v", err)
+		}
+		m1, m2 := "# one", "# two"
+		for _, tc := range []struct {
+			id, nodeID, md string
+		}{
+			{"nr-1", "n1", m1},
+			{"nr-2", "n2", m2},
+		} {
+			md := tc.md
+			if err := store.AppendNodeResult(ctx, model.NodeResult{
+				ID:          model.StrPtr(tc.id),
+				RunID:       runID,
+				WorkspaceID: wsID,
+				NodeID:      tc.nodeID,
+				URL:         "https://example.com",
+				Markdown:    &md,
+				FetchedAt:   "2026-01-01T00:00:01Z",
+			}); err != nil {
+				t.Fatalf("append node result %s: %v", tc.id, err)
+			}
+		}
+
+		bundle.Nodes = bundle.Nodes[:1]
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("resave ws without n2: %v", err)
+		}
+
+		results, err := store.GetNodeResults(ctx, wsID)
+		if err != nil {
+			t.Fatalf("get node results: %v", err)
+		}
+		if len(results) != 1 {
+			t.Fatalf("expected 1 node result, got %d", len(results))
+		}
+		if results[0].NodeID != "n1" {
+			t.Fatalf("expected n1 result only, got %+v", results[0])
 		}
 	})
 }

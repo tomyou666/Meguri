@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -204,11 +205,32 @@ func (s *ScraperService) persistNodeStarted(ctx context.Context, req model.Start
 	if s.persist == nil || nodeID == "" {
 		return
 	}
-	_ = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
+	err := s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
 		WorkspaceID: req.WorkspaceID,
 		NodeID:      nodeID,
 		Status:      "running",
 	})
+	s.logPersistError(ctx, "patchGraphNodeStatus", req, nodeID, "", err)
+}
+
+func (s *ScraperService) logPersistError(
+	ctx context.Context,
+	op string,
+	req model.StartCrawlRequest,
+	nodeID, url string,
+	err error,
+) {
+	if err == nil {
+		return
+	}
+	slog.ErrorContext(ctx, "crawl persist failed",
+		"op", op,
+		"workspaceId", req.WorkspaceID,
+		"runId", req.RunID,
+		"nodeId", nodeID,
+		"url", url,
+		"err", err,
+	)
 }
 
 func (s *ScraperService) persistNodeSucceeded(
@@ -236,7 +258,7 @@ func (s *ScraperService) persistNodeSucceeded(
 			metadataJSON = string(b)
 		}
 	}
-	_ = s.persist.AppendNodeResult(ctx, model.AppendNodeResultRequest{
+	err := s.persist.AppendNodeResult(ctx, model.AppendNodeResultRequest{
 		WorkspaceID:  req.WorkspaceID,
 		RunID:        req.RunID,
 		NodeID:       nodeID,
@@ -249,11 +271,13 @@ func (s *ScraperService) persistNodeSucceeded(
 		FetchedAt:    domain.NowISO(),
 		ContentHash:  contentHash,
 	})
-	_ = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
+	s.logPersistError(ctx, "appendNodeResult", req, nodeID, url, err)
+	err = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
 		WorkspaceID: req.WorkspaceID,
 		NodeID:      nodeID,
 		Status:      "success",
 	})
+	s.logPersistError(ctx, "patchGraphNodeStatus", req, nodeID, url, err)
 }
 
 func (s *ScraperService) persistNodeFailed(
@@ -264,7 +288,7 @@ func (s *ScraperService) persistNodeFailed(
 	if s.persist == nil || nodeID == "" {
 		return
 	}
-	_ = s.persist.AppendNodeResult(ctx, model.AppendNodeResultRequest{
+	err := s.persist.AppendNodeResult(ctx, model.AppendNodeResultRequest{
 		WorkspaceID: req.WorkspaceID,
 		RunID:       req.RunID,
 		NodeID:      nodeID,
@@ -272,23 +296,26 @@ func (s *ScraperService) persistNodeFailed(
 		Error:       errMsg,
 		FetchedAt:   domain.NowISO(),
 	})
-	_ = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
+	s.logPersistError(ctx, "appendNodeResult", req, nodeID, url, err)
+	err = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
 		WorkspaceID: req.WorkspaceID,
 		NodeID:      nodeID,
 		Status:      "error",
 		LastError:   errMsg,
 	})
+	s.logPersistError(ctx, "patchGraphNodeStatus", req, nodeID, url, err)
 }
 
 func (s *ScraperService) persistNodeSkipped(ctx context.Context, req model.StartCrawlRequest, nodeID string) {
 	if s.persist == nil || nodeID == "" {
 		return
 	}
-	_ = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
+	err := s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
 		WorkspaceID: req.WorkspaceID,
 		NodeID:      nodeID,
 		Status:      "skipped",
 	})
+	s.logPersistError(ctx, "patchGraphNodeStatus", req, nodeID, "", err)
 }
 
 func (s *ScraperService) persistEdgeDiscovered(

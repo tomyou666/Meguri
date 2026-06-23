@@ -141,23 +141,42 @@ func (s *Store) SaveWorkspaceBundle(ctx context.Context, bundle model.WorkspaceB
 
 		wid := model.StrVal(ws.ID)
 		gn := txQ.GraphNode
-		if _, err := gn.WithContext(ctx).Where(gn.WorkspaceID.Eq(wid)).Delete(); err != nil {
-			return err
-		}
-		ge := txQ.GraphEdge
-		if _, err := ge.WithContext(ctx).Where(ge.WorkspaceID.Eq(wid)).Delete(); err != nil {
+		if len(bundle.Nodes) > 0 {
+			if err := gn.WithContext(ctx).Clauses(clause.OnConflict{
+				Columns: []clause.Column{{Name: "workspace_id"}, {Name: "id"}},
+				DoUpdates: clause.AssignmentColumns([]string{
+					"url_normalized", "label", "position_x", "position_y", "user_positioned",
+					"node_settings_json", "crawl_exclude", "status", "last_error", "origin",
+				}),
+			}).Create(ptrGraphNodes(bundle.Nodes)...); err != nil {
+				return err
+			}
+			nodeIDs := graphNodeIDs(bundle.Nodes)
+			if _, err := gn.WithContext(ctx).
+				Where(gn.WorkspaceID.Eq(wid), gn.ID.NotIn(nodeIDs...)).
+				Delete(); err != nil {
+				return err
+			}
+		} else if _, err := gn.WithContext(ctx).Where(gn.WorkspaceID.Eq(wid)).Delete(); err != nil {
 			return err
 		}
 
-		if len(bundle.Nodes) > 0 {
-			if err := txQ.GraphNode.WithContext(ctx).Create(ptrGraphNodes(bundle.Nodes)...); err != nil {
-				return err
-			}
-		}
+		ge := txQ.GraphEdge
 		if len(bundle.Edges) > 0 {
-			if err := txQ.GraphEdge.WithContext(ctx).Create(ptrGraphEdges(bundle.Edges)...); err != nil {
+			edgeIDs := graphEdgeIDs(bundle.Edges)
+			if _, err := ge.WithContext(ctx).
+				Where(ge.WorkspaceID.Eq(wid), ge.ID.NotIn(edgeIDs...)).
+				Delete(); err != nil {
 				return err
 			}
+			if err := ge.WithContext(ctx).Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "workspace_id"}, {Name: "id"}},
+				DoNothing: true,
+			}).Create(ptrGraphEdges(bundle.Edges)...); err != nil {
+				return err
+			}
+		} else if _, err := ge.WithContext(ctx).Where(ge.WorkspaceID.Eq(wid)).Delete(); err != nil {
+			return err
 		}
 		if bundle.UIState != nil {
 			ui := *bundle.UIState
@@ -519,4 +538,20 @@ func ptrGraphEdges(rows []model.GraphEdge) []*model.GraphEdge {
 		out[i] = &rows[i]
 	}
 	return out
+}
+
+func graphNodeIDs(nodes []model.GraphNode) []string {
+	ids := make([]string, len(nodes))
+	for i, n := range nodes {
+		ids[i] = n.ID
+	}
+	return ids
+}
+
+func graphEdgeIDs(edges []model.GraphEdge) []string {
+	ids := make([]string, len(edges))
+	for i, e := range edges {
+		ids[i] = e.ID
+	}
+	return ids
 }
