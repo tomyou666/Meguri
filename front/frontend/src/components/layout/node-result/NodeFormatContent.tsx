@@ -4,6 +4,7 @@ import {
 	MarkdownResultView,
 	MarkdownViewToggle,
 } from '@/components/layout/node-result/MarkdownResultView';
+import { ExternalLink } from '@/components/ui/external-link';
 import { messages } from '@/i18n/messages';
 import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';
@@ -94,7 +95,9 @@ export function NodeFormatContent({
 			<ul className='list-inside list-disc text-xs'>
 				{(result.links ?? []).map((l) => (
 					<li key={l} className='truncate'>
-						{l}
+						<ExternalLink href={l} className='text-xs'>
+							{l}
+						</ExternalLink>
 					</li>
 				))}
 			</ul>

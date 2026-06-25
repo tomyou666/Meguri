@@ -13,6 +13,7 @@ import { memo, type ReactNode } from 'react';
 import { NodeDetailSettings } from '@/components/graph/NodeDetailSettings';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Badge } from '@/components/ui/badge';
+import { ExternalLink } from '@/components/ui/external-link';
 import { messages } from '@/i18n/messages';
 import {
 	DAGRE_NODE_HEIGHT,
@@ -184,7 +185,11 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 					</div>
 				)}
 				{detailExpanded && d.url && (
-					<p className='break-all text-[9px] text-muted-foreground'>{d.url}</p>
+					<ExternalLink
+						href={d.url}
+						stopPropagation
+						className='break-all text-[9px] text-muted-foreground'
+					/>
 				)}
 				{detailExpanded && node && <NodeDetailSettings node={node} />}
 			</div>

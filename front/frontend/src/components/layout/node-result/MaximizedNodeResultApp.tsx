@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { scraperPort } from '@/adapters';
 import { NodeResultPanel } from '@/components/layout/node-result/NodeResultPanel';
 import { Badge } from '@/components/ui/badge';
+import { ExternalLink } from '@/components/ui/external-link';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { messages } from '@/i18n/messages';
@@ -103,9 +104,10 @@ export function MaximizedNodeResultApp() {
 			<div className='flex h-screen flex-col bg-card text-foreground'>
 				<header className='border-b border-border px-4 py-3'>
 					<p className='text-sm font-semibold'>{messages.right.nodeResult}</p>
-					<p className='truncate text-sm text-muted-foreground'>
-						{snapshot.title}
-					</p>
+					<ExternalLink
+						href={snapshot.title}
+						className='block truncate text-sm text-muted-foreground'
+					/>
 					{snapshot.result.manuallyEdited && (
 						<Badge variant='secondary' className='mt-1 text-[10px] font-normal'>
 							{messages.right.manuallyEdited}

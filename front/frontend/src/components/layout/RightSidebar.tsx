@@ -6,6 +6,7 @@ import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ExternalLink } from '@/components/ui/external-link';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
 import {
@@ -139,9 +140,10 @@ export function RightSidebarContent() {
 				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
 					<div className='min-w-0'>
 						<p className='text-xs font-semibold'>{messages.right.nodeResult}</p>
-						<p className='truncate text-xs text-muted-foreground'>
-							{node.urlNormalized}
-						</p>
+						<ExternalLink
+							href={node.urlNormalized}
+							className='block truncate text-xs text-muted-foreground'
+						/>
 						<Badge variant='outline' className='mt-1 text-[10px] font-normal'>
 							{messages.right.transformerBadge(transformerFormat)}
 						</Badge>
