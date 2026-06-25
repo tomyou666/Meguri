@@ -25,6 +25,7 @@ import { useAppStore } from '@/stores/appStore';
 import type { WorkspaceDiff } from '@/types/adapter';
 import { GRAPH_MIN_ZOOM, GraphCanvasControls } from './GraphCanvasControls';
 import { GraphSelectionSync } from './GraphSelectionSync';
+import { GraphWorkspaceFitView } from './GraphWorkspaceFitView';
 import { UrlNode, type UrlNodeData } from './UrlNode';
 
 const nodeTypes = { urlNode: UrlNode };
@@ -317,6 +318,7 @@ export function CrawlGraph() {
 			>
 				<Background gap={16} />
 				<GraphSelectionSync />
+				<GraphWorkspaceFitView />
 				<GraphCanvasControls />
 			</ReactFlow>
 			{contextMenu && (

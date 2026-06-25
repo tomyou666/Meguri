@@ -3,13 +3,12 @@ import { ConfigField } from '@/components/settings/ConfigField';
 import {
 	type FieldErrors,
 	fieldInvalid,
-	formatOptionalNumber,
 	inputClassName,
-	parseOptionalNumber,
 	selectClassName,
 	textareaClassName,
 } from '@/components/settings/configFormUtils';
 import { FieldLabel } from '@/components/settings/FieldLabel';
+import { OptionalNumberInput } from '@/components/settings/OptionalNumberInput';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { messages } from '@/i18n/messages';
@@ -121,15 +120,12 @@ export function RequestConfigFields({
 				label='retry_count'
 				help={h.retry_count}
 			>
-				<Input
-					type='number'
+				<OptionalNumberInput
 					className={inputClassName(
 						fieldInvalid(fieldErrors, 'request.retry_count'),
 					)}
-					value={formatOptionalNumber(v.retry_count)}
-					onChange={(e) =>
-						onChange({ ...v, retry_count: parseOptionalNumber(e.target.value) })
-					}
+					value={v.retry_count}
+					onChange={(retry_count) => onChange({ ...v, retry_count })}
 				/>
 			</ConfigField>
 			<ConfigField
@@ -274,13 +270,10 @@ export function PdfConfigFields({
 				label='max_pages'
 				help={h.pdf_max_pages}
 			>
-				<Input
-					type='number'
+				<OptionalNumberInput
 					className={inputClassName(fieldInvalid(fieldErrors, 'pdf.max_pages'))}
-					value={formatOptionalNumber(v.max_pages)}
-					onChange={(e) =>
-						onChange({ ...v, max_pages: parseOptionalNumber(e.target.value) })
-					}
+					value={v.max_pages}
+					onChange={(max_pages) => onChange({ ...v, max_pages })}
 				/>
 			</ConfigField>
 			<ConfigField
@@ -329,15 +322,12 @@ export function CrawlConfigFields({
 				label='max_depth'
 				help={h.max_depth}
 			>
-				<Input
-					type='number'
+				<OptionalNumberInput
 					className={inputClassName(
 						fieldInvalid(fieldErrors, 'crawl.max_depth'),
 					)}
-					value={formatOptionalNumber(v.max_depth)}
-					onChange={(e) =>
-						onChange({ ...v, max_depth: parseOptionalNumber(e.target.value) })
-					}
+					value={v.max_depth}
+					onChange={(max_depth) => onChange({ ...v, max_depth })}
 				/>
 			</ConfigField>
 			<ConfigField
@@ -346,15 +336,12 @@ export function CrawlConfigFields({
 				label='max_pages'
 				help={h.max_pages}
 			>
-				<Input
-					type='number'
+				<OptionalNumberInput
 					className={inputClassName(
 						fieldInvalid(fieldErrors, 'crawl.max_pages'),
 					)}
-					value={formatOptionalNumber(v.max_pages)}
-					onChange={(e) =>
-						onChange({ ...v, max_pages: parseOptionalNumber(e.target.value) })
-					}
+					value={v.max_pages}
+					onChange={(max_pages) => onChange({ ...v, max_pages })}
 				/>
 			</ConfigField>
 			<StringListEditor
@@ -410,18 +397,12 @@ export function CrawlConfigFields({
 				label='max_concurrency'
 				help={h.max_concurrency}
 			>
-				<Input
-					type='number'
+				<OptionalNumberInput
 					className={inputClassName(
 						fieldInvalid(fieldErrors, 'crawl.max_concurrency'),
 					)}
-					value={formatOptionalNumber(v.max_concurrency)}
-					onChange={(e) =>
-						onChange({
-							...v,
-							max_concurrency: parseOptionalNumber(e.target.value),
-						})
-					}
+					value={v.max_concurrency}
+					onChange={(max_concurrency) => onChange({ ...v, max_concurrency })}
 				/>
 			</ConfigField>
 			<div className='space-y-3 rounded-lg border border-border/60 p-3'>
@@ -437,18 +418,17 @@ export function CrawlConfigFields({
 					label='http_max_inflight'
 					help={h.http_max_inflight}
 				>
-					<Input
-						type='number'
+					<OptionalNumberInput
 						className={inputClassName(
 							fieldInvalid(fieldErrors, 'crawl.fetch_limits.http_max_inflight'),
 						)}
-						value={formatOptionalNumber(v.fetch_limits?.http_max_inflight)}
-						onChange={(e) =>
+						value={v.fetch_limits?.http_max_inflight}
+						onChange={(http_max_inflight) =>
 							onChange({
 								...v,
 								fetch_limits: {
 									...v.fetch_limits,
-									http_max_inflight: parseOptionalNumber(e.target.value),
+									http_max_inflight,
 								},
 							})
 						}
@@ -460,21 +440,20 @@ export function CrawlConfigFields({
 					label='chromium_max_inflight'
 					help={h.chromium_max_inflight}
 				>
-					<Input
-						type='number'
+					<OptionalNumberInput
 						className={inputClassName(
 							fieldInvalid(
 								fieldErrors,
 								'crawl.fetch_limits.chromium_max_inflight',
 							),
 						)}
-						value={formatOptionalNumber(v.fetch_limits?.chromium_max_inflight)}
-						onChange={(e) =>
+						value={v.fetch_limits?.chromium_max_inflight}
+						onChange={(chromium_max_inflight) =>
 							onChange({
 								...v,
 								fetch_limits: {
 									...v.fetch_limits,
-									chromium_max_inflight: parseOptionalNumber(e.target.value),
+									chromium_max_inflight,
 								},
 							})
 						}

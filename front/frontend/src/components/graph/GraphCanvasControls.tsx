@@ -6,11 +6,9 @@ import {
 	ListCollapse,
 	ListTree,
 	Maximize2,
-	Minus,
-	Plus,
 	SquareDashedMousePointer,
 } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { messages } from '@/i18n/messages';
 import type { DagreLayoutDirection } from '@/lib/dagreLayout';
@@ -27,9 +25,19 @@ export function GraphCanvasControls() {
 	const collapseAllNodes = useAppStore((s) => s.collapseAllNodes);
 	const graphToolMode = useAppStore((s) => s.graphToolMode);
 	const setGraphToolMode = useAppStore((s) => s.setGraphToolMode);
-	const { fitView, zoomIn, zoomOut } = useReactFlow();
+	const { fitView } = useReactFlow();
 
 	const direction = ws?.graphLayoutDirection ?? 'LR';
+	const nodes = ws?.nodes ?? [];
+	const edges = ws?.edges ?? [];
+	const collapsedNodeIds = ws?.collapsedNodeIds ?? [];
+
+	const isFullyCollapsed = useMemo(() => {
+		const roots = nodes.filter((n) => !edges.some((e) => e.target === n.id));
+		if (roots.length === 0) return false;
+		const collapsed = new Set(collapsedNodeIds);
+		return roots.every((n) => collapsed.has(n.id));
+	}, [nodes, edges, collapsedNodeIds]);
 
 	const onFitView = useCallback(() => {
 		fitView({ padding: 0.2, duration: 100, minZoom: GRAPH_MIN_ZOOM });
@@ -51,6 +59,15 @@ export function GraphCanvasControls() {
 		direction === 'LR'
 			? `${messages.graph.layoutHorizontal} — クリックで縦方向へ切替・自動配置`
 			: `${messages.graph.layoutVertical} — クリックで横方向へ切替・自動配置`;
+
+	const expandCollapseLabel = isFullyCollapsed
+		? messages.graph.expandAll
+		: messages.graph.collapseAll;
+
+	const onToggleExpandCollapse = useCallback(() => {
+		if (isFullyCollapsed) expandAllNodes();
+		else collapseAllNodes();
+	}, [isFullyCollapsed, expandAllNodes, collapseAllNodes]);
 
 	return (
 		<>
@@ -85,22 +102,6 @@ export function GraphCanvasControls() {
 						<SquareDashedMousePointer className='size-4' strokeWidth={2} />
 					</ControlButton>
 				</ActionTooltip>
-				<ActionTooltip label={messages.graph.zoomIn}>
-					<ControlButton
-						onClick={() => zoomIn({ duration: 150 })}
-						aria-label={messages.graph.zoomIn}
-					>
-						<Plus className='size-4' strokeWidth={2} />
-					</ControlButton>
-				</ActionTooltip>
-				<ActionTooltip label={messages.graph.zoomOut}>
-					<ControlButton
-						onClick={() => zoomOut({ duration: 150 })}
-						aria-label={messages.graph.zoomOut}
-					>
-						<Minus className='size-4' strokeWidth={2} />
-					</ControlButton>
-				</ActionTooltip>
 				<ActionTooltip label={messages.graph.fitView}>
 					<ControlButton
 						onClick={onFitView}
@@ -118,20 +119,16 @@ export function GraphCanvasControls() {
 						)}
 					</ControlButton>
 				</ActionTooltip>
-				<ActionTooltip label={messages.graph.expandAll}>
+				<ActionTooltip label={expandCollapseLabel}>
 					<ControlButton
-						onClick={expandAllNodes}
-						aria-label={messages.graph.expandAll}
+						onClick={onToggleExpandCollapse}
+						aria-label={expandCollapseLabel}
 					>
-						<ListTree className='size-4' strokeWidth={2} />
-					</ControlButton>
-				</ActionTooltip>
-				<ActionTooltip label={messages.graph.collapseAll}>
-					<ControlButton
-						onClick={collapseAllNodes}
-						aria-label={messages.graph.collapseAll}
-					>
-						<ListCollapse className='size-4' strokeWidth={2} />
+						{isFullyCollapsed ? (
+							<ListTree className='size-4' strokeWidth={2} />
+						) : (
+							<ListCollapse className='size-4' strokeWidth={2} />
+						)}
 					</ControlButton>
 				</ActionTooltip>
 			</Controls>
