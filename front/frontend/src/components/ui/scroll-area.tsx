@@ -8,7 +8,12 @@ function ScrollArea({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className={cn('overflow-y-auto overflow-x-hidden', className)}>
+		<div
+			className={cn(
+				'overflow-y-auto overflow-x-hidden scrollbar-gutter-stable',
+				className,
+			)}
+		>
 			{children}
 		</div>
 	);

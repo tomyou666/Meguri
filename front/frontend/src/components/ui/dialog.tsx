@@ -28,7 +28,7 @@ function Dialog({
 					size === 'full' &&
 						'mx-2 flex h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] max-w-[calc(100vw-1rem)]',
 					size === 'fullHeight' &&
-						'flex h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] max-w-lg w-full',
+						'flex h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] w-[36rem] max-w-[calc(100vw-2rem)] flex-col',
 				)}
 			>
 				{children}

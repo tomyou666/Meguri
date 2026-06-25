@@ -745,76 +745,80 @@ export function TabsConfig({
 					</button>
 				))}
 			</div>
-			{tab === 'general' && showMeta && meta && onMetaChange && (
-				<div className='space-y-2'>
-					<div>
-						<FieldLabel label='name' help={h.ws_name} />
-						<Input
-							className='mt-1 h-8 text-xs'
-							value={meta.name}
-							onChange={(e) => onMetaChange({ ...meta, name: e.target.value })}
-						/>
+			<div className='min-w-0'>
+				{tab === 'general' && showMeta && meta && onMetaChange && (
+					<div className='space-y-2'>
+						<div>
+							<FieldLabel label='name' help={h.ws_name} />
+							<Input
+								className='mt-1 h-8 text-xs'
+								value={meta.name}
+								onChange={(e) =>
+									onMetaChange({ ...meta, name: e.target.value })
+								}
+							/>
+						</div>
+						<div>
+							<FieldLabel label='seed_url' help={h.seed_url} />
+							<Input
+								className='mt-1 h-8 text-xs'
+								value={meta.seedUrl}
+								onChange={(e) =>
+									onMetaChange({ ...meta, seedUrl: e.target.value })
+								}
+							/>
+						</div>
 					</div>
-					<div>
-						<FieldLabel label='seed_url' help={h.seed_url} />
-						<Input
-							className='mt-1 h-8 text-xs'
-							value={meta.seedUrl}
-							onChange={(e) =>
-								onMetaChange({ ...meta, seedUrl: e.target.value })
+				)}
+				{tab === 'request' && (
+					<RequestConfigFields
+						value={settings.request}
+						onChange={(request) => onChange({ ...settings, request })}
+						fieldErrors={fieldErrors}
+					/>
+				)}
+				{tab === 'content' && (
+					<ContentConfigFields
+						value={settings.content}
+						onChange={(content) => {
+							if (!content) {
+								onChange({ ...settings, content: undefined });
+								return;
 							}
-						/>
-					</div>
-				</div>
-			)}
-			{tab === 'request' && (
-				<RequestConfigFields
-					value={settings.request}
-					onChange={(request) => onChange({ ...settings, request })}
-					fieldErrors={fieldErrors}
-				/>
-			)}
-			{tab === 'content' && (
-				<ContentConfigFields
-					value={settings.content}
-					onChange={(content) => {
-						if (!content) {
-							onChange({ ...settings, content: undefined });
-							return;
-						}
-						onChange({ ...settings, content });
-					}}
-					fieldErrors={fieldErrors}
-				/>
-			)}
-			{tab === 'pdf' && (
-				<PdfConfigFields
-					value={settings.pdf}
-					onChange={(pdf) => onChange({ ...settings, pdf })}
-					fieldErrors={fieldErrors}
-				/>
-			)}
-			{tab === 'crawl' && (
-				<CrawlConfigFields
-					value={settings.crawl}
-					onChange={(crawl) => onChange({ ...settings, crawl })}
-					fieldErrors={fieldErrors}
-				/>
-			)}
-			{tab === 'plugins' && (
-				<PluginsConfigFields
-					value={settings.plugins}
-					onChange={(plugins) => onChange({ ...settings, plugins })}
-					fieldErrors={fieldErrors}
-				/>
-			)}
-			{tab === 'output' && (
-				<OutputConfigFields
-					value={settings.output}
-					onChange={(output) => onChange({ ...settings, output })}
-					fieldErrors={fieldErrors}
-				/>
-			)}
+							onChange({ ...settings, content });
+						}}
+						fieldErrors={fieldErrors}
+					/>
+				)}
+				{tab === 'pdf' && (
+					<PdfConfigFields
+						value={settings.pdf}
+						onChange={(pdf) => onChange({ ...settings, pdf })}
+						fieldErrors={fieldErrors}
+					/>
+				)}
+				{tab === 'crawl' && (
+					<CrawlConfigFields
+						value={settings.crawl}
+						onChange={(crawl) => onChange({ ...settings, crawl })}
+						fieldErrors={fieldErrors}
+					/>
+				)}
+				{tab === 'plugins' && (
+					<PluginsConfigFields
+						value={settings.plugins}
+						onChange={(plugins) => onChange({ ...settings, plugins })}
+						fieldErrors={fieldErrors}
+					/>
+				)}
+				{tab === 'output' && (
+					<OutputConfigFields
+						value={settings.output}
+						onChange={(output) => onChange({ ...settings, output })}
+						fieldErrors={fieldErrors}
+					/>
+				)}
+			</div>
 		</div>
 	);
 }

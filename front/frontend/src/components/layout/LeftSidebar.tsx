@@ -125,17 +125,18 @@ export function LeftSidebarContent() {
 											<span className='ml-1 text-amber-500'>●</span>
 										)}
 									</button>
-									<ActionTooltip label={messages.sidebar.duplicateWorkspace}>
+									<ActionTooltip label={messages.sidebar.workspaceSettings}>
 										<Button
 											variant='ghost'
 											size='icon-xs'
-											aria-label={messages.sidebar.duplicateWorkspace}
+											aria-label={messages.sidebar.workspaceSettings}
 											onClick={(e) => {
 												e.stopPropagation();
-												openDuplicateWorkspaceDialog(ws.id);
+												setActiveWorkspace(ws.id);
+												setWsSettingsOpen(true);
 											}}
 										>
-											<Copy className='size-3' />
+											<Settings className='size-3' />
 										</Button>
 									</ActionTooltip>
 									<ActionTooltip label={messages.sidebar.deleteWorkspace}>
@@ -173,13 +174,10 @@ export function LeftSidebarContent() {
 											<DropdownMenuSeparator className='my-1' />
 											<DropdownMenuItem
 												className='gap-2 px-2 py-1.5 text-xs'
-												onClick={() => {
-													setActiveWorkspace(ws.id);
-													setWsSettingsOpen(true);
-												}}
+												onClick={() => openDuplicateWorkspaceDialog(ws.id)}
 											>
-												<Settings className='size-3.5 text-muted-foreground' />
-												{messages.sidebar.workspaceSettings}
+												<Copy className='size-3.5 text-muted-foreground' />
+												{messages.sidebar.duplicateWorkspace}
 											</DropdownMenuItem>
 											<DropdownMenuItem
 												className='gap-2 px-2 py-1.5 text-xs'
@@ -235,7 +233,7 @@ export function LeftSidebarContent() {
 					onOpenChange={setWsSettingsOpen}
 					size='fullHeight'
 				>
-					<DialogContent className='flex h-full flex-col overflow-hidden'>
+					<DialogContent className='flex h-full w-full min-w-0 flex-col overflow-hidden'>
 						<DialogHeader>
 							<DialogTitle>{messages.sidebar.workspaceSettings}</DialogTitle>
 						</DialogHeader>
