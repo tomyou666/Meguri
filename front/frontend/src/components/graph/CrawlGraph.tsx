@@ -52,6 +52,7 @@ export function CrawlGraph() {
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const workspaceDiffCache = useAppStore((s) => s.workspaceDiffCache);
 	const selectNode = useAppStore((s) => s.selectNode);
+	const toggleNodeDetailExpand = useAppStore((s) => s.toggleNodeDetailExpand);
 	const clearNodeSelection = useAppStore((s) => s.clearNodeSelection);
 	const graphToolMode = useAppStore((s) => s.graphToolMode);
 	const isSelectTool = graphToolMode === 'select';
@@ -240,6 +241,14 @@ export function CrawlGraph() {
 		[selectNode],
 	);
 
+	const onNodeDoubleClick = useCallback(
+		(e: React.MouseEvent, node: Node) => {
+			e.stopPropagation();
+			toggleNodeDetailExpand(node.id);
+		},
+		[toggleNodeDetailExpand],
+	);
+
 	const onPaneContextMenu = useCallback((e: MouseEvent | React.MouseEvent) => {
 		e.preventDefault();
 		const clientX = 'clientX' in e ? e.clientX : 0;
@@ -290,6 +299,7 @@ export function CrawlGraph() {
 				onConnect={onConnect}
 				nodeTypes={nodeTypes}
 				onNodeClick={onNodeClick}
+				onNodeDoubleClick={onNodeDoubleClick}
 				onNodeContextMenu={onNodeContextMenu}
 				onEdgeContextMenu={onEdgeContextMenu}
 				onPaneContextMenu={onPaneContextMenu}
