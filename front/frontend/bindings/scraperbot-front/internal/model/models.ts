@@ -304,6 +304,41 @@ export class ExportSessionRequest {
 }
 
 /**
+ * ExportZipEntryDTO は ZIP エクスポート用の 1 ファイル分。
+ */
+export class ExportZipEntryDTO {
+    /**
+     * Name は ZIP 内のファイル名。
+     */
+    "name": string;
+
+    /**
+     * Content はファイル本文。
+     */
+    "content": string;
+
+    /** Creates a new ExportZipEntryDTO instance. */
+    constructor($$source: Partial<ExportZipEntryDTO> = {}) {
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("content" in $$source)) {
+            this["content"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportZipEntryDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportZipEntryDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExportZipEntryDTO($$parsedSource as Partial<ExportZipEntryDTO>);
+    }
+}
+
+/**
  * FinishCrawlRunRequest は crawl run 終了。
  */
 export class FinishCrawlRunRequest {

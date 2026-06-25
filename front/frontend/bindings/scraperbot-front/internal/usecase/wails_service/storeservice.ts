@@ -186,6 +186,16 @@ export function SaveExportFile(content: string, defaultExt: string): $Cancellabl
 }
 
 /**
+ * SaveExportZip は複数ファイルを ZIP にまとめて保存する。
+ * 
+ * defaultExt はダイアログ表示用のヒント（"md" または "html"）。
+ * ZIP 内のファイル名は entries の Name をそのまま使う。
+ */
+export function SaveExportZip(entries: model$0.ExportZipEntryDTO[], defaultExt: string): $CancellablePromise<void> {
+    return $Call.ByID(1924064885, entries, defaultExt);
+}
+
+/**
  * SaveNodeSettings はノード設定を保存する。
  */
 export function SaveNodeSettings(workspaceID: string, nodeID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {

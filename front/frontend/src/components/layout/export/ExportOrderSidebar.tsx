@@ -1,11 +1,16 @@
 import type { Stat } from 'he-tree-react';
 import { sortFlatData, useHeTree } from 'he-tree-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
-import { type ExportFlatNode, toggleExportNodeCheck } from '@/lib/exportTree';
+import {
+	computeSemiCheckedIds,
+	type ExportFlatNode,
+	toggleExportNodeCheck,
+} from '@/lib/exportTree';
 import { cn } from '@/lib/utils';
 
 const FLAT_KEYS = { idKey: 'id' as const, parentIdKey: 'parent_id' as const };
@@ -13,21 +18,36 @@ const FLAT_KEYS = { idKey: 'id' as const, parentIdKey: 'parent_id' as const };
 type ExportTreeNodeProps = {
 	stat: Stat<ExportFlatNode>;
 	checkedIds: string[];
+	semiCheckedIds: string[];
 	onToggle: (id: string, checked: boolean) => void;
 };
 
-function ExportTreeNode({ stat, checkedIds, onToggle }: ExportTreeNodeProps) {
+function ExportTreeNode({
+	stat,
+	checkedIds,
+	semiCheckedIds,
+	onToggle,
+}: ExportTreeNodeProps) {
 	const node = stat.node;
 	const isChecked = checkedIds.includes(node.id);
+	const isSemiChecked = !isChecked && semiCheckedIds.includes(node.id);
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		if (inputRef.current) {
+			inputRef.current.indeterminate = isSemiChecked;
+		}
+	}, [isSemiChecked]);
 
 	return (
 		<div
 			className={cn(
 				'flex items-start gap-2 rounded px-1 py-0.5 text-xs',
-				!isChecked && 'opacity-50 text-muted-foreground',
+				!isChecked && !isSemiChecked && 'opacity-50 text-muted-foreground',
 			)}
 		>
 			<Checkbox
+				ref={inputRef}
 				checked={isChecked}
 				onCheckedChange={() => onToggle(node.id, !isChecked)}
 				onClick={(e) => e.stopPropagation()}
@@ -48,6 +68,8 @@ type ExportOrderSidebarProps = {
 	onFlatDataChange: (data: ExportFlatNode[]) => void;
 	checkedIds: string[];
 	onCheckedIdsChange: (ids: string[]) => void;
+	cascadeCheck: boolean;
+	onCascadeCheckChange: (value: boolean) => void;
 };
 
 export function ExportOrderSidebar({
@@ -55,14 +77,21 @@ export function ExportOrderSidebar({
 	onFlatDataChange,
 	checkedIds,
 	onCheckedIdsChange,
+	cascadeCheck,
+	onCascadeCheckChange,
 }: ExportOrderSidebarProps) {
+	const semiCheckedIds = useMemo(
+		() => computeSemiCheckedIds(flatData, checkedIds),
+		[flatData, checkedIds],
+	);
+
 	const handleChecked = useCallback(
 		(id: string, checked: boolean) => {
 			onCheckedIdsChange(
-				toggleExportNodeCheck(flatData, checkedIds, id, checked),
+				toggleExportNodeCheck(flatData, checkedIds, id, checked, cascadeCheck),
 			);
 		},
-		[flatData, checkedIds, onCheckedIdsChange],
+		[flatData, checkedIds, onCheckedIdsChange, cascadeCheck],
 	);
 
 	const selectAll = () => {
@@ -78,10 +107,11 @@ export function ExportOrderSidebar({
 			<ExportTreeNode
 				stat={stat}
 				checkedIds={checkedIds}
+				semiCheckedIds={semiCheckedIds}
 				onToggle={handleChecked}
 			/>
 		),
-		[checkedIds, handleChecked],
+		[checkedIds, semiCheckedIds, handleChecked],
 	);
 
 	const { renderTree } = useHeTree({
@@ -114,13 +144,28 @@ export function ExportOrderSidebar({
 			<div className='border-b border-border px-3 py-2 text-xs font-semibold'>
 				{messages.export.orderTitle}
 			</div>
-			<div className='flex gap-1 border-b border-border p-2'>
+			<div className='flex flex-wrap gap-1 border-b border-border p-2'>
 				<Button size='xs' variant='outline' onClick={selectAll}>
 					{messages.export.selectAll}
 				</Button>
 				<Button size='xs' variant='outline' onClick={deselectAll}>
 					{messages.export.deselectAll}
 				</Button>
+				<div className='flex w-full items-center gap-2 pt-1'>
+					<Checkbox
+						id='export-cascade-check'
+						checked={cascadeCheck}
+						onCheckedChange={(checked) =>
+							onCascadeCheckChange(checked === true)
+						}
+					/>
+					<Label
+						htmlFor='export-cascade-check'
+						className='text-[10px] font-normal'
+					>
+						{messages.export.cascadeCheck}
+					</Label>
+				</div>
 			</div>
 			<ScrollArea className='min-h-0 flex-1 p-2'>{renderTree()}</ScrollArea>
 		</aside>

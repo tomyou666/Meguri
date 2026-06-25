@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildExportPreview,
 	buildInitialFlatTree,
+	buildSplitExportFiles,
+	computeSemiCheckedIds,
 	mergeExportContent,
 	parseExportSeparator,
 	preorderNodeIds,
+	sanitizeExportFileName,
 	toggleExportNodeCheck,
 } from '@/lib/exportTree';
 import type { GraphEdge, GraphNode } from '@/types/graph';
@@ -135,6 +138,7 @@ describe('mergeExportContent', () => {
 				separator: '\n---\n',
 				includeHeading: true,
 				headingField: 'url',
+				splitSave: false,
 			},
 		});
 		expect(content).toContain('## https://a');
@@ -151,6 +155,7 @@ describe('mergeExportContent', () => {
 				separator: '\n',
 				includeHeading: false,
 				headingField: 'label',
+				splitSave: false,
 			},
 		});
 		expect(content).toBe('only body');
@@ -171,6 +176,7 @@ describe('mergeExportContent', () => {
 				separator: '\\n---\\n',
 				includeHeading: false,
 				headingField: 'url',
+				splitSave: false,
 			},
 		});
 		expect(content).toBe('a\n---\nb');
@@ -191,6 +197,7 @@ describe('mergeExportContent', () => {
 				separator: '<script>x</script>',
 				includeHeading: false,
 				headingField: 'url',
+				splitSave: false,
 			},
 		});
 		expect(content).toBe('<p>a</p>&lt;script&gt;x&lt;/script&gt;<p>b</p>');
@@ -233,6 +240,91 @@ describe('toggleExportNodeCheck', () => {
 		const next = toggleExportNodeCheck(flat, [], 'a', true);
 		expect(next.sort()).toEqual(['a', 'b']);
 	});
+
+	it('cascade=false ではクリックしたノードのみ切り替える', () => {
+		const next = toggleExportNodeCheck(flat, ['a', 'b'], 'b', false, false);
+		expect(next).toEqual(['a']);
+	});
+});
+
+describe('computeSemiCheckedIds', () => {
+	const flat = [
+		{
+			id: 'a',
+			parent_id: null,
+			urlNormalized: 'https://a',
+			label: 'a',
+			status: 'success',
+		},
+		{
+			id: 'b',
+			parent_id: 'a',
+			urlNormalized: 'https://b',
+			label: 'b',
+			status: 'success',
+		},
+		{
+			id: 'c',
+			parent_id: 'a',
+			urlNormalized: 'https://c',
+			label: 'c',
+			status: 'success',
+		},
+	];
+
+	it('子の一部のみ ON の親を返す', () => {
+		expect(computeSemiCheckedIds(flat, ['b'])).toEqual(['a']);
+	});
+
+	it('子がすべて ON の親は含めない', () => {
+		expect(computeSemiCheckedIds(flat, ['b', 'c'])).toEqual([]);
+	});
+});
+
+describe('sanitizeExportFileName', () => {
+	it('Windows 禁止文字を置換する', () => {
+		expect(sanitizeExportFileName('a/b:c')).toBe('a_b_c');
+	});
+});
+
+describe('buildSplitExportFiles', () => {
+	it('ノードごとにユニークなファイル名と本文を返す', () => {
+		const flat = [
+			{
+				id: 'a',
+				parent_id: null,
+				urlNormalized: 'https://example.com/page-a',
+				label: 'A',
+				status: 'success',
+			},
+			{
+				id: 'b',
+				parent_id: null,
+				urlNormalized: 'https://example.com/page-b',
+				label: 'B',
+				status: 'success',
+			},
+		];
+		const files = buildSplitExportFiles(
+			['a', 'b'],
+			flat,
+			[
+				{ url: 'https://example.com/page-a', markdown: 'body a' },
+				{ url: 'https://example.com/page-b', markdown: 'body b' },
+			],
+			{
+				format: 'markdown',
+				separator: '\n',
+				includeHeading: true,
+				headingField: 'url',
+				splitSave: true,
+			},
+		);
+		expect(files).toHaveLength(2);
+		expect(files[0]?.name).toBe('page-a.md');
+		expect(files[1]?.name).toBe('page-b.md');
+		expect(files[0]?.content).toContain('body a');
+	});
 });
 
 describe('buildExportPreview', () => {
@@ -262,6 +354,7 @@ describe('buildExportPreview', () => {
 				separator: '\n',
 				includeHeading: false,
 				headingField: 'url',
+				splitSave: false,
 			},
 		);
 		expect(preview.includedCount).toBe(1);

@@ -137,6 +137,14 @@ type ExportSessionRequest struct {
 	SelectedNodeIDs []string `json:"selectedNodeIds,omitempty"`
 }
 
+// ExportZipEntryDTO は ZIP エクスポート用の 1 ファイル分。
+type ExportZipEntryDTO struct {
+	// Name は ZIP 内のファイル名。
+	Name string `json:"name"`
+	// Content はファイル本文。
+	Content string `json:"content"`
+}
+
 // NodeResultUpdatedEvent はノード結果手動編集後の同期イベント。
 type NodeResultUpdatedEvent struct {
 	WorkspaceID string         `json:"workspaceId"`

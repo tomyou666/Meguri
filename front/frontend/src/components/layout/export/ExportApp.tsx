@@ -11,9 +11,11 @@ import { messages } from '@/i18n/messages';
 import {
 	buildExportPreview,
 	buildInitialFlatTree,
+	buildSplitExportFiles,
 	DEFAULT_EXPORT_SETTINGS,
 	type ExportFlatNode,
 	type ExportMergeSettings,
+	type ExportZipFileEntry,
 	initialCheckedIds,
 	preorderNodeIds,
 } from '@/lib/exportTree';
@@ -104,10 +106,12 @@ export function ExportApp() {
 	const [workspaceId, setWorkspaceId] = useState('');
 	const [flatData, setFlatData] = useState<ExportFlatNode[]>([]);
 	const [checkedIds, setCheckedIds] = useState<string[]>([]);
+	const [cascadeCheck, setCascadeCheck] = useState(true);
 	const [settings, setSettings] = useState<ExportMergeSettings>(
 		DEFAULT_EXPORT_SETTINGS,
 	);
 	const [previewContent, setPreviewContent] = useState<string | null>(null);
+	const [splitFiles, setSplitFiles] = useState<ExportZipFileEntry[]>([]);
 	const [previewLoading, setPreviewLoading] = useState(false);
 
 	const loadSession = useCallback((session: ExportSessionSnapshot) => {
@@ -116,6 +120,7 @@ export function ExportApp() {
 		setFlatData(next.flatData);
 		setCheckedIds(next.checkedIds);
 		setPreviewContent(null);
+		setSplitFiles([]);
 	}, []);
 
 	useEffect(() => {
@@ -150,6 +155,9 @@ export function ExportApp() {
 				settings,
 			);
 			setPreviewContent(preview.content);
+			setSplitFiles(
+				buildSplitExportFiles(orderedIds, flatData, results, settings),
+			);
 			if (preview.skippedCount > 0) {
 				notifySuccess(messages.export.skippedNoResult(preview.skippedCount));
 			}
@@ -176,15 +184,21 @@ export function ExportApp() {
 
 	const savePreview = async () => {
 		if (!previewContent) return;
+		const ext = settings.format === 'html' ? 'html' : 'md';
 		try {
-			await scraperPort.saveExportFile(
-				previewContent,
-				settings.format === 'html' ? 'html' : 'md',
-			);
+			if (settings.splitSave) {
+				if (splitFiles.length === 0) return;
+				await scraperPort.saveExportZip(splitFiles, ext);
+				notifySuccess(messages.export.saveZipSuccess);
+				return;
+			}
+			await scraperPort.saveExportFile(previewContent, ext);
 			notifySuccess(messages.export.saveSuccess);
 		} catch (err) {
+			const errMessage = err instanceof Error ? err.message : String(err);
+			if (errMessage.includes('cancelled by user')) return;
 			notifyError(messages.export.saveFailed, {
-				description: err instanceof Error ? err.message : String(err),
+				description: errMessage,
 			});
 		}
 	};
@@ -197,6 +211,10 @@ export function ExportApp() {
 		);
 	}
 
+	const hasPreview = settings.splitSave
+		? splitFiles.length > 0
+		: previewContent !== null && previewContent.length > 0;
+
 	return (
 		<TooltipProvider>
 			<div className='flex h-screen flex-col overflow-hidden bg-background text-foreground'>
@@ -207,6 +225,8 @@ export function ExportApp() {
 							onFlatDataChange={setFlatData}
 							checkedIds={checkedIds}
 							onCheckedIdsChange={setCheckedIds}
+							cascadeCheck={cascadeCheck}
+							onCascadeCheckChange={setCascadeCheck}
 						/>
 					</Panel>
 					<Separator className='w-1 shrink-0 bg-border hover:bg-primary/30' />
@@ -223,7 +243,7 @@ export function ExportApp() {
 							settings={settings}
 							onSettingsChange={setSettings}
 							checkedCount={checkedIds.length}
-							hasPreview={previewContent !== null && previewContent.length > 0}
+							hasPreview={hasPreview}
 							previewLoading={previewLoading}
 							onPreviewStart={() => void runPreview()}
 							onSave={() => void savePreview()}

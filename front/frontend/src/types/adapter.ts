@@ -155,6 +155,10 @@ export interface ScraperPort {
 	showExportWindow(snapshot: ExportSessionSnapshot): Promise<void>;
 	getExportSession(): Promise<ExportSessionSnapshot | null>;
 	saveExportFile(content: string, defaultExt: string): Promise<void>;
+	saveExportZip(
+		entries: { name: string; content: string }[],
+		defaultExt: string,
+	): Promise<void>;
 	mergeResults(
 		workspaceId: string,
 		nodeIds: string[] | null,

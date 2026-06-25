@@ -1,6 +1,7 @@
 package wails_service
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -216,6 +217,60 @@ func (s *StoreService) SaveExportFile(content string, defaultExt string) error {
 		path += "." + ext
 	}
 	return os.WriteFile(path, []byte(content), 0o644)
+}
+
+// SaveExportZip は複数ファイルを ZIP にまとめて保存する。
+//
+// defaultExt はダイアログ表示用のヒント（"md" または "html"）。
+// ZIP 内のファイル名は entries の Name をそのまま使う。
+func (s *StoreService) SaveExportZip(entries []model.ExportZipEntryDTO, defaultExt string) error {
+	_ = defaultExt
+	if s.app == nil {
+		return fmt.Errorf("app not initialized")
+	}
+	if len(entries) == 0 {
+		return fmt.Errorf("no export entries")
+	}
+	path, err := s.app.Dialog.SaveFile().
+		SetMessage("Save export ZIP").
+		SetFilename("export.zip").
+		AddFilter("ZIP archive", "*.zip").
+		AddFilter("All Files", "*.*").
+		PromptForSingleSelection()
+	if err != nil || path == "" {
+		return err
+	}
+	if filepath.Ext(path) == "" {
+		path += ".zip"
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := zip.NewWriter(f)
+	for _, entry := range entries {
+		if entry.Name == "" {
+			continue
+		}
+		hdr := &zip.FileHeader{
+			Name:   entry.Name,
+			Method: zip.Deflate,
+		}
+		writer, err := w.CreateHeader(hdr)
+		if err != nil {
+			return err
+		}
+		if _, err := writer.Write([]byte(entry.Content)); err != nil {
+			return err
+		}
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	return f.Close()
 }
 
 // MergeResults は結果をマージする。

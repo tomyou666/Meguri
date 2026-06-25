@@ -21,6 +21,7 @@ export type ExportMergeSettings = {
 	separator: string;
 	includeHeading: boolean;
 	headingField: ExportHeadingField;
+	splitSave: boolean;
 };
 
 export const DEFAULT_EXPORT_SEPARATOR = '\n\n---\n\n';
@@ -30,6 +31,7 @@ export const DEFAULT_EXPORT_SETTINGS: ExportMergeSettings = {
 	separator: DEFAULT_EXPORT_SEPARATOR,
 	includeHeading: true,
 	headingField: 'url',
+	splitSave: false,
 };
 
 const FLAT_KEYS = { idKey: 'id' as const, parentIdKey: 'parent_id' as const };
@@ -247,21 +249,143 @@ export function collectDescendantIds(
 	return out;
 }
 
-/** チェック状態を切り替える。ON は配下へ連動、OFF は配下のみ（親は維持）。 */
+/** nodeId の直下以外の配下 ID を返す。 */
+export function collectDescendantIdsOnly(
+	flatData: ExportFlatNode[],
+	nodeId: string,
+): string[] {
+	return collectDescendantIds(flatData, nodeId).filter((id) => id !== nodeId);
+}
+
+/** 子の一部のみチェック ON の親ノード ID を返す（indeterminate 表示用）。 */
+export function computeSemiCheckedIds(
+	flatData: ExportFlatNode[],
+	checkedIds: string[],
+): string[] {
+	const checked = new Set(checkedIds);
+	const semi: string[] = [];
+
+	for (const node of flatData) {
+		if (checked.has(node.id)) continue;
+		const descendants = collectDescendantIdsOnly(flatData, node.id);
+		if (descendants.length === 0) continue;
+		const checkedCount = descendants.filter((id) => checked.has(id)).length;
+		if (checkedCount > 0 && checkedCount < descendants.length) {
+			semi.push(node.id);
+		}
+	}
+
+	return semi;
+}
+
+/** チェック状態を切り替える。
+ *
+ * cascade=true: ON は配下へ連動、OFF は配下のみ（親は維持）。
+ * cascade=false: クリックしたノードのみ切り替える。
+ */
 export function toggleExportNodeCheck(
 	flatData: ExportFlatNode[],
 	checkedIds: string[],
 	nodeId: string,
 	checked: boolean,
+	cascade = true,
 ): string[] {
-	const subtree = collectDescendantIds(flatData, nodeId);
 	const next = new Set(checkedIds);
+	if (!cascade) {
+		if (checked) next.add(nodeId);
+		else next.delete(nodeId);
+		return [...next];
+	}
+
+	const subtree = collectDescendantIds(flatData, nodeId);
 	if (checked) {
 		for (const id of subtree) next.add(id);
 	} else {
 		for (const id of subtree) next.delete(id);
 	}
 	return [...next];
+}
+
+export type ExportZipFileEntry = {
+	name: string;
+	content: string;
+};
+
+function baseNameForMeta(
+	meta: ExportNodeMeta,
+	settings: ExportMergeSettings,
+): string {
+	if (settings.headingField === 'label') return meta.label;
+	try {
+		const url = new URL(meta.urlNormalized);
+		const path = url.pathname.replace(/\/$/, '');
+		const segment = path.split('/').filter(Boolean).pop();
+		return segment || url.hostname;
+	} catch {
+		return meta.urlNormalized;
+	}
+}
+
+/** ファイル名に使えない文字を除去する。 */
+export function sanitizeExportFileName(raw: string): string {
+	const trimmed = raw
+		.replace(/[\\/:*?"<>|]/g, '_')
+		.replace(/\s+/g, ' ')
+		.trim()
+		.slice(0, 120);
+	return trimmed || 'export';
+}
+
+function assignUniqueFileNames(bases: string[], ext: string): string[] {
+	const seen = new Map<string, number>();
+	return bases.map((base) => {
+		const stem = sanitizeExportFileName(base);
+		const count = seen.get(stem) ?? 0;
+		seen.set(stem, count + 1);
+		if (count === 0) return `${stem}.${ext}`;
+		return `${stem}-${count + 1}.${ext}`;
+	});
+}
+
+function contentForSingleNode(
+	result: CrawlResultPreview,
+	meta: ExportNodeMeta,
+	settings: ExportMergeSettings,
+): string | null {
+	const body = bodyForResult(result, settings.format);
+	if (!body) return null;
+	if (settings.includeHeading) {
+		return `${headingForNode(meta, settings)}\n\n${body}`;
+	}
+	return body;
+}
+
+/** チェック済みノードごとのエクスポートファイルを構築する。 */
+export function buildSplitExportFiles(
+	orderedIds: string[],
+	flatData: ExportFlatNode[],
+	results: CrawlResultPreview[],
+	settings: ExportMergeSettings,
+): ExportZipFileEntry[] {
+	const metaById = new Map(flatData.map((n) => [n.id, n]));
+	const resultByUrl = new Map(results.map((r) => [r.url, r]));
+	const ext = settings.format === 'html' ? 'html' : 'md';
+	const bases: string[] = [];
+	const contents: string[] = [];
+
+	for (const id of orderedIds) {
+		const meta = metaById.get(id);
+		if (!meta) continue;
+		const result = resultByUrl.get(meta.urlNormalized);
+		if (!result) continue;
+		const content = contentForSingleNode(result, meta, settings);
+		if (!content) continue;
+		bases.push(baseNameForMeta(meta, settings));
+		contents.push(content);
+	}
+
+	const names = assignUniqueFileNames(bases, ext);
+	return names.map((name, i) => ({ name, content: contents[i] ?? '' }));
 }
 
 export type FetchExportPreviewResult = {

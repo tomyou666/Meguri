@@ -8,6 +8,7 @@ export {
     ExportSessionEdgeDTO,
     ExportSessionNodeDTO,
     ExportSessionRequest,
+    ExportZipEntryDTO,
     FinishCrawlRunRequest,
     GraphEdgeDTO,
     GraphNodeDTO,

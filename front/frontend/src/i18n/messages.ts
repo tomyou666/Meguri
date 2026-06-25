@@ -270,6 +270,9 @@ export const messages = {
 		copy: 'クリップボードにコピー',
 		selectAll: '全選択',
 		deselectAll: '全解除',
+		cascadeCheck: '連動選択',
+		splitSave: '分割保存（ZIP でまとめる）',
+		splitSaveHint: 'チェック済みノードごとにファイルを作成し ZIP で保存します',
 		format: '出力形式',
 		formatMarkdown: 'Markdown',
 		formatHtml: 'HTML',
@@ -286,6 +289,7 @@ export const messages = {
 		copyFailed: 'コピーに失敗しました',
 		saveFailed: 'ファイルの保存に失敗しました',
 		saveSuccess: 'ファイルを保存しました',
+		saveZipSuccess: 'ZIP ファイルを保存しました',
 		openFailed: 'エクスポートウィンドウを開けませんでした',
 	},
 } as const;

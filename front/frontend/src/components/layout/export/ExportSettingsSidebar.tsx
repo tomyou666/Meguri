@@ -64,6 +64,27 @@ export function ExportSettingsSidebar({
 						</div>
 					</div>
 
+					<div className='flex items-center gap-2'>
+						<Checkbox
+							id='export-split-save'
+							checked={settings.splitSave}
+							onCheckedChange={(checked) =>
+								onSettingsChange({
+									...settings,
+									splitSave: checked === true,
+								})
+							}
+						/>
+						<Label htmlFor='export-split-save' className='text-xs font-normal'>
+							{messages.export.splitSave}
+						</Label>
+					</div>
+					{settings.splitSave && (
+						<p className='text-[10px] text-muted-foreground'>
+							{messages.export.splitSaveHint}
+						</p>
+					)}
+
 					<div className='space-y-1.5'>
 						<Label htmlFor='export-separator' className='text-xs'>
 							{messages.export.separator}
@@ -72,6 +93,7 @@ export function ExportSettingsSidebar({
 							id='export-separator'
 							className='h-8 font-mono text-xs'
 							value={settings.separator}
+							disabled={settings.splitSave}
 							onChange={(e) =>
 								onSettingsChange({ ...settings, separator: e.target.value })
 							}
@@ -83,6 +105,7 @@ export function ExportSettingsSidebar({
 							size='xs'
 							variant='ghost'
 							className='h-6 px-1 text-[10px]'
+							disabled={settings.splitSave}
 							onClick={() =>
 								onSettingsChange({
 									...settings,

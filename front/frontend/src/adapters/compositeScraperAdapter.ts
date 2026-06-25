@@ -264,6 +264,13 @@ export class CompositeScraperAdapter implements ScraperPort {
 		await StoreService.SaveExportFile(content, defaultExt);
 	}
 
+	async saveExportZip(
+		entries: { name: string; content: string }[],
+		defaultExt: string,
+	): Promise<void> {
+		await StoreService.SaveExportZip(entries, defaultExt);
+	}
+
 	async mergeResults(
 		workspaceId: string,
 		nodeIds: string[] | null,
