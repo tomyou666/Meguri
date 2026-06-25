@@ -225,7 +225,7 @@ export function NodeResultPanel({
 				</div>
 			</div>
 			{!readonly && showNodeSettings && node ? (
-				<ScrollArea className='min-h-0 flex-1 py-3'>
+				<ScrollArea className='min-h-0 flex-1'>
 					<ConfigEditor
 						layer='node'
 						settings={node.nodeSettings ?? {}}
@@ -237,7 +237,7 @@ export function NodeResultPanel({
 					/>
 				</ScrollArea>
 			) : isEditingContent ? (
-				<div className='flex min-h-0 flex-1 flex-col overflow-hidden py-3'>
+				<div className='flex min-h-0 flex-1 flex-col overflow-hidden'>
 					{formats.map((f) => (
 						<TabsContent
 							key={f}
@@ -260,7 +260,7 @@ export function NodeResultPanel({
 					))}
 				</div>
 			) : (
-				<ScrollArea className='min-h-0 flex-1 py-3'>
+				<ScrollArea className='min-h-0 flex-1'>
 					{formats.map((f) => (
 						<TabsContent key={f} value={f}>
 							<NodeFormatContent

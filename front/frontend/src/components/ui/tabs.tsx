@@ -74,7 +74,7 @@ function TabsContent({
 }) {
 	const ctx = React.useContext(TabsContext)!;
 	if (ctx.value !== value) return null;
-	return <div className={cn('pt-3', className)}>{children}</div>;
+	return <div className={cn(className)}>{children}</div>;
 }
 
 export { Tabs, TabsContent, TabsList, TabsTrigger };
