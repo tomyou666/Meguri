@@ -123,7 +123,11 @@ export function preorderNodeIds(
 
 	for (const node of flatData) {
 		if (!checked.has(node.id)) continue;
-		const key = node.parent_id;
+		// 親が未チェックの子はルート扱いにして走査対象に含める
+		const key =
+			node.parent_id !== null && checked.has(node.parent_id)
+				? node.parent_id
+				: null;
 		const list = byParent.get(key) ?? [];
 		list.push(node);
 		byParent.set(key, list);

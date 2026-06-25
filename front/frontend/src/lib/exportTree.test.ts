@@ -97,6 +97,26 @@ describe('preorderNodeIds', () => {
 		];
 		expect(preorderNodeIds(flat, ['a', 'c'])).toEqual(['a', 'c']);
 	});
+
+	it('親未チェックでも子のみチェック ON なら子を含める', () => {
+		const flat = [
+			{
+				id: 'a',
+				parent_id: null,
+				urlNormalized: 'https://a',
+				label: 'a',
+				status: 'success',
+			},
+			{
+				id: 'b',
+				parent_id: 'a',
+				urlNormalized: 'https://b',
+				label: 'b',
+				status: 'success',
+			},
+		];
+		expect(preorderNodeIds(flat, ['b'])).toEqual(['b']);
+	});
 });
 
 describe('mergeExportContent', () => {
