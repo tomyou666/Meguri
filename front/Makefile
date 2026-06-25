@@ -1,6 +1,6 @@
-.PHONY: help setup dev run build clean check test lint format lint-fix \
-	go-test go-build go-tidy go-fmt go-vet go-lint \
-	frontend-install frontend-dev frontend-build frontend-preview frontend-test frontend-lint frontend-typecheck frontend-format frontend-lint-fix \
+.PHONY: help setup dev run build clean check test lint fmt lintfix \
+	gtest gbuild gtidy gfmt gvet glint \
+	finstall fdev fbuild fpreview ftest flint ftypecheck ffmt flintfix \
 	tools migrate-up migrate-down migrate-version gen wire bindings generate
 
 GO ?= go
@@ -41,13 +41,13 @@ help:
 	@echo "  lint      Run golangci-lint + frontend lint + typecheck"
 	@echo "  fmt       Run go fmt + frontend lint auto-fix"
 	@echo "  test      Run Go + frontend tests"
-	@echo "  go-fmt    Run go fmt on Go packages"
-	@echo "  go-lint   Run golangci-lint on Go packages"
+	@echo "  gfmt      Run go fmt on Go packages"
+	@echo "  glint     Run golangci-lint on Go packages"
 	@echo ""
 	@echo "Frontend-only shortcuts:"
-	@echo "  frontend-dev frontend-build frontend-preview frontend-test"
+	@echo "  fdev fbuild fpreview ftest"
 
-setup: frontend-install
+setup: finstall
 
 tools:
 	$(GO) mod download
@@ -83,7 +83,7 @@ bindings:
 
 generate: bindings
 
-frontend-install:
+finstall:
 	$(NPM) --prefix $(FRONTEND_DIR) install
 
 dev:
@@ -100,54 +100,52 @@ clean:
 
 check: lint test
 
-test: go-test frontend-test
+test: gtest ftest
 
-lint: go-lint frontend-lint frontend-typecheck
+lint: glint flint ftypecheck
 
-fmt: go-fmt frontend-lint-fix
+fmt: gfmt flintfix
 
-go-fmt:
+gfmt:
 	$(GO) fmt ./...
 
-go-vet:
+gvet:
 	$(GO) vet -tags dev ./...
 
-go-lint:
+glint:
 	$(GOLANGCI_LINT) run ./...
 
-format: frontend-format
+lintfix: flintfix
 
-lint-fix: frontend-lint-fix
-
-go-test:
+gtest:
 	$(GO) test $(GO_TEST_FLAGS) -tags dev ./...
 
-go-build:
+gbuild:
 	$(GO) build ./...
 
-go-tidy:
+gtidy:
 	$(GO) mod tidy
 
-frontend-dev:
+fdev:
 	$(NPM) --prefix $(FRONTEND_DIR) run dev
 
-frontend-build:
+fbuild:
 	$(NPM) --prefix $(FRONTEND_DIR) run build
 
-frontend-preview:
+fpreview:
 	$(NPM) --prefix $(FRONTEND_DIR) run preview
 
-frontend-test:
+ftest:
 	$(NPM) --prefix $(FRONTEND_DIR) run test
 
-frontend-lint:
+flint:
 	$(NPM) --prefix $(FRONTEND_DIR) run lint
 
-frontend-typecheck:
+ftypecheck:
 	$(NPM) --prefix $(FRONTEND_DIR) run typecheck
 
-frontend-format:
+ffmt:
 	$(NPM) --prefix $(FRONTEND_DIR) run format
 
-frontend-lint-fix:
+flintfix:
 	$(NPM) --prefix $(FRONTEND_DIR) run lint:fix

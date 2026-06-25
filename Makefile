@@ -1,6 +1,6 @@
 .PHONY: help all check fmt vet lint test build tidy wire tools \
-	backend-check backend-build backend-tidy backend-wire \
-	front-dev front-build front-run front-test front-lint front-format front-check front-setup front-tools
+	bcheck bbuild btidy bwire \
+	fdev fbuild frun ftest flint ffmt fcheck fsetup ftools
 
 BACKEND_DIR ?= backend
 FRONT_DIR ?= front
@@ -21,15 +21,15 @@ help:
 	@echo "  tools         Download front Go tool dependencies (dlv, migrate, wails3)"
 	@echo ""
 	@echo "Backend shortcuts:"
-	@echo "  backend-check backend-build backend-tidy backend-wire"
+	@echo "  bcheck bbuild btidy bwire"
 	@echo ""
 	@echo "Front shortcuts:"
-	@echo "  front-setup front-dev front-build front-run"
-	@echo "  front-test front-lint front-format front-check"
+	@echo "  fsetup fdev fbuild frun"
+	@echo "  ftest flint ffmt fcheck"
 
-check: backend-check front-check
+check: bcheck fcheck
 
-build: backend-build front-build
+build: bbuild fbuild
 
 test:
 	$(MAKE) -C $(BACKEND_DIR) test
@@ -43,47 +43,47 @@ fmt:
 	$(MAKE) -C $(BACKEND_DIR) fmt
 	$(MAKE) -C $(FRONT_DIR) fmt
 
-tidy: backend-tidy
+tidy: btidy
 
-wire: backend-wire
+wire: bwire
 
-tools: front-tools
+tools: ftools
 
-front-tools:
+ftools:
 	$(MAKE) -C $(FRONT_DIR) tools
 
-backend-check:
+bcheck:
 	$(MAKE) -C $(BACKEND_DIR) check
 
-backend-build:
+bbuild:
 	$(MAKE) -C $(BACKEND_DIR) build
 
-backend-tidy:
+btidy:
 	$(MAKE) -C $(BACKEND_DIR) tidy
 
-backend-wire:
+bwire:
 	$(MAKE) -C $(BACKEND_DIR) wire
 
-front-setup:
+fsetup:
 	$(MAKE) -C $(FRONT_DIR) setup
 
-front-dev:
+fdev:
 	$(MAKE) -C $(FRONT_DIR) dev
 
-front-build:
+fbuild:
 	$(MAKE) -C $(FRONT_DIR) build
 
-front-run:
+frun:
 	$(MAKE) -C $(FRONT_DIR) run
 
-front-test:
+ftest:
 	$(MAKE) -C $(FRONT_DIR) test
 
-front-lint:
+flint:
 	$(MAKE) -C $(FRONT_DIR) lint
 
-front-format:
-	$(MAKE) -C $(FRONT_DIR) format
+ffmt:
+	$(MAKE) -C $(FRONT_DIR) fmt
 
-front-check:
+fcheck:
 	$(MAKE) -C $(FRONT_DIR) check
