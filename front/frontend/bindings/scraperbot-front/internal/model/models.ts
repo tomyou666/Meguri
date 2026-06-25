@@ -132,6 +132,178 @@ export class CrawlResultDTO {
 }
 
 /**
+ * ExportSessionEdgeDTO はエクスポートツリー構築用エッジ。
+ */
+export class ExportSessionEdgeDTO {
+    /**
+     * Source は始点ノード ID。
+     */
+    "source": string;
+
+    /**
+     * Target は終点ノード ID。
+     */
+    "target": string;
+
+    /** Creates a new ExportSessionEdgeDTO instance. */
+    constructor($$source: Partial<ExportSessionEdgeDTO> = {}) {
+        if (!("source" in $$source)) {
+            this["source"] = "";
+        }
+        if (!("target" in $$source)) {
+            this["target"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportSessionEdgeDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportSessionEdgeDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExportSessionEdgeDTO($$parsedSource as Partial<ExportSessionEdgeDTO>);
+    }
+}
+
+/**
+ * ExportSessionNodeDTO はエクスポートツリー用ノード。
+ */
+export class ExportSessionNodeDTO {
+    /**
+     * ID はグラフノード ID。
+     */
+    "id": string;
+
+    /**
+     * URLNormalized は正規化 URL。
+     */
+    "urlNormalized": string;
+
+    /**
+     * Label は表示ラベル。
+     */
+    "label": string;
+
+    /**
+     * Status はノードの crawl 状態。
+     */
+    "status": string;
+
+    /** Creates a new ExportSessionNodeDTO instance. */
+    constructor($$source: Partial<ExportSessionNodeDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("urlNormalized" in $$source)) {
+            this["urlNormalized"] = "";
+        }
+        if (!("label" in $$source)) {
+            this["label"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportSessionNodeDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportSessionNodeDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExportSessionNodeDTO($$parsedSource as Partial<ExportSessionNodeDTO>);
+    }
+}
+
+/**
+ * ExportSessionRequest はエクスポートウィンドウ表示用スナップショット。
+ */
+export class ExportSessionRequest {
+    /**
+     * Title はウィンドウタイトル。
+     */
+    "title": string;
+
+    /**
+     * WorkspaceID は対象ワークスペース ID。
+     */
+    "workspaceId": string;
+
+    /**
+     * Mode はエクスポート対象の選び方。
+     * "all": status=success の全ノード。
+     * "selected": SelectedNodeIDs のみ。
+     */
+    "mode": string;
+
+    /**
+     * SeedURL は親決定 BFS の起点 URL。
+     */
+    "seedUrl": string;
+
+    /**
+     * Nodes はグラフノード一覧。
+     */
+    "nodes": ExportSessionNodeDTO[];
+
+    /**
+     * Edges はグラフエッジ一覧。
+     */
+    "edges": ExportSessionEdgeDTO[];
+
+    /**
+     * SelectedNodeIDs は mode=selected 時の対象ノード ID。
+     */
+    "selectedNodeIds"?: string[];
+
+    /** Creates a new ExportSessionRequest instance. */
+    constructor($$source: Partial<ExportSessionRequest> = {}) {
+        if (!("title" in $$source)) {
+            this["title"] = "";
+        }
+        if (!("workspaceId" in $$source)) {
+            this["workspaceId"] = "";
+        }
+        if (!("mode" in $$source)) {
+            this["mode"] = "";
+        }
+        if (!("seedUrl" in $$source)) {
+            this["seedUrl"] = "";
+        }
+        if (!("nodes" in $$source)) {
+            this["nodes"] = [];
+        }
+        if (!("edges" in $$source)) {
+            this["edges"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportSessionRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportSessionRequest {
+        const $$createField4_0 = $$createType3;
+        const $$createField5_0 = $$createType5;
+        const $$createField6_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("nodes" in $$parsedSource) {
+            $$parsedSource["nodes"] = $$createField4_0($$parsedSource["nodes"]);
+        }
+        if ("edges" in $$parsedSource) {
+            $$parsedSource["edges"] = $$createField5_0($$parsedSource["edges"]);
+        }
+        if ("selectedNodeIds" in $$parsedSource) {
+            $$parsedSource["selectedNodeIds"] = $$createField6_0($$parsedSource["selectedNodeIds"]);
+        }
+        return new ExportSessionRequest($$parsedSource as Partial<ExportSessionRequest>);
+    }
+}
+
+/**
  * FinishCrawlRunRequest は crawl run 終了。
  */
 export class FinishCrawlRunRequest {
@@ -251,8 +423,8 @@ export class GraphNodeDTO {
      * Creates a new GraphNodeDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): GraphNodeDTO {
-        const $$createField3_0 = $$createType2;
-        const $$createField10_0 = $$createType4;
+        const $$createField3_0 = $$createType6;
+        const $$createField10_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("position" in $$parsedSource) {
             $$parsedSource["position"] = $$createField3_0($$parsedSource["position"]);
@@ -308,7 +480,7 @@ export class MaximizedNodeResultRequest {
      */
     static createFrom($$source: any = {}): MaximizedNodeResultRequest {
         const $$createField5_0 = $$createType0;
-        const $$createField6_0 = $$createType3;
+        const $$createField6_0 = $$createType7;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("formats" in $$parsedSource) {
             $$parsedSource["formats"] = $$createField5_0($$parsedSource["formats"]);
@@ -415,7 +587,7 @@ export class NodePositionPatchDTO {
      * Creates a new NodePositionPatchDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): NodePositionPatchDTO {
-        const $$createField1_0 = $$createType2;
+        const $$createField1_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("position" in $$parsedSource) {
             $$parsedSource["position"] = $$createField1_0($$parsedSource["position"]);
@@ -471,7 +643,7 @@ export class PatchGraphNodePositionsRequest {
      * Creates a new PatchGraphNodePositionsRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): PatchGraphNodePositionsRequest {
-        const $$createField1_0 = $$createType6;
+        const $$createField1_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("updates" in $$parsedSource) {
             $$parsedSource["updates"] = $$createField1_0($$parsedSource["updates"]);
@@ -648,7 +820,7 @@ export class StartCrawlRequest {
      */
     static createFrom($$source: any = {}): StartCrawlRequest {
         const $$createField4_0 = $$createType0;
-        const $$createField7_0 = $$createType7;
+        const $$createField7_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nodeIds" in $$parsedSource) {
             $$parsedSource["nodeIds"] = $$createField4_0($$parsedSource["nodeIds"]);
@@ -711,7 +883,7 @@ export class UpdateNodeResultRequest {
      * Creates a new UpdateNodeResultRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): UpdateNodeResultRequest {
-        const $$createField2_0 = $$createType8;
+        const $$createField2_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("patch" in $$parsedSource) {
             $$parsedSource["patch"] = $$createField2_0($$parsedSource["patch"]);
@@ -808,8 +980,8 @@ export class WorkspaceDTO {
      */
     static createFrom($$source: any = {}): WorkspaceDTO {
         const $$createField4_0 = $$createType0;
-        const $$createField5_0 = $$createType10;
-        const $$createField6_0 = $$createType12;
+        const $$createField5_0 = $$createType14;
+        const $$createField6_0 = $$createType16;
         const $$createField9_0 = $$createType0;
         const $$createField10_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
@@ -864,7 +1036,7 @@ export class WorkspaceDiffDTO {
      * Creates a new WorkspaceDiffDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): WorkspaceDiffDTO {
-        const $$createField3_0 = $$createType14;
+        const $$createField3_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nodes" in $$parsedSource) {
             $$parsedSource["nodes"] = $$createField3_0($$parsedSource["nodes"]);
@@ -908,16 +1080,20 @@ export class WorkspaceListItemDTO {
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = $Create.Map($Create.Any, $Create.Any);
-const $$createType2 = PositionDTO.createFrom;
-const $$createType3 = CrawlResultDTO.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = NodePositionPatchDTO.createFrom;
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = WorkspaceDTO.createFrom;
-const $$createType8 = UpdateNodeResultPatchDTO.createFrom;
-const $$createType9 = GraphNodeDTO.createFrom;
+const $$createType2 = ExportSessionNodeDTO.createFrom;
+const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = ExportSessionEdgeDTO.createFrom;
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = PositionDTO.createFrom;
+const $$createType7 = CrawlResultDTO.createFrom;
+const $$createType8 = $Create.Nullable($$createType7);
+const $$createType9 = NodePositionPatchDTO.createFrom;
 const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = GraphEdgeDTO.createFrom;
-const $$createType12 = $Create.Array($$createType11);
-const $$createType13 = NodeDiffDTO.createFrom;
+const $$createType11 = WorkspaceDTO.createFrom;
+const $$createType12 = UpdateNodeResultPatchDTO.createFrom;
+const $$createType13 = GraphNodeDTO.createFrom;
 const $$createType14 = $Create.Array($$createType13);
+const $$createType15 = GraphEdgeDTO.createFrom;
+const $$createType16 = $Create.Array($$createType15);
+const $$createType17 = NodeDiffDTO.createFrom;
+const $$createType18 = $Create.Array($$createType17);

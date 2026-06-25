@@ -97,6 +97,46 @@ type MaximizedNodeResultRequest struct {
 	Result       CrawlResultDTO `json:"result"`
 }
 
+// ExportSessionNodeDTO はエクスポートツリー用ノード。
+type ExportSessionNodeDTO struct {
+	// ID はグラフノード ID。
+	ID string `json:"id"`
+	// URLNormalized は正規化 URL。
+	URLNormalized string `json:"urlNormalized"`
+	// Label は表示ラベル。
+	Label string `json:"label"`
+	// Status はノードの crawl 状態。
+	Status string `json:"status"`
+}
+
+// ExportSessionEdgeDTO はエクスポートツリー構築用エッジ。
+type ExportSessionEdgeDTO struct {
+	// Source は始点ノード ID。
+	Source string `json:"source"`
+	// Target は終点ノード ID。
+	Target string `json:"target"`
+}
+
+// ExportSessionRequest はエクスポートウィンドウ表示用スナップショット。
+type ExportSessionRequest struct {
+	// Title はウィンドウタイトル。
+	Title string `json:"title"`
+	// WorkspaceID は対象ワークスペース ID。
+	WorkspaceID string `json:"workspaceId"`
+	// Mode はエクスポート対象の選び方。
+	// "all": status=success の全ノード。
+	// "selected": SelectedNodeIDs のみ。
+	Mode string `json:"mode"`
+	// SeedURL は親決定 BFS の起点 URL。
+	SeedURL string `json:"seedUrl"`
+	// Nodes はグラフノード一覧。
+	Nodes []ExportSessionNodeDTO `json:"nodes"`
+	// Edges はグラフエッジ一覧。
+	Edges []ExportSessionEdgeDTO `json:"edges"`
+	// SelectedNodeIDs は mode=selected 時の対象ノード ID。
+	SelectedNodeIDs []string `json:"selectedNodeIds,omitempty"`
+}
+
 // NodeResultUpdatedEvent はノード結果手動編集後の同期イベント。
 type NodeResultUpdatedEvent struct {
 	WorkspaceID string         `json:"workspaceId"`

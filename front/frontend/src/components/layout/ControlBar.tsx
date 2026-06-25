@@ -33,8 +33,7 @@ export function ControlBar() {
 	const resumeCrawl = useAppStore((s) => s.resumeCrawl);
 	const stopCrawl = useAppStore((s) => s.stopCrawl);
 	const ws = useAppStore((s) => s.getActiveWorkspace());
-	const mergeAllResults = useAppStore((s) => s.mergeAllResults);
-	const mergeSelectedResults = useAppStore((s) => s.mergeSelectedResults);
+	const openExportWindow = useAppStore((s) => s.openExportWindow);
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const [modeMenuOpen, setModeMenuOpen] = useState(false);
 
@@ -141,17 +140,17 @@ export function ControlBar() {
 					variant='outline'
 					size='xs'
 					disabled={!ws}
-					onClick={() => mergeAllResults()}
+					onClick={() => openExportWindow('all')}
 				>
-					{messages.menu.mergeAll}
+					{messages.menu.exportAll}
 				</Button>
 				<Button
 					variant='outline'
 					size='xs'
 					disabled={selectedNodeIds.length === 0}
-					onClick={() => mergeSelectedResults()}
+					onClick={() => openExportWindow('selected')}
 				>
-					{messages.menu.mergeSelected}
+					{messages.menu.exportSelected}
 				</Button>
 			</div>
 		</div>

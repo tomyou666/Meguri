@@ -50,6 +50,21 @@ export type MaximizedNodeResultSnapshot = {
 	result: CrawlResultPreview;
 };
 
+export type ExportSessionSnapshot = {
+	title: string;
+	workspaceId: string;
+	mode: 'all' | 'selected';
+	seedUrl: string;
+	nodes: {
+		id: string;
+		urlNormalized: string;
+		label: string;
+		status: string;
+	}[];
+	edges: { source: string; target: string }[];
+	selectedNodeIds?: string[];
+};
+
 export type NodeResultUpdatedEvent = {
 	workspaceId: string;
 	nodeId: string;
@@ -137,6 +152,9 @@ export interface ScraperPort {
 	): Promise<CrawlResultPreview | null>;
 	showMaximizedNodeResult(snapshot: MaximizedNodeResultSnapshot): Promise<void>;
 	getMaximizedNodeResult(): Promise<MaximizedNodeResultSnapshot | null>;
+	showExportWindow(snapshot: ExportSessionSnapshot): Promise<void>;
+	getExportSession(): Promise<ExportSessionSnapshot | null>;
+	saveExportFile(content: string, defaultExt: string): Promise<void>;
 	mergeResults(
 		workspaceId: string,
 		nodeIds: string[] | null,

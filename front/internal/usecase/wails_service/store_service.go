@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"scraperbot-front/internal/domain"
 	"scraperbot-front/internal/model"
@@ -20,6 +23,7 @@ type StoreService struct {
 	diff          *domain.DiffService
 	crawlPersist  *domain.CrawlPersistService
 	nodeResultWin *NodeResultWindowManager
+	exportWin     *ExportWindowManager
 }
 
 // NewStoreService は StoreService を構築する。
@@ -39,16 +43,20 @@ func NewStoreService(
 	}
 }
 
-// SetApp は Wails App を後から注入する（最大化ウィンドウ用）。
+// SetApp は Wails App を後から注入する（最大化・エクスポートウィンドウ用）。
 func (s *StoreService) SetApp(app *application.App) {
 	s.app = app
 	s.nodeResultWin = NewNodeResultWindowManager(app)
+	s.exportWin = NewExportWindowManager(app)
 }
 
 // WireMainWindow はメインウィンドウ終了時のプレビュー連動を登録する。
 func WireMainWindow(s *StoreService, w application.Window) {
 	if s.nodeResultWin != nil {
 		s.nodeResultWin.SetMainWindow(w)
+	}
+	if s.exportWin != nil {
+		s.exportWin.SetMainWindow(w)
 	}
 }
 
@@ -158,6 +166,56 @@ func (s *StoreService) GetMaximizedNodeResult() (model.MaximizedNodeResultReques
 		return model.MaximizedNodeResultRequest{}, fmt.Errorf("app not initialized")
 	}
 	return s.nodeResultWin.GetSnapshot()
+}
+
+// ShowExportWindow は別 WebviewWindow でエクスポート画面を表示する。
+func (s *StoreService) ShowExportWindow(req model.ExportSessionRequest) error {
+	if s.exportWin == nil {
+		return fmt.Errorf("app not initialized")
+	}
+	return s.exportWin.Show(req)
+}
+
+// GetExportSession はエクスポートウィンドウ用の直近スナップショットを返す。
+func (s *StoreService) GetExportSession() (model.ExportSessionRequest, error) {
+	if s.exportWin == nil {
+		return model.ExportSessionRequest{}, fmt.Errorf("app not initialized")
+	}
+	return s.exportWin.GetSnapshot()
+}
+
+// SaveExportFile はエクスポート本文をファイルに保存する。
+//
+// defaultExt はダイアログの既定拡張子（"md" または "html"）。
+func (s *StoreService) SaveExportFile(content string, defaultExt string) error {
+	if s.app == nil {
+		return fmt.Errorf("app not initialized")
+	}
+	ext := strings.TrimPrefix(strings.ToLower(defaultExt), ".")
+	if ext == "" {
+		ext = "md"
+	}
+	filterName := "Markdown"
+	filterPattern := "*.md"
+	defaultName := "export.md"
+	if ext == "html" {
+		filterName = "HTML"
+		filterPattern = "*.html"
+		defaultName = "export.html"
+	}
+	path, err := s.app.Dialog.SaveFile().
+		SetMessage("Save export").
+		SetFilename(defaultName).
+		AddFilter(filterName, filterPattern).
+		AddFilter("All Files", "*.*").
+		PromptForSingleSelection()
+	if err != nil || path == "" {
+		return err
+	}
+	if filepath.Ext(path) == "" {
+		path += "." + ext
+	}
+	return os.WriteFile(path, []byte(content), 0o644)
 }
 
 // MergeResults は結果をマージする。

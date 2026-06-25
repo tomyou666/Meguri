@@ -151,8 +151,6 @@ interface AppState {
 	loadedNodeResult: CrawlResultPreview | null;
 	resultPreview: CrawlResultPreview[] | null;
 	workspaceDiffCache: Record<string, WorkspaceDiff>;
-	mergeSheetOpen: boolean;
-	mergeSheetContent: string | null;
 	runMode: RunMode;
 	rescrapeExisting: boolean;
 	crawlStatus: CrawlRunStatus;
@@ -226,13 +224,11 @@ interface AppState {
 		snapshot: MaximizedNodeResultSnapshot,
 	) => Promise<void>;
 	previewSelectedResults: () => Promise<void>;
-	mergeAllResults: () => Promise<void>;
-	mergeSelectedResults: () => Promise<void>;
+	openExportWindow: (mode: 'all' | 'selected') => Promise<void>;
 	saveSelectedResults: () => Promise<void>;
 	deleteSelectedResults: () => Promise<void>;
 	bulkScrapeSelected: () => Promise<void>;
 	fetchWorkspaceDiff: (workspaceId: string) => Promise<WorkspaceDiff>;
-	closeMergeSheet: () => void;
 	setRunMode: (mode: RunMode) => void;
 	setRescrapeExisting: (value: boolean) => void;
 	updateNodePosition: (id: string, position: { x: number; y: number }) => void;
@@ -278,8 +274,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 	loadedNodeResult: null,
 	resultPreview: null,
 	workspaceDiffCache: {},
-	mergeSheetOpen: false,
-	mergeSheetContent: null,
 	runMode: 1,
 	rescrapeExisting: false,
 	crawlStatus: 'idle',
@@ -1297,19 +1291,37 @@ export const useAppStore = create<AppState>((set, get) => ({
 		set({ resultPreview: previews });
 	},
 
-	mergeAllResults: async () => {
+	openExportWindow: async (mode) => {
 		const ws = get().getActiveWorkspace();
 		if (!ws) return;
-		const res = await scraperPort.mergeResults(ws.id, null);
-		set({ mergeSheetOpen: true, mergeSheetContent: res.merged });
-	},
-
-	mergeSelectedResults: async () => {
-		const ws = get().getActiveWorkspace();
-		const ids = get().selectedNodeIds;
-		if (!ws || ids.length === 0) return;
-		const res = await scraperPort.mergeResults(ws.id, ids);
-		set({ mergeSheetOpen: true, mergeSheetContent: res.merged });
+		const selectedNodeIds = get().selectedNodeIds;
+		if (mode === 'selected' && selectedNodeIds.length === 0) return;
+		try {
+			await scraperPort.showExportWindow({
+				title:
+					mode === 'all'
+						? messages.export.windowTitleAll
+						: messages.export.windowTitleSelected,
+				workspaceId: ws.id,
+				mode,
+				seedUrl: ws.seedUrl,
+				nodes: ws.nodes.map((n) => ({
+					id: n.id,
+					urlNormalized: n.urlNormalized,
+					label: n.label,
+					status: n.status,
+				})),
+				edges: ws.edges.map((e) => ({
+					source: e.source,
+					target: e.target,
+				})),
+				selectedNodeIds: mode === 'selected' ? selectedNodeIds : undefined,
+			});
+		} catch (err) {
+			notifyError(messages.export.openFailed, {
+				description: err instanceof Error ? err.message : String(err),
+			});
+		}
 	},
 
 	saveSelectedResults: async () => {
@@ -1340,9 +1352,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 		}));
 		return diff;
 	},
-
-	closeMergeSheet: () =>
-		set({ mergeSheetOpen: false, mergeSheetContent: null }),
 
 	getActiveWorkspace: () => {
 		const { workspaces, activeWorkspaceId } = get();

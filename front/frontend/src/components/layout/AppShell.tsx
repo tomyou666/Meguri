@@ -10,7 +10,6 @@ import { AppKeyboardShortcuts } from './AppKeyboardShortcuts';
 import { ControlBar } from './ControlBar';
 import { LeftSidebarContent } from './LeftSidebar';
 import { MenuBar } from './MenuBar';
-import { MergeSheet } from './MergeSheet';
 import { RightSidebarContent } from './RightSidebar';
 
 const LEFT_SIDEBAR_SIZE = '14rem';
@@ -86,7 +85,6 @@ export function AppShell() {
 						<SidebarPanels />
 					</Group>
 					<AppDialogs />
-					<MergeSheet />
 				</div>
 			</TooltipProvider>
 		</AppBootstrap>

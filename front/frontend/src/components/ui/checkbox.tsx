@@ -1,16 +1,16 @@
 import type * as React from 'react';
+import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
-function Checkbox({
-	className,
-	checked,
-	onCheckedChange,
-	...props
-}: Omit<React.ComponentProps<'input'>, 'type' | 'onChange'> & {
-	onCheckedChange?: (checked: boolean) => void;
-}) {
+const Checkbox = forwardRef<
+	HTMLInputElement,
+	Omit<React.ComponentProps<'input'>, 'type' | 'onChange'> & {
+		onCheckedChange?: (checked: boolean) => void;
+	}
+>(function Checkbox({ className, checked, onCheckedChange, ...props }, ref) {
 	return (
 		<input
+			ref={ref}
 			type='checkbox'
 			checked={checked}
 			onChange={(e) => onCheckedChange?.(e.target.checked)}
@@ -18,6 +18,6 @@ function Checkbox({
 			{...props}
 		/>
 	);
-}
+});
 
 export { Checkbox };

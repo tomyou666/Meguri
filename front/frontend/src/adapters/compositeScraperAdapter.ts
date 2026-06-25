@@ -8,6 +8,7 @@ import {
 	workspaceToDTO,
 } from '@/lib/wailsMappers';
 import type {
+	ExportSessionSnapshot,
 	MaximizedNodeResultSnapshot,
 	MergeResultsResponse,
 	SaveSettingsResponse,
@@ -25,6 +26,7 @@ import type {
 } from '@/types/crawl';
 import type { Workspace } from '@/types/workspace';
 import {
+	ExportSessionRequest,
 	MaximizedNodeResultRequest,
 	StartCrawlRequest,
 	UpdateNodeResultPatchDTO,
@@ -208,6 +210,58 @@ export class CompositeScraperAdapter implements ScraperPort {
 		} catch {
 			return null;
 		}
+	}
+
+	async showExportWindow(snapshot: ExportSessionSnapshot): Promise<void> {
+		await StoreService.ShowExportWindow(
+			new ExportSessionRequest({
+				title: snapshot.title,
+				workspaceId: snapshot.workspaceId,
+				mode: snapshot.mode,
+				seedUrl: snapshot.seedUrl,
+				nodes: snapshot.nodes.map((n) => ({
+					id: n.id,
+					urlNormalized: n.urlNormalized,
+					label: n.label,
+					status: n.status,
+				})),
+				edges: snapshot.edges.map((e) => ({
+					source: e.source,
+					target: e.target,
+				})),
+				selectedNodeIds: snapshot.selectedNodeIds ?? [],
+			}),
+		);
+	}
+
+	async getExportSession(): Promise<ExportSessionSnapshot | null> {
+		try {
+			const dto = await StoreService.GetExportSession();
+			if (!dto?.workspaceId) return null;
+			return {
+				title: dto.title,
+				workspaceId: dto.workspaceId,
+				mode: dto.mode === 'selected' ? 'selected' : 'all',
+				seedUrl: dto.seedUrl,
+				nodes: (dto.nodes ?? []).map((n) => ({
+					id: n.id,
+					urlNormalized: n.urlNormalized,
+					label: n.label,
+					status: n.status,
+				})),
+				edges: (dto.edges ?? []).map((e) => ({
+					source: e.source,
+					target: e.target,
+				})),
+				selectedNodeIds: dto.selectedNodeIds ?? [],
+			};
+		} catch {
+			return null;
+		}
+	}
+
+	async saveExportFile(content: string, defaultExt: string): Promise<void> {
+		await StoreService.SaveExportFile(content, defaultExt);
 	}
 
 	async mergeResults(
