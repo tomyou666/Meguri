@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { EditableTextResult } from '@/components/layout/node-result/EditableTextResult';
 import {
 	MarkdownResultView,
@@ -32,6 +33,13 @@ export function NodeFormatContent({
 	onCancel,
 	onMarkdownViewChange,
 }: NodeFormatContentProps) {
+	const editLayout = (children: ReactNode) =>
+		editing ? (
+			<div className='flex min-h-0 flex-1 flex-col'>{children}</div>
+		) : (
+			children
+		);
+
 	if (!result) {
 		return (
 			<p className='text-xs text-muted-foreground'>
@@ -41,7 +49,7 @@ export function NodeFormatContent({
 	}
 
 	if (format === 'markdown') {
-		return (
+		return editLayout(
 			<>
 				<MarkdownViewToggle
 					view={markdownView}
@@ -58,7 +66,7 @@ export function NodeFormatContent({
 					onSave={onSave}
 					onCancel={onCancel}
 				/>
-			</>
+			</>,
 		);
 	}
 
@@ -69,7 +77,7 @@ export function NodeFormatContent({
 				: format === 'raw_html'
 					? (result.raw_html ?? '')
 					: (result.json ?? '');
-		return (
+		return editLayout(
 			<EditableTextResult
 				value={editing ? draft : value}
 				editing={editing}
@@ -77,7 +85,7 @@ export function NodeFormatContent({
 				onChange={onDraftChange}
 				onSave={onSave}
 				onCancel={onCancel}
-			/>
+			/>,
 		);
 	}
 

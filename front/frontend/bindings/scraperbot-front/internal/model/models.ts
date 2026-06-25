@@ -269,6 +269,8 @@ export class GraphNodeDTO {
  */
 export class MaximizedNodeResultRequest {
     "title": string;
+    "workspaceId": string;
+    "nodeId": string;
     "activeFormat": string;
     "markdownView": string;
     "formats": string[];
@@ -278,6 +280,12 @@ export class MaximizedNodeResultRequest {
     constructor($$source: Partial<MaximizedNodeResultRequest> = {}) {
         if (!("title" in $$source)) {
             this["title"] = "";
+        }
+        if (!("workspaceId" in $$source)) {
+            this["workspaceId"] = "";
+        }
+        if (!("nodeId" in $$source)) {
+            this["nodeId"] = "";
         }
         if (!("activeFormat" in $$source)) {
             this["activeFormat"] = "";
@@ -299,14 +307,14 @@ export class MaximizedNodeResultRequest {
      * Creates a new MaximizedNodeResultRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): MaximizedNodeResultRequest {
-        const $$createField3_0 = $$createType0;
-        const $$createField4_0 = $$createType3;
+        const $$createField5_0 = $$createType0;
+        const $$createField6_0 = $$createType3;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("formats" in $$parsedSource) {
-            $$parsedSource["formats"] = $$createField3_0($$parsedSource["formats"]);
+            $$parsedSource["formats"] = $$createField5_0($$parsedSource["formats"]);
         }
         if ("result" in $$parsedSource) {
-            $$parsedSource["result"] = $$createField4_0($$parsedSource["result"]);
+            $$parsedSource["result"] = $$createField6_0($$parsedSource["result"]);
         }
         return new MaximizedNodeResultRequest($$parsedSource as Partial<MaximizedNodeResultRequest>);
     }

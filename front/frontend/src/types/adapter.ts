@@ -42,9 +42,17 @@ export type UpdateNodeResultPatch = {
 
 export type MaximizedNodeResultSnapshot = {
 	title: string;
+	workspaceId: string;
+	nodeId: string;
 	activeFormat: string;
 	markdownView: 'source' | 'preview';
 	formats: string[];
+	result: CrawlResultPreview;
+};
+
+export type NodeResultUpdatedEvent = {
+	workspaceId: string;
+	nodeId: string;
 	result: CrawlResultPreview;
 };
 

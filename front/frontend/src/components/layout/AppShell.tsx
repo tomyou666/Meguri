@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Group, Panel, Separator, usePanelRef } from 'react-resizable-panels';
 import { CrawlGraph } from '@/components/graph/CrawlGraph';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useNodeResultSync } from '@/hooks/useNodeResultSync';
 import { useAppStore } from '@/stores/appStore';
 import { AppBootstrap } from './AppBootstrap';
 import { AppDialogs } from './AppDialogs';
@@ -72,6 +73,8 @@ function SidebarPanels() {
 }
 
 export function AppShell() {
+	useNodeResultSync();
+
 	return (
 		<AppBootstrap>
 			<TooltipProvider>

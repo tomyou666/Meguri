@@ -9,9 +9,11 @@ import { messages } from '@/i18n/messages';
 import { crawlResultFromDTO } from '@/lib/wailsMappers';
 import type { MaximizedNodeResultSnapshot } from '@/types/adapter';
 import type { ContentFormat } from '@/types/config';
+import type { CrawlResultPreview } from '@/types/crawl';
 import type { CrawlResultDTO } from '../../../../bindings/scraperbot-front/internal/model/models.js';
 
 const TOPIC_NODE_RESULT_MAXIMIZE = 'node-result:maximize';
+const TOPIC_NODE_RESULT_UPDATED = 'node-result:updated';
 
 function snapshotFromEventData(
 	data: unknown,
@@ -21,11 +23,26 @@ function snapshotFromEventData(
 	if (!raw.result || typeof raw.title !== 'string') return null;
 	return {
 		title: raw.title,
+		workspaceId: String(raw.workspaceId ?? ''),
+		nodeId: String(raw.nodeId ?? ''),
 		activeFormat: String(raw.activeFormat ?? 'markdown'),
 		markdownView: raw.markdownView === 'source' ? 'source' : 'preview',
 		formats: Array.isArray(raw.formats)
 			? raw.formats.map(String)
 			: ['markdown'],
+		result: crawlResultFromDTO(raw.result as CrawlResultDTO),
+	};
+}
+
+function updatedResultFromEventData(data: unknown): {
+	nodeId: string;
+	result: CrawlResultPreview;
+} | null {
+	if (!data || typeof data !== 'object') return null;
+	const raw = data as Record<string, unknown>;
+	if (!raw.result || typeof raw.nodeId !== 'string') return null;
+	return {
+		nodeId: raw.nodeId,
 		result: crawlResultFromDTO(raw.result as CrawlResultDTO),
 	};
 }
@@ -44,14 +61,24 @@ export function MaximizedNodeResultApp() {
 			if (!cancelled) setLoading(false);
 		});
 
-		const off = Events.On(TOPIC_NODE_RESULT_MAXIMIZE, (ev) => {
+		const offMaximize = Events.On(TOPIC_NODE_RESULT_MAXIMIZE, (ev) => {
 			const next = snapshotFromEventData(ev.data);
 			if (next) setSnapshot(next);
 		});
 
+		const offUpdated = Events.On(TOPIC_NODE_RESULT_UPDATED, (ev) => {
+			const updated = updatedResultFromEventData(ev.data);
+			if (!updated) return;
+			setSnapshot((prev) => {
+				if (!prev || prev.nodeId !== updated.nodeId) return prev;
+				return { ...prev, result: updated.result };
+			});
+		});
+
 		return () => {
 			cancelled = true;
-			off();
+			offMaximize();
+			offUpdated();
 		};
 	}, []);
 
@@ -86,12 +113,17 @@ export function MaximizedNodeResultApp() {
 					)}
 				</header>
 				<NodeResultPanel
-					key={`${snapshot.title}-${snapshot.activeFormat}-${snapshot.markdownView}`}
-					readonly
+					key={`${snapshot.nodeId}-${snapshot.activeFormat}-${snapshot.markdownView}`}
+					panelMode='maximized'
+					workspaceId={snapshot.workspaceId}
+					nodeId={snapshot.nodeId}
 					formats={snapshot.formats as ContentFormat[]}
 					result={snapshot.result}
 					initialTab={snapshot.activeFormat as ContentFormat}
 					initialMarkdownView={snapshot.markdownView}
+					onResultChange={(result) =>
+						setSnapshot((prev) => (prev ? { ...prev, result } : prev))
+					}
 				/>
 				<Toaster duration={5000} />
 			</div>

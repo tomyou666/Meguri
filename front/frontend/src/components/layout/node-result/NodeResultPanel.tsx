@@ -1,5 +1,6 @@
 import { Copy, Maximize2, Pencil, Settings } from 'lucide-react';
 import { useState } from 'react';
+import { scraperPort } from '@/adapters';
 import { NodeFormatContent } from '@/components/layout/node-result/NodeFormatContent';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
@@ -16,6 +17,7 @@ import {
 	resultTextForFormat,
 	updatePatchForFormat,
 } from '@/lib/resultFormatText';
+import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
 import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';
@@ -26,8 +28,12 @@ type NodeResultPanelProps = {
 	formats: ContentFormat[];
 	result: CrawlResultPreview | null;
 	readonly?: boolean;
+	panelMode?: 'sidebar' | 'maximized';
+	workspaceId?: string;
+	nodeId?: string;
 	initialTab?: ContentFormat;
 	initialMarkdownView?: 'source' | 'preview';
+	onResultChange?: (result: CrawlResultPreview) => void;
 };
 
 export function NodeResultPanel({
@@ -35,12 +41,17 @@ export function NodeResultPanel({
 	formats,
 	result,
 	readonly = false,
+	panelMode = 'sidebar',
+	workspaceId,
+	nodeId,
 	initialTab,
 	initialMarkdownView = 'preview',
+	onResultChange,
 }: NodeResultPanelProps) {
 	const persistNodeSettings = useAppStore((s) => s.persistNodeSettings);
 	const updateNodeResult = useAppStore((s) => s.updateNodeResult);
 	const showMaximizedNodeResult = useAppStore((s) => s.showMaximizedNodeResult);
+	const activeWorkspace = useAppStore((s) => s.getActiveWorkspace());
 
 	const [tab, setTab] = useState<ContentFormat>(
 		initialTab ?? formats[0] ?? 'markdown',
@@ -53,8 +64,11 @@ export function NodeResultPanel({
 		initialMarkdownView,
 	);
 
+	const resolvedNodeId = nodeId ?? node?.id;
+	const resolvedWorkspaceId = workspaceId ?? activeWorkspace?.id;
 	const displayResult = result ?? node?.lastResult ?? null;
 	const showPdfTab = isPdfResourceResult(displayResult);
+	const isMaximized = panelMode === 'maximized';
 
 	const beginEdit = () => {
 		if (readonly || !displayResult || !isEditableFormat(tab)) return;
@@ -71,15 +85,39 @@ export function NodeResultPanel({
 	};
 
 	const saveEdit = async () => {
-		if (!node) return;
+		if (!resolvedNodeId || !resolvedWorkspaceId) return;
 		const patch = updatePatchForFormat(tab, draft);
 		if (!patch) return;
 		setSaving(true);
-		const ok = await updateNodeResult(node.id, patch);
+		let saved = false;
+		let updated: CrawlResultPreview | null = null;
+		if (isMaximized) {
+			try {
+				updated = await scraperPort.updateNodeResult(
+					resolvedWorkspaceId,
+					resolvedNodeId,
+					patch,
+				);
+				saved = !!updated;
+				if (!saved) {
+					notifyError(messages.right.updateFailed);
+				}
+			} catch (err) {
+				notifyError(messages.right.updateFailed, {
+					description: err instanceof Error ? err.message : String(err),
+				});
+			}
+		} else {
+			saved = await updateNodeResult(resolvedNodeId, patch);
+		}
 		setSaving(false);
-		if (ok) {
+		if (saved) {
+			if (updated) onResultChange?.(updated);
 			setEditing(false);
 			setDraft('');
+			if (isMaximized) {
+				notifySuccess(messages.right.updateSaved);
+			}
 		}
 	};
 
@@ -97,9 +135,12 @@ export function NodeResultPanel({
 	};
 
 	const maximizePanel = () => {
-		if (readonly || !displayResult || !node) return;
+		if (readonly || isMaximized || !displayResult || !node) return;
+		if (!resolvedWorkspaceId) return;
 		void showMaximizedNodeResult({
 			title: node.urlNormalized,
+			workspaceId: resolvedWorkspaceId,
+			nodeId: node.id,
 			activeFormat: tab,
 			markdownView,
 			formats,
@@ -118,66 +159,73 @@ export function NodeResultPanel({
 			}}
 			className='flex min-h-0 flex-1 flex-col px-3'
 		>
-			<div className='flex items-center gap-1'>
-				<TabsList className='min-w-0 flex-1'>
+			<div className='shrink-0 space-y-1'>
+				<TabsList className='w-full overflow-x-auto'>
 					{formats.map((f) => (
 						<TabsTrigger key={f} value={f}>
 							{previewTabLabel(f)}
 						</TabsTrigger>
 					))}
 				</TabsList>
-				{!showNodeSettings && displayResult && (
-					<>
-						<ActionTooltip label={messages.right.copy}>
+				<div className='flex shrink-0 justify-end gap-1'>
+					{!showNodeSettings && displayResult && (
+						<>
+							<ActionTooltip label={messages.right.copy}>
+								<Button
+									variant='ghost'
+									size='icon-xs'
+									aria-label={messages.right.copy}
+									onClick={() => void copyCurrentTab()}
+								>
+									<Copy className='size-3.5' />
+								</Button>
+							</ActionTooltip>
+							{!readonly && !isMaximized && (
+								<ActionTooltip label={messages.right.maximize}>
+									<Button
+										variant='ghost'
+										size='icon-xs'
+										aria-label={messages.right.maximize}
+										onClick={maximizePanel}
+									>
+										<Maximize2 className='size-3.5' />
+									</Button>
+								</ActionTooltip>
+							)}
+							{!readonly && isEditableFormat(tab) && !editing && (
+								<ActionTooltip label={messages.right.edit}>
+									<Button
+										variant='ghost'
+										size='icon-xs'
+										aria-label={messages.right.edit}
+										onClick={beginEdit}
+									>
+										<Pencil className='size-3.5' />
+									</Button>
+								</ActionTooltip>
+							)}
+						</>
+					)}
+					{!readonly && !isMaximized && node && (
+						<ActionTooltip label={messages.right.nodeSettings}>
 							<Button
-								variant='ghost'
+								variant={showNodeSettings ? 'secondary' : 'ghost'}
 								size='icon-xs'
-								aria-label={messages.right.copy}
-								onClick={() => void copyCurrentTab()}
+								aria-label={messages.right.nodeSettings}
+								onClick={() => setShowNodeSettings((v) => !v)}
 							>
-								<Copy className='size-3.5' />
+								<Settings className='size-3.5' />
 							</Button>
 						</ActionTooltip>
-						{!readonly && (
-							<ActionTooltip label={messages.right.maximize}>
-								<Button
-									variant='ghost'
-									size='icon-xs'
-									aria-label={messages.right.maximize}
-									onClick={maximizePanel}
-								>
-									<Maximize2 className='size-3.5' />
-								</Button>
-							</ActionTooltip>
-						)}
-						{!readonly && isEditableFormat(tab) && !editing && (
-							<ActionTooltip label={messages.right.edit}>
-								<Button
-									variant='ghost'
-									size='icon-xs'
-									aria-label={messages.right.edit}
-									onClick={beginEdit}
-								>
-									<Pencil className='size-3.5' />
-								</Button>
-							</ActionTooltip>
-						)}
-					</>
-				)}
-				{!readonly && node && (
-					<ActionTooltip label={messages.right.nodeSettings}>
-						<Button
-							variant={showNodeSettings ? 'secondary' : 'ghost'}
-							size='icon-xs'
-							aria-label={messages.right.nodeSettings}
-							onClick={() => setShowNodeSettings((v) => !v)}
-						>
-							<Settings className='size-3.5' />
-						</Button>
-					</ActionTooltip>
-				)}
+					)}
+				</div>
 			</div>
-			<ScrollArea className='flex-1 py-3'>
+			<ScrollArea
+				className={cn(
+					'flex-1 py-3',
+					!readonly && editing && 'flex min-h-0 flex-col overflow-hidden',
+				)}
+			>
 				{!readonly && showNodeSettings && node ? (
 					<ConfigEditor
 						layer='node'
@@ -190,7 +238,15 @@ export function NodeResultPanel({
 					/>
 				) : (
 					formats.map((f) => (
-						<TabsContent key={f} value={f}>
+						<TabsContent
+							key={f}
+							value={f}
+							className={
+								!readonly && editing && f === tab
+									? 'flex min-h-0 flex-1 flex-col'
+									: undefined
+							}
+						>
 							<NodeFormatContent
 								format={f}
 								result={displayResult}
