@@ -69,36 +69,44 @@ export function ConfigEditor({
 	};
 
 	return (
-		<div className={compact ? 'space-y-2' : 'space-y-3'}>
-			<AppConfigTabs
-				layer={layer}
-				settings={draft}
-				onChange={setDraft}
-				fieldErrors={fieldErrors}
-				compact={compact}
-				showPdfTab={showPdfTab}
-				showRequestTab={showRequestTab}
-				showCrawlTab={showCrawlTab}
-			/>
-			{saveErrors.length > 0 && (
-				<ul className='rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-destructive'>
-					{saveErrors.map((e) => (
-						<li key={e}>{e}</li>
-					))}
-				</ul>
-			)}
-			<Button
-				type='button'
-				size={compact ? 'xs' : 'sm'}
-				className='w-full nodrag nopan nowheel'
-				disabled={saving || hasFieldErrors}
-				onClick={(e) => {
-					e.stopPropagation();
-					void handleSave();
-				}}
+		<div className='flex h-full min-h-0 flex-col'>
+			<div
+				className={`min-h-0 flex-1 overflow-y-auto ${compact ? 'space-y-2 pr-1' : 'space-y-3 pr-2'}`}
 			>
-				{saving ? messages.settings.saving : messages.settings.save}
-			</Button>
+				<AppConfigTabs
+					layer={layer}
+					settings={draft}
+					onChange={setDraft}
+					fieldErrors={fieldErrors}
+					compact={compact}
+					showPdfTab={showPdfTab}
+					showRequestTab={showRequestTab}
+					showCrawlTab={showCrawlTab}
+				/>
+			</div>
+			<div
+				className={`shrink-0 border-t border-border ${compact ? 'space-y-2' : 'space-y-3'}`}
+			>
+				{saveErrors.length > 0 && (
+					<ul className='rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-destructive'>
+						{saveErrors.map((e) => (
+							<li key={e}>{e}</li>
+						))}
+					</ul>
+				)}
+				<Button
+					type='button'
+					size={compact ? 'xs' : 'sm'}
+					className='w-full nodrag nopan nowheel'
+					disabled={saving || hasFieldErrors}
+					onClick={(e) => {
+						e.stopPropagation();
+						void handleSave();
+					}}
+				>
+					{saving ? messages.settings.saving : messages.settings.save}
+				</Button>
+			</div>
 		</div>
 	);
 }

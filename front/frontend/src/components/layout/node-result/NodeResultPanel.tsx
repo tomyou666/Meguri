@@ -177,8 +177,8 @@ export function NodeResultPanel({
 					</ActionTooltip>
 				)}
 			</div>
-			<ScrollArea className='flex-1 py-3'>
-				{!readonly && showNodeSettings && node ? (
+			{!readonly && showNodeSettings && node ? (
+				<div className='min-h-0 flex-1 py-3'>
 					<ConfigEditor
 						layer='node'
 						settings={node.nodeSettings ?? {}}
@@ -188,8 +188,10 @@ export function NodeResultPanel({
 						showCrawlTab={false}
 						onSave={(settings) => persistNodeSettings(node.id, settings)}
 					/>
-				) : (
-					formats.map((f) => (
+				</div>
+			) : (
+				<ScrollArea className='flex-1 py-3'>
+					{formats.map((f) => (
 						<TabsContent key={f} value={f}>
 							<NodeFormatContent
 								format={f}
@@ -204,9 +206,9 @@ export function NodeResultPanel({
 								onMarkdownViewChange={setMarkdownView}
 							/>
 						</TabsContent>
-					))
-				)}
-			</ScrollArea>
+					))}
+				</ScrollArea>
+			)}
 		</Tabs>
 	);
 }

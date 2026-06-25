@@ -16,7 +16,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
 import { notifyError } from '@/lib/notify';
 import { useAppStore } from '@/stores/appStore';
@@ -133,13 +132,13 @@ export function MenuBar() {
 					<DialogHeader>
 						<DialogTitle>{messages.menu.appDefaults}</DialogTitle>
 					</DialogHeader>
-					<ScrollArea className='min-h-0 flex-1 pr-2'>
+					<div className='min-h-0 flex-1'>
 						<ConfigEditor
 							layer='app'
 							settings={appDefaults}
 							onSave={(config) => persistAppDefaults(config)}
 						/>
-					</ScrollArea>
+					</div>
 				</DialogContent>
 			</Dialog>
 		</>

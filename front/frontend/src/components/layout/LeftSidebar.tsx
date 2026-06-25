@@ -237,13 +237,13 @@ export function LeftSidebarContent() {
 						<DialogHeader>
 							<DialogTitle>{messages.sidebar.workspaceSettings}</DialogTitle>
 						</DialogHeader>
-						<ScrollArea className='min-h-0 flex-1 pr-2'>
+						<div className='min-h-0 flex-1'>
 							<ConfigEditor
 								layer='workspace'
 								settings={activeWorkspace.settings}
 								onSave={(settings) => persistWorkspaceSettings(settings)}
 							/>
-						</ScrollArea>
+						</div>
 					</DialogContent>
 				</Dialog>
 			)}
