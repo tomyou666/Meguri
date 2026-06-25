@@ -89,10 +89,19 @@ type UpdateNodeResultRequest struct {
 // MaximizedNodeResultRequest は最大化ウィンドウ表示用スナップショット。
 type MaximizedNodeResultRequest struct {
 	Title        string         `json:"title"`
+	WorkspaceID  string         `json:"workspaceId"`
+	NodeID       string         `json:"nodeId"`
 	ActiveFormat string         `json:"activeFormat"`
 	MarkdownView string         `json:"markdownView"`
 	Formats      []string       `json:"formats"`
 	Result       CrawlResultDTO `json:"result"`
+}
+
+// NodeResultUpdatedEvent はノード結果手動編集後の同期イベント。
+type NodeResultUpdatedEvent struct {
+	WorkspaceID string         `json:"workspaceId"`
+	NodeID      string         `json:"nodeId"`
+	Result      CrawlResultDTO `json:"result"`
 }
 
 // NodeResultContentPatch は node_results 本文列の部分更新。

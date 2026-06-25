@@ -30,11 +30,14 @@ export function EditableTextResult({
 	return (
 		<div className='flex min-h-0 flex-1 flex-col gap-2'>
 			<textarea
-				className={textareaClassName(false, 'min-h-48 flex-1 w-full')}
+				className={textareaClassName(
+					false,
+					'min-h-0 flex-1 w-full resize-none overflow-y-auto',
+				)}
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
 			/>
-			<div className='flex gap-1'>
+			<div className='flex shrink-0 gap-1'>
 				<Button size='xs' onClick={onSave} disabled={saving}>
 					{messages.right.save}
 				</Button>

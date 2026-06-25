@@ -163,6 +163,7 @@ export function RightSidebarContent() {
 				)}
 				<NodeResultPanel
 					key={node.id}
+					className='min-h-0 flex-1'
 					node={node}
 					formats={formats}
 					result={resultForDisplay}

@@ -182,6 +182,8 @@ export class CompositeScraperAdapter implements ScraperPort {
 		await StoreService.ShowMaximizedNodeResult(
 			new MaximizedNodeResultRequest({
 				title: snapshot.title,
+				workspaceId: snapshot.workspaceId,
+				nodeId: snapshot.nodeId,
 				activeFormat: snapshot.activeFormat,
 				markdownView: snapshot.markdownView,
 				formats: snapshot.formats,
@@ -196,6 +198,8 @@ export class CompositeScraperAdapter implements ScraperPort {
 			if (!dto?.result) return null;
 			return {
 				title: dto.title,
+				workspaceId: dto.workspaceId ?? '',
+				nodeId: dto.nodeId ?? '',
 				activeFormat: dto.activeFormat,
 				markdownView: dto.markdownView === 'source' ? 'source' : 'preview',
 				formats: dto.formats ?? [],

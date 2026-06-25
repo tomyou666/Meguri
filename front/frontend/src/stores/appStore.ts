@@ -217,6 +217,11 @@ interface AppState {
 		nodeId: string,
 		patch: UpdateNodeResultPatch,
 	) => Promise<boolean>;
+	applyNodeResultFromSync: (
+		workspaceId: string,
+		nodeId: string,
+		result: CrawlResultPreview,
+	) => void;
 	showMaximizedNodeResult: (
 		snapshot: MaximizedNodeResultSnapshot,
 	) => Promise<void>;
@@ -1252,6 +1257,25 @@ export const useAppStore = create<AppState>((set, get) => ({
 				description: err instanceof Error ? err.message : String(err),
 			});
 			return false;
+		}
+	},
+
+	applyNodeResultFromSync: (workspaceId, nodeId, result) => {
+		const active = get().activeWorkspaceId;
+		if (active !== workspaceId) return;
+		patchWorkspaces(set, get, (workspaces) =>
+			workspaces.map((w) => {
+				if (w.id !== workspaceId) return w;
+				return {
+					...w,
+					nodes: w.nodes.map((n) =>
+						n.id === nodeId ? { ...n, lastResult: result } : n,
+					),
+				};
+			}),
+		);
+		if (get().selectedNodeId === nodeId) {
+			set({ loadedNodeResult: result });
 		}
 	},
 

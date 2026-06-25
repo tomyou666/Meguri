@@ -126,9 +126,22 @@ func (s *StoreService) GetNodeResults(workspaceID string, nodeIDs []string) ([]m
 	return s.results.GetNodeResults(s.ctx(), workspaceID, nodeIDs)
 }
 
+const topicNodeResultUpdated = "node-result:updated"
+
 // UpdateNodeResult はノード結果の手動編集を保存する。
 func (s *StoreService) UpdateNodeResult(req model.UpdateNodeResultRequest) (*model.CrawlResultDTO, error) {
-	return s.results.UpdateNodeResult(s.ctx(), req)
+	dto, err := s.results.UpdateNodeResult(s.ctx(), req)
+	if err != nil {
+		return nil, err
+	}
+	if s.app != nil && dto != nil {
+		s.app.Event.Emit(topicNodeResultUpdated, model.NodeResultUpdatedEvent{
+			WorkspaceID: req.WorkspaceID,
+			NodeID:      req.NodeID,
+			Result:      *dto,
+		})
+	}
+	return dto, err
 }
 
 // ShowMaximizedNodeResult は別 WebviewWindow でノード結果を拡大表示する。
