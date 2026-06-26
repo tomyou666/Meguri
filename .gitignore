@@ -1,9 +1,6 @@
 # .env は除外
 .env
 
-# fyne-cross ローカル・CI の生成物
-/fyne-cross/
-
 # ビルド成果物（任意）
 *.exe
 dist/
