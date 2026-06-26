@@ -52,9 +52,23 @@ make bindings       # TS bindings（wails_service 実装後）
 | 出力 | パス / 場所 | git 管理 |
 |------|-------------|----------|
 | SQLite DB ファイル | `data/meguri.db`（dev） | 対象外（`.gitignore`） |
+| ログファイル | `logs/meguri.log`（dev） | 対象外（`.gitignore`） |
 | マイグレーション履歴 | DB 内 `schema_migrations` テーブル | — |
 
-本番ビルドでは `dbpath_prod` により OS のアプリデータ領域に DB を配置します。
+本番ビルドでは `dbpath_prod` / `logpath_prod` により OS のアプリデータ領域に DB・ログを配置します。
+
+## ログ
+
+Wails 起動時に `internal/app/logging.go` で `meguri/pkg/logger` を初期化します。backend（`meguri/*`）の `slog` 呼び出しも同一出力先にまとまります。CLI 単体（`backend`）はファイル出力なし・stderr のみです。
+
+| 項目 | dev (`-tags dev`) | prod |
+|------|------------------|------|
+| 出力先 | stdout + `logs/meguri.log` | OS アプリデータ `meguri/logs/meguri.log` |
+| レベル | Debug | Info |
+| ローテーション | 10MB × 5 世代 | 同左 |
+| flush | 1 秒間隔 | 毎レコード |
+
+`logs/` は `data/` と同様 `.gitignore` 対象です。
 
 ### スキーマ変更手順
 

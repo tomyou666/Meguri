@@ -4,13 +4,11 @@ import (
 	"context"
 	"embed"
 	"log"
-	"log/slog"
-	"os"
 	"time"
 
 	"meguri-app/internal/app"
-	"meguri-app/internal/logger"
 	"meguri-app/internal/usecase/wails_service"
+	"meguri/pkg/logger"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/updater"
@@ -31,7 +29,13 @@ var currentVersion = "dev"
 const githubRepository = "tomyou666/scraper-bot"
 
 func main() {
-	logger.Init(os.Stderr, slog.LevelInfo)
+	if err := app.InitLogger(); err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		_ = logger.Flush()
+		_ = logger.Shutdown()
+	}()
 
 	ctx := context.Background()
 	wailsApp, cleanup, err := app.Initialize(ctx)

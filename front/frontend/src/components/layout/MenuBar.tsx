@@ -47,7 +47,9 @@ export function MenuBar() {
 				await loadWorkspace(res.workspaceId);
 			}
 		} catch (e) {
-			notifyError(e instanceof Error ? e.message : String(e));
+			const errMessage = e instanceof Error ? e.message : String(e);
+			if (errMessage.includes('cancelled by user')) return;
+			notifyError(errMessage);
 		}
 	};
 
@@ -59,7 +61,9 @@ export function MenuBar() {
 		try {
 			await ProjectService.SaveScrb(activeWorkspaceId);
 		} catch (e) {
-			notifyError(e instanceof Error ? e.message : String(e));
+			const errMessage = e instanceof Error ? e.message : String(e);
+			if (errMessage.includes('cancelled by user')) return;
+			notifyError(errMessage);
 		}
 	};
 

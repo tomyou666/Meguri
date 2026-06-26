@@ -13,7 +13,7 @@ import (
 	"meguri/internal/app"
 	"meguri/internal/domain/model"
 	"meguri/internal/infrastructure/configloader"
-	"meguri/internal/logger"
+	"meguri/pkg/logger"
 	"meguri/pkg/runner"
 )
 
@@ -38,7 +38,7 @@ func Run() int {
 
 // RunApp は設定読み込み・Kernel 初期化・単一 URL またはクロールを実行する。
 func (a *App) RunApp() int {
-	logger.Init(a.Stderr, slog.LevelInfo)
+	logger.InitConsole(a.Stderr, slog.LevelInfo)
 
 	flags, err := ParseArgs(a.Args)
 	if err != nil {

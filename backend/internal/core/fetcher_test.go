@@ -11,7 +11,7 @@ import (
 
 	"meguri/internal/core"
 	"meguri/internal/domain/model"
-	"meguri/internal/logger"
+	"meguri/pkg/logger"
 
 	_ "meguri/plugins/fetcher-chromium"
 	_ "meguri/plugins/fetcher-http"

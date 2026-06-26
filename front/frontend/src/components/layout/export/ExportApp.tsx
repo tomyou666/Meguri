@@ -21,7 +21,13 @@ import {
 } from '@/lib/exportTree';
 import { notifyError, notifySuccess } from '@/lib/notify';
 import type { ExportSessionSnapshot } from '@/types/adapter';
+import type { CrawlResultPreview } from '@/types/crawl';
 import type { GraphEdge, GraphNode } from '@/types/graph';
+
+type PreviewSource = {
+	orderedIds: string[];
+	results: CrawlResultPreview[];
+};
 
 const TOPIC_EXPORT_OPEN = 'export:open';
 
@@ -113,6 +119,30 @@ export function ExportApp() {
 	const [previewContent, setPreviewContent] = useState<string | null>(null);
 	const [splitFiles, setSplitFiles] = useState<ExportZipFileEntry[]>([]);
 	const [previewLoading, setPreviewLoading] = useState(false);
+	const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
+		null,
+	);
+
+	const applyPreview = useCallback(
+		(
+			orderedIds: string[],
+			results: CrawlResultPreview[],
+			mergeSettings: ExportMergeSettings,
+		) => {
+			const preview = buildExportPreview(
+				orderedIds,
+				flatData,
+				results,
+				mergeSettings,
+			);
+			setPreviewContent(preview.content);
+			setSplitFiles(
+				buildSplitExportFiles(orderedIds, flatData, results, mergeSettings),
+			);
+			return preview;
+		},
+		[flatData],
+	);
 
 	const loadSession = useCallback((session: ExportSessionSnapshot) => {
 		const next = applySession(session);
@@ -121,7 +151,13 @@ export function ExportApp() {
 		setCheckedIds(next.checkedIds);
 		setPreviewContent(null);
 		setSplitFiles([]);
+		setPreviewSource(null);
 	}, []);
+
+	useEffect(() => {
+		if (!previewSource || previewLoading) return;
+		applyPreview(previewSource.orderedIds, previewSource.results, settings);
+	}, [settings, previewSource, previewLoading, applyPreview]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -148,16 +184,8 @@ export function ExportApp() {
 		try {
 			const orderedIds = preorderNodeIds(flatData, checkedIds);
 			const results = await scraperPort.getNodeResults(workspaceId, orderedIds);
-			const preview = buildExportPreview(
-				orderedIds,
-				flatData,
-				results,
-				settings,
-			);
-			setPreviewContent(preview.content);
-			setSplitFiles(
-				buildSplitExportFiles(orderedIds, flatData, results, settings),
-			);
+			setPreviewSource({ orderedIds, results });
+			const preview = applyPreview(orderedIds, results, settings);
 			if (preview.skippedCount > 0) {
 				notifySuccess(messages.export.skippedNoResult(preview.skippedCount));
 			}

@@ -12,7 +12,7 @@ import (
 
 	"meguri/internal/core"
 	"meguri/internal/domain/model"
-	"meguri/internal/logger"
+	"meguri/pkg/logger"
 
 	// プラグイン副作用 import: 実装プラグインをレジストリへ登録する
 	_ "meguri/plugins/fetcher-chromium"

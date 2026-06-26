@@ -299,7 +299,6 @@ export const messages = {
 		error: '失敗',
 		skipped: 'スキップ',
 	},
-	scrbPhase2: 'Phase 2 で利用可能になります',
 	bootstrapLoading: '読み込み中…',
 	export: {
 		windowTitleAll: '全結果エクスポート',
