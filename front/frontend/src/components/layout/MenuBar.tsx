@@ -1,4 +1,10 @@
-import { ChevronDown, FolderOpen, Save, Settings } from 'lucide-react';
+import {
+	ChevronDown,
+	FolderOpen,
+	MessageSquare,
+	Save,
+	Settings,
+} from 'lucide-react';
 import { useState } from 'react';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { Button } from '@/components/ui/button';
@@ -17,6 +23,8 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { messages } from '@/i18n/messages';
+import { openExternalBrowserUrl } from '@/lib/externalLinkDelegation';
+import { getFeedbackUrl } from '@/lib/feedbackUrl';
 import { notifyError } from '@/lib/notify';
 import { useAppStore } from '@/stores/appStore';
 import * as ProjectService from '../../../bindings/scraperbot-front/internal/usecase/wails_service/projectservice';
@@ -27,6 +35,7 @@ export function MenuBar() {
 	const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
 	const loadWorkspace = useAppStore((s) => s.loadWorkspaceFromServer);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const feedbackUrl = getFeedbackUrl();
 
 	const handleOpenScrb = async () => {
 		try {
@@ -121,6 +130,18 @@ export function MenuBar() {
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
+				{feedbackUrl ? (
+					<Button
+						variant='ghost'
+						size='xs'
+						className='ml-auto gap-1'
+						aria-label={messages.menu.openFeedback}
+						onClick={() => void openExternalBrowserUrl(feedbackUrl)}
+					>
+						<MessageSquare className='size-3.5' />
+						{messages.menu.feedback}
+					</Button>
+				) : null}
 			</div>
 
 			<Dialog

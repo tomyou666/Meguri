@@ -9,6 +9,8 @@ export const messages = {
 		settings: '設定',
 		appDefaults: 'デフォルト設定',
 		openSettingsMenu: '設定メニューを開く',
+		feedback: 'フィードバック',
+		openFeedback: 'フィードバックを送る',
 		mergeAll: '全結果をマージ',
 		mergeSelected: '選択マージ',
 		exportAll: '全結果エクスポート',

@@ -1,4 +1,11 @@
-import { ChevronDown, Pause, Play, Square } from 'lucide-react';
+import {
+	ChevronDown,
+	FileDown,
+	ListChecks,
+	Pause,
+	Play,
+	Square,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -137,19 +144,20 @@ export function ControlBar() {
 
 			<div className='flex shrink-0 items-center gap-2'>
 				<Button
-					variant='outline'
-					size='xs'
+					size='sm'
+					className='bg-info text-info-foreground hover:bg-info/80'
 					disabled={!ws}
 					onClick={() => openExportWindow('all')}
 				>
+					<FileDown className='size-3.5' />
 					{messages.menu.exportAll}
 				</Button>
 				<Button
-					variant='outline'
-					size='xs'
+					size='sm'
 					disabled={selectedNodeIds.length === 0}
 					onClick={() => openExportWindow('selected')}
 				>
+					<ListChecks className='size-3.5' />
 					{messages.menu.exportSelected}
 				</Button>
 			</div>

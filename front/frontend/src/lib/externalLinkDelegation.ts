@@ -21,7 +21,7 @@ function shouldOpenInExternalBrowser(href: string): boolean {
 	}
 }
 
-async function openExternalUrl(url: string): Promise<void> {
+export async function openExternalBrowserUrl(url: string): Promise<void> {
 	try {
 		await Browser.OpenURL(url);
 	} catch {
@@ -40,7 +40,7 @@ function handleDocumentClick(event: MouseEvent): void {
 	}
 
 	event.preventDefault();
-	void openExternalUrl(anchor.href);
+	void openExternalBrowserUrl(anchor.href);
 }
 
 /**
