@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Waits for scraperbot (wails3 dev) and starts legacy RPC headless delve for VS Code.
+ * Waits for meguri (wails3 dev) and starts legacy RPC headless delve for VS Code.
  * Use launch.json: "debugAdapter": "legacy", "apiVersion": 2, "mode": "remote"
  */
 const { spawn, execSync } = require('node:child_process');
@@ -8,7 +8,7 @@ const { existsSync } = require('node:fs');
 const { homedir } = require('node:os');
 const { join } = require('node:path');
 
-const PROCESS_NAME = 'scraperbot';
+const PROCESS_NAME = 'meguri';
 const PORT = 2345;
 const TIMEOUT_SEC = 180;
 const POLL_MS = 500;
@@ -75,7 +75,7 @@ function findPid() {
 			if (!line) {
 				return null;
 			}
-			// "scraperbot.exe","12345",...
+			// "meguri.exe","12345",...
 			const match = line.match(/"[^"]+","(\d+)"/);
 			return match ? Number.parseInt(match[1], 10) : null;
 		} catch {

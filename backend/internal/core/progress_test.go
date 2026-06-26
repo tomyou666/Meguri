@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
 )
 
 // TestCrawlerProgress はクロール中の進捗イベントとスキップ理由の通知を検証する。

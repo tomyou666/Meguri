@@ -28,7 +28,7 @@ test:
 	$(GO) test $(GO_TEST_FLAGS) $(PKG)
 
 build:
-	$(GO) build -o bin/scraperbot ./cmd/scraperbot
+	$(GO) build -o bin/meguri-cli ./cmd/meguri-cli
 
 tidy:
 	$(GO) mod tidy

@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
 )
 
 // Pipeline は 1 URL 分のスクレイピング処理を実行する。

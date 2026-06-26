@@ -10,9 +10,9 @@ import (
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
 )
 
 func init() {

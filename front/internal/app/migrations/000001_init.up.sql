@@ -1,4 +1,4 @@
--- scraper-bot UI 永続層スキーマ（SQLite）
+-- meguri UI 永続層スキーマ（SQLite）
 -- フロント DTO・ScraperPort・将来 Wails SQLite 実装の単一の正。
 -- JSON 列は types/config.ts の AppConfig / PartialConfig 形状に一致させる。
 -- 日時列は ISO 8601 UTC 文字列（例: datetime('now')）を格納する。

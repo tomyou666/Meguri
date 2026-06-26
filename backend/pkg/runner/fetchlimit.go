@@ -3,9 +3,9 @@ package runner
 import (
 	"context"
 
-	"scraperbot/internal/core/fetchlimit"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/infrastructure/chromium"
+	"meguri/internal/core/fetchlimit"
+	"meguri/internal/domain/model"
+	"meguri/internal/infrastructure/chromium"
 )
 
 // PrepareFetchLimiter は設定から FetchLimiter を構築し、必要ならキャリブレーションと動的監視を開始する。

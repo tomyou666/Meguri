@@ -8,7 +8,7 @@ import (
 	"io"
 	"time"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 )
 
 const formatVersion = 1
@@ -28,7 +28,7 @@ func Export(bundle model.WorkspaceBundle) ([]byte, error) {
 	m := manifest{
 		FormatVersion: formatVersion,
 		ExportedAt:    time.Now().UTC().Format(time.RFC3339),
-		App:           "scraper-bot",
+		App:           "meguri",
 		WorkspaceName: bundle.Workspace.Name,
 	}
 	if err := writeJSON(w, "manifest.json", m); err != nil {

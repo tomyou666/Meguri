@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
 )
 
 // Scrape は単一URLの取得→出力までを実行するユースケース。

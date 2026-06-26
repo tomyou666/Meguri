@@ -21,7 +21,7 @@ const (
 	MaxChromiumMaxInflight = 8
 )
 
-// Config は scraperbot 全体の実行設定を表すルート構造体。
+// Config は meguri 全体の実行設定を表すルート構造体。
 type Config struct {
 	// Request は HTTP 取得に関する設定。
 	Request RequestConfig `yaml:"request"`

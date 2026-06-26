@@ -11,20 +11,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/presentation/cli"
+	"meguri/internal/presentation/cli"
 
 	// プラグイン副作用 import: CLI テストでもプラグインを利用するため
-	_ "scraperbot/plugins/fetcher-chromium"
-	_ "scraperbot/plugins/fetcher-http"
-	_ "scraperbot/plugins/filter-maincontent"
-	_ "scraperbot/plugins/filter-selector"
-	_ "scraperbot/plugins/linkextractor-default"
-	_ "scraperbot/plugins/parser-html"
-	_ "scraperbot/plugins/parser-pdf"
-	_ "scraperbot/plugins/preprocessor-header"
-	_ "scraperbot/plugins/transformer-html"
-	_ "scraperbot/plugins/transformer-markdown"
-	_ "scraperbot/plugins/transformer-raw-html"
+	_ "meguri/plugins/fetcher-chromium"
+	_ "meguri/plugins/fetcher-http"
+	_ "meguri/plugins/filter-maincontent"
+	_ "meguri/plugins/filter-selector"
+	_ "meguri/plugins/linkextractor-default"
+	_ "meguri/plugins/parser-html"
+	_ "meguri/plugins/parser-pdf"
+	_ "meguri/plugins/preprocessor-header"
+	_ "meguri/plugins/transformer-html"
+	_ "meguri/plugins/transformer-markdown"
+	_ "meguri/plugins/transformer-raw-html"
 )
 
 func newCLITestServer(t *testing.T) *httptest.Server {

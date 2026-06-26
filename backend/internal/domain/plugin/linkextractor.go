@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // LinkExtractor (P8) は中間表現からクロール候補リンクを抽出する。

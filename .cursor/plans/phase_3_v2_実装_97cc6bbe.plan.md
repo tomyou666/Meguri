@@ -127,7 +127,7 @@ func (p *PauseController) WaitIfPaused(ctx context.Context) error
 ```
 
 - `WaitIfPaused`: `ctx.Done()` と `Resume` の両方で解除。stop 優先。
-- `pkg/runner` から再エクスポート（front は `scraperbot/pkg/runner` のみ import 可）
+- `pkg/runner` から再エクスポート（front は `meguri/pkg/runner` のみ import 可）
 
 **変更** [`backend/internal/core/crawler.go`](backend/internal/core/crawler.go)
 

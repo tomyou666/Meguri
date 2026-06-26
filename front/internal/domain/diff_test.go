@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	"scraperbot-front/internal/domain"
-	"scraperbot-front/internal/infrastructure/persistence"
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/domain"
+	"meguri-app/internal/infrastructure/persistence"
+	"meguri-app/internal/model"
 )
 
 func applyDiffTestSchema(db *gorm.DB) error {

@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"scraperbot/internal/domain/model"
-	"scraperbot/pkg/runner"
+	"meguri/internal/domain/model"
+	"meguri/pkg/runner"
 )
 
 func testScrapeCfg() *model.Config {
@@ -17,7 +17,7 @@ func testScrapeCfg() *model.Config {
 			Timeout:       10_000_000_000,
 			RetryCount:    0,
 			RetryInterval: 100_000_000,
-			Headers:       map[string]string{"User-Agent": "scraperbot-test"},
+			Headers:       map[string]string{"User-Agent": "meguri-test"},
 		},
 		Content: model.ContentConfig{
 			Formats:         []model.OutputFormat{model.FormatMarkdown},

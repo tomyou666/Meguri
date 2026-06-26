@@ -27,7 +27,7 @@ import * as model$0 from "../../model/models.js";
  * appDefaults と wsSettings は MergeUIConfigLayers 用の PartialConfig JSON。
  */
 export function FetchRobotsTxt(host: string, baseURL: string, appDefaults: json$0.RawMessage, wsSettings: json$0.RawMessage): $CancellablePromise<model$0.RobotsTxtInfoDTO> {
-    return $Call.ByID(1213100313, host, baseURL, appDefaults, wsSettings).then(($result: any) => {
+    return $Call.ByID(3139220193, host, baseURL, appDefaults, wsSettings).then(($result: any) => {
         return $$createType0($result);
     });
 }
@@ -36,35 +36,35 @@ export function FetchRobotsTxt(host: string, baseURL: string, appDefaults: json$
  * PauseCrawl は実行中 crawl を一時停止する。
  */
 export function PauseCrawl(runID: string): $CancellablePromise<void> {
-    return $Call.ByID(1703968671, runID);
+    return $Call.ByID(2633759127, runID);
 }
 
 /**
  * ResumeCrawl は一時停止中 crawl を再開する。
  */
 export function ResumeCrawl(runID: string): $CancellablePromise<void> {
-    return $Call.ByID(2904454848, runID);
+    return $Call.ByID(3420340728, runID);
 }
 
 /**
  * SetApp は Wails App を後から注入する（Event 発火用）。
  */
 export function SetApp(app: application$0.App | null): $CancellablePromise<void> {
-    return $Call.ByID(1906917273, app);
+    return $Call.ByID(694879137, app);
 }
 
 /**
  * StartCrawl はクロールを非同期で開始し runId を返す。
  */
 export function StartCrawl(req: model$0.StartCrawlRequest): $CancellablePromise<string> {
-    return $Call.ByID(1172127101, req);
+    return $Call.ByID(981142773, req);
 }
 
 /**
  * StopCrawl は実行中 crawl をキャンセルする。
  */
 export function StopCrawl(runID: string): $CancellablePromise<void> {
-    return $Call.ByID(126324029, runID);
+    return $Call.ByID(3550499157, runID);
 }
 
 // Private type creation functions

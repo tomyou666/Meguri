@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=My Product
-Comment=A scraperbot application
+Name=Meguri
+Comment=Desktop web-crawl workspace
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/scraperbot.exe %u
+Exec=/usr/local/bin/meguri %u
 Terminal=false
 Type=Application
-Icon=scraperbot.exe
+Icon=meguri
 Categories=Utility;
-StartupWMClass=scraperbot.exe
+StartupWMClass=meguri
 
  

@@ -23,7 +23,7 @@ func TestResolveBrowserPath(t *testing.T) {
 		assert.Equal(t, bin, path)
 	})
 
-	t.Run("正常系: 環境変数 SCRAPERBOT_CHROMIUM_PATH を参照する", func(t *testing.T) {
+	t.Run("正常系: 環境変数 MEGURI_CHROMIUM_PATH を参照する", func(t *testing.T) {
 		tmp := t.TempDir()
 		bin := filepath.Join(tmp, "env-chromium")
 		require.NoError(t, os.WriteFile(bin, []byte{0}, 0o755))

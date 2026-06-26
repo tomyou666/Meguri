@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // LoadYAMLFile は指定ファイルの YAML を読み込み、デフォルト値とマージした Config を返す。

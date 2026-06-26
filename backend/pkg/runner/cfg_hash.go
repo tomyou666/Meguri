@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // scrapeConfigFingerprint は Scrape 実行に影響する設定の正規化サブセット。

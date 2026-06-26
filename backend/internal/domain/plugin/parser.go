@@ -3,7 +3,7 @@ package plugin
 import (
 	"context"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // Parser (P5) はレスポンスをコンテンツ中間表現へ変換する。

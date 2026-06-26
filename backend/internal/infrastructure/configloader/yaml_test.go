@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/infrastructure/configloader"
+	"meguri/internal/domain/model"
+	"meguri/internal/infrastructure/configloader"
 )
 
 // TestParseYAML は YAML 設定のパースとデフォルト値マージを検証する。

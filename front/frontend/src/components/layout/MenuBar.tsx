@@ -27,7 +27,7 @@ import { openExternalBrowserUrl } from '@/lib/externalLinkDelegation';
 import { getFeedbackUrl } from '@/lib/feedbackUrl';
 import { notifyError } from '@/lib/notify';
 import { useAppStore } from '@/stores/appStore';
-import * as ProjectService from '../../../bindings/scraperbot-front/internal/usecase/wails_service/projectservice';
+import * as ProjectService from '../../../bindings/meguri-app/internal/usecase/wails_service/projectservice';
 
 export function MenuBar() {
 	const appDefaults = useAppStore((s) => s.appDefaults);

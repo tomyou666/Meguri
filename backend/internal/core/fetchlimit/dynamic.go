@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"time"
 
-	"scraperbot/internal/core/fetchlimit/memprobe"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core/fetchlimit/memprobe"
+	"meguri/internal/domain/model"
 )
 
 const dynamicPollInterval = 5 * time.Second

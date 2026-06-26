@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // TestResolveUserAgent は User-Agent 解決の優先順位を検証する。

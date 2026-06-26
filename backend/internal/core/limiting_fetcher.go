@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/url"
 
-	"scraperbot/internal/core/fetchlimit"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/core/fetchlimit"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
 )
 
 // limitingFetcher は inner Fetcher の Get 前後で取得並列上限を適用するデコレータ。

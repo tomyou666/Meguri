@@ -1,6 +1,6 @@
 {
   "request": {
-    "headers": { "User-Agent": "scraperbot/0.1" },
+    "headers": { "User-Agent": "meguri/0.1" },
     "timeout": "60s",
     "retry_count": 2,
     "retry_interval": "1s"

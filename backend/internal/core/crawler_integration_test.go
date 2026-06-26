@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
 )
 
 // denyRobots は特定パスを robots.txt 不許可として返すフェイク。

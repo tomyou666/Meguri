@@ -16,7 +16,7 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceFolder}/backend/cmd/scraperbot/main.go",
+            "program": "${workspaceFolder}/backend/cmd/meguri-cli/main.go",
             "args": [
                 "--config",
                 "${workspaceFolder}/backend/configs/my-config.yaml"
@@ -44,7 +44,7 @@
             }
         },
         {
-            "name": "Wails3: Attach Go (scraperbot, remote)",
+            "name": "Wails3: Attach Go (meguri, remote)",
             "type": "go",
             "request": "attach",
             "mode": "remote",
@@ -54,7 +54,7 @@
             "port": 2345,
             "cwd": "${workspaceFolder}/front",
             "showLog": true,
-            "preLaunchTask": "dlv: attach scraperbot",
+            "preLaunchTask": "dlv: attach meguri",
             "postDebugTask": "dlv: kill"
         },
         {
@@ -90,7 +90,7 @@
             "name": "Wails3: Dev + TSX + Attach Go",
             "configurations": [
                 "Wails3: Debug Frontend TSX (Chrome)",
-                "Wails3: Attach Go (scraperbot, remote)"
+                "Wails3: Attach Go (meguri, remote)"
             ],
             "preLaunchTask": "wails3: dev stack",
             "presentation": {

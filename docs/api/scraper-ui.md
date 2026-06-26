@@ -1,4 +1,4 @@
-# Scraper UI API
+# Meguri UI API
 
 Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `ScraperPort`（[`front/frontend/src/types/adapter.ts`](../front/frontend/src/types/adapter.ts)）。
 
@@ -8,7 +8,7 @@ Wails メソッド名と将来の HTTP REST を併記。TypeScript 契約は `Sc
 
 | フェーズ | Go Wails サービス | クロール実行 | 進捗配信 |
 |----------|-------------------|--------------|----------|
-| **Phase 3 v2（現行）** | **`StoreService`** + **`ProjectService`** + **`ScraperService`** | Go `backend` in-process（`scraperbot/pkg/runner` + PauseController + RunnerCache） | Wails Event → TS adapter UI コールバック（永続化は Go） |
+| **Phase 3 v2（現行）** | **`StoreService`** + **`ProjectService`** + **`ScraperService`** | Go `backend` in-process（`meguri/pkg/runner` + PauseController + RunnerCache） | Wails Event → TS adapter UI コールバック（永続化は Go） |
 | Phase 2（完了） | `StoreService` + `ProjectService` | TS `crawlStub`（削除済み） | コールバック |
 
 ## 通信モデル
@@ -122,7 +122,7 @@ UI トリガー:
 | `OpenScrb` | ネイティブダイアログで開く → 新規 WS import |
 | `SaveScrb` | アクティブ WS をエクスポート |
 
-形式: [`docs/formats/scrb-v1.md`](../formats/scrb-v1.md)
+形式: [`docs/formats/crawlproj-v1.md`](../formats/crawlproj-v1.md)
 
 ## Diff (Phase 4)
 

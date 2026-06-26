@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"scraperbot/internal/core"
+	"meguri/internal/core"
 )
 
 const robotsBodyLimit = 512 * 1024

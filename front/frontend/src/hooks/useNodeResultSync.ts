@@ -2,7 +2,7 @@ import { Events } from '@wailsio/runtime';
 import { useEffect } from 'react';
 import { crawlResultFromDTO } from '@/lib/wailsMappers';
 import { useAppStore } from '@/stores/appStore';
-import type { CrawlResultDTO } from '../../bindings/scraperbot-front/internal/model/models.js';
+import type { CrawlResultDTO } from '../../bindings/meguri-app/internal/model/models.js';
 
 const TOPIC_NODE_RESULT_UPDATED = 'node-result:updated';
 

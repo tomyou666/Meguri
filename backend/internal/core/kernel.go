@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"scraperbot/internal/core/fetchlimit"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/core/fetchlimit"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
 )
 
 // Kernel はプラグインのライフサイクル制御とパイプラインの依存提供を担う。

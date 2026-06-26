@@ -251,7 +251,7 @@ flowchart TB
 実装ファイル: [`front/storage/schema.sql`](front/storage/schema.sql)（以下をそのまま配置する）。
 
 ```sql
--- scraper-bot UI 永続層スキーマ（SQLite）
+-- meguri UI 永続層スキーマ（SQLite）
 -- フロント DTO・ScraperPort・将来 Wails SQLite 実装の単一の正。
 -- JSON 列は types/config.ts の AppConfig / PartialConfig 形状に一致させる。
 

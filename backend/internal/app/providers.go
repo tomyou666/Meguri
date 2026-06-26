@@ -5,12 +5,12 @@ import (
 	"context"
 	"log/slog"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
-	"scraperbot/internal/infrastructure/robots"
-	"scraperbot/internal/infrastructure/storage"
-	"scraperbot/internal/usecase"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
+	"meguri/internal/infrastructure/robots"
+	"meguri/internal/infrastructure/storage"
+	"meguri/internal/usecase"
 )
 
 // ProvideRegistry は init() 済みプラグインが登録されたレジストリを返す。

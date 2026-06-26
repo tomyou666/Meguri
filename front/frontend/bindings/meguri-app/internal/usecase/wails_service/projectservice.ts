@@ -21,7 +21,7 @@ import * as model$0 from "../../model/models.js";
  * OpenScrb は .scrb を開き新規 WS としてインポートする。
  */
 export function OpenScrb(): $CancellablePromise<model$0.OpenScrbResponse> {
-    return $Call.ByID(1495062799).then(($result: any) => {
+    return $Call.ByID(3278929463).then(($result: any) => {
         return $$createType0($result);
     });
 }
@@ -30,14 +30,14 @@ export function OpenScrb(): $CancellablePromise<model$0.OpenScrbResponse> {
  * SaveScrb はアクティブ WS を .scrb に保存する。
  */
 export function SaveScrb(workspaceID: string): $CancellablePromise<void> {
-    return $Call.ByID(3066834178, workspaceID);
+    return $Call.ByID(3180281898, workspaceID);
 }
 
 /**
  * SetApp は Wails App を後から注入する（ダイアログ用）。
  */
 export function SetApp(app: application$0.App | null): $CancellablePromise<void> {
-    return $Call.ByID(1271725790, app);
+    return $Call.ByID(2645629862, app);
 }
 
 // Private type creation functions

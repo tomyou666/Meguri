@@ -1,8 +1,8 @@
 package runner
 
 import (
-	"scraperbot/internal/core"
-	"scraperbot/internal/core/fetchlimit"
+	"meguri/internal/core"
+	"meguri/internal/core/fetchlimit"
 )
 
 // PauseController はクロール一時停止制御（core.PauseController のエイリアス）。

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
 )
 
 // CrawlerFactory は実行時の ResultSink と ProgressSink を受け取り Crawler を生成する。

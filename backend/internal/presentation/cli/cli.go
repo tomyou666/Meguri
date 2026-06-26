@@ -10,11 +10,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"scraperbot/internal/app"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/infrastructure/configloader"
-	"scraperbot/internal/logger"
-	"scraperbot/pkg/runner"
+	"meguri/internal/app"
+	"meguri/internal/domain/model"
+	"meguri/internal/infrastructure/configloader"
+	"meguri/internal/logger"
+	"meguri/pkg/runner"
 )
 
 // App は CLI 実行に必要な I/O 依存をまとめる。テスト時はここを差し替える。

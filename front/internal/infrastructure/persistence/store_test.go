@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 
 	"github.com/libtnb/sqlite"
 	"gorm.io/gorm"

@@ -80,9 +80,9 @@
             "problemMatcher": []
         },
         {
-            "label": "dlv: attach scraperbot",
+            "label": "dlv: attach meguri",
             "type": "shell",
-            "command": "node \"${workspaceFolder}/.vscode/scripts/dlv-attach-scraperbot.js\"",
+            "command": "node \"${workspaceFolder}/.vscode/scripts/dlv-attach-meguri.js\"",
             "isBackground": true,
             "problemMatcher": {
                 "owner": "dlv",

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"sync"
 
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/domain/plugin"
 )
 
 // Registry は種類別にプラグインファクトリを保持するレジストリ。

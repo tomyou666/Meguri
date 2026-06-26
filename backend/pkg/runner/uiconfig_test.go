@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"scraperbot/pkg/runner"
+	"meguri/pkg/runner"
 )
 
 // TestMergeUIConfigLayers は UI 設定レイヤーのマージと JSON 文字列の展開を検証する。

@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/core/fetchlimit"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core/fetchlimit"
+	"meguri/internal/domain/model"
 )
 
 // TestCalibrateChromium は browser path 空時のフォールバックを検証する。

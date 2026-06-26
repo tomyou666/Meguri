@@ -1,6 +1,8 @@
-# .scrb v1（Scraper Bot プロジェクトファイル）
+# .crawlproj v1（Meguri プロジェクトファイル）
 
 1 ワークスペース分のグラフ・設定を ZIP で運ぶ。SQLite DB ファイルや crawl 結果は含めない。
+
+拡張子は **`.crawlproj`**。旧 **`.scrb`** も読み込み互換あり（中身は同一 ZIP 形式）。
 
 ## レイアウト
 
@@ -18,7 +20,7 @@ ui_state.json
 {
   "formatVersion": 1,
   "exportedAt": "2026-01-01T00:00:00Z",
-  "app": "scraper-bot",
+  "app": "meguri",
   "workspaceName": "My Workspace"
 }
 ```

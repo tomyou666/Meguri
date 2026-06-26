@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // Fetcher は P3 URL 取得プラグインの契約。

@@ -24,35 +24,35 @@ import * as model$0 from "../../model/models.js";
  * AppendNodeResult はノード結果行を追加する。
  */
 export function AppendNodeResult(req: model$0.AppendNodeResultRequest): $CancellablePromise<void> {
-    return $Call.ByID(3510917024, req);
+    return $Call.ByID(3338613912, req);
 }
 
 /**
  * BeginCrawlRun は crawl run を開始する。
  */
 export function BeginCrawlRun(req: model$0.BeginCrawlRunRequest): $CancellablePromise<void> {
-    return $Call.ByID(908078694, req);
+    return $Call.ByID(2037716558, req);
 }
 
 /**
  * Bootstrap は起動時 DB 初期化。
  */
 export function Bootstrap(): $CancellablePromise<void> {
-    return $Call.ByID(1505416513);
+    return $Call.ByID(985413417);
 }
 
 /**
  * DeleteResults は最新結果を削除する。
  */
 export function DeleteResults(workspaceID: string, nodeIDs: string[]): $CancellablePromise<void> {
-    return $Call.ByID(914537352, workspaceID, nodeIDs);
+    return $Call.ByID(1479558768, workspaceID, nodeIDs);
 }
 
 /**
  * DeleteWorkspace は WS を削除する。
  */
 export function DeleteWorkspace(id: string): $CancellablePromise<void> {
-    return $Call.ByID(1996277139, id);
+    return $Call.ByID(4143795755, id);
 }
 
 /**
@@ -62,7 +62,7 @@ export function DeleteWorkspace(id: string): $CancellablePromise<void> {
  * 空文字の場合はコピー元の名前を使用する。
  */
 export function DuplicateWorkspace(id: string, name: string): $CancellablePromise<model$0.WorkspaceDTO | null> {
-    return $Call.ByID(2954192207, id, name).then(($result: any) => {
+    return $Call.ByID(990842695, id, name).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -71,21 +71,21 @@ export function DuplicateWorkspace(id: string, name: string): $CancellablePromis
  * FinishCrawlRun は crawl run を終了する。
  */
 export function FinishCrawlRun(req: model$0.FinishCrawlRunRequest): $CancellablePromise<void> {
-    return $Call.ByID(72160794, req);
+    return $Call.ByID(3267595186, req);
 }
 
 /**
  * GetAppDefaults はアプリ既定設定を返す。
  */
 export function GetAppDefaults(): $CancellablePromise<json$0.RawMessage> {
-    return $Call.ByID(986519116);
+    return $Call.ByID(2994918004);
 }
 
 /**
  * GetExportSession はエクスポートウィンドウ用の直近スナップショットを返す。
  */
 export function GetExportSession(): $CancellablePromise<model$0.ExportSessionRequest> {
-    return $Call.ByID(2484916511).then(($result: any) => {
+    return $Call.ByID(3088241959).then(($result: any) => {
         return $$createType2($result);
     });
 }
@@ -94,7 +94,7 @@ export function GetExportSession(): $CancellablePromise<model$0.ExportSessionReq
  * GetMaximizedNodeResult は最大化ウィンドウ用の直近スナップショットを返す。
  */
 export function GetMaximizedNodeResult(): $CancellablePromise<model$0.MaximizedNodeResultRequest> {
-    return $Call.ByID(3226355490).then(($result: any) => {
+    return $Call.ByID(790067210).then(($result: any) => {
         return $$createType3($result);
     });
 }
@@ -103,7 +103,7 @@ export function GetMaximizedNodeResult(): $CancellablePromise<model$0.MaximizedN
  * GetNodeDiffDetail は単一ノードの差分詳細を返す。
  */
 export function GetNodeDiffDetail(workspaceID: string, nodeID: string): $CancellablePromise<model$0.NodeDiffDetailDTO> {
-    return $Call.ByID(2454595397, workspaceID, nodeID).then(($result: any) => {
+    return $Call.ByID(1971368189, workspaceID, nodeID).then(($result: any) => {
         return $$createType4($result);
     });
 }
@@ -112,7 +112,7 @@ export function GetNodeDiffDetail(workspaceID: string, nodeID: string): $Cancell
  * GetNodeDiffViewerSession は差分ビューアウィンドウ用の直近スナップショットを返す。
  */
 export function GetNodeDiffViewerSession(): $CancellablePromise<model$0.NodeDiffViewerRequest> {
-    return $Call.ByID(3350353810).then(($result: any) => {
+    return $Call.ByID(2980533114).then(($result: any) => {
         return $$createType5($result);
     });
 }
@@ -121,7 +121,7 @@ export function GetNodeDiffViewerSession(): $CancellablePromise<model$0.NodeDiff
  * GetNodeResult はノード結果を返す。
  */
 export function GetNodeResult(workspaceID: string, nodeID: string): $CancellablePromise<model$0.CrawlResultDTO | null> {
-    return $Call.ByID(2230381414, workspaceID, nodeID).then(($result: any) => {
+    return $Call.ByID(1231862750, workspaceID, nodeID).then(($result: any) => {
         return $$createType7($result);
     });
 }
@@ -130,7 +130,7 @@ export function GetNodeResult(workspaceID: string, nodeID: string): $Cancellable
  * GetNodeResults は複数ノード結果を返す。
  */
 export function GetNodeResults(workspaceID: string, nodeIDs: string[]): $CancellablePromise<model$0.CrawlResultDTO[]> {
-    return $Call.ByID(1547833871, workspaceID, nodeIDs).then(($result: any) => {
+    return $Call.ByID(1126920535, workspaceID, nodeIDs).then(($result: any) => {
         return $$createType8($result);
     });
 }
@@ -139,7 +139,7 @@ export function GetNodeResults(workspaceID: string, nodeIDs: string[]): $Cancell
  * GetWorkspaceDiff は WS 差分を返す。
  */
 export function GetWorkspaceDiff(workspaceID: string): $CancellablePromise<model$0.WorkspaceDiffDTO> {
-    return $Call.ByID(962553539, workspaceID).then(($result: any) => {
+    return $Call.ByID(1767944683, workspaceID).then(($result: any) => {
         return $$createType9($result);
     });
 }
@@ -148,7 +148,7 @@ export function GetWorkspaceDiff(workspaceID: string): $CancellablePromise<model
  * ListWorkspaces は WS 一覧を返す。
  */
 export function ListWorkspaces(): $CancellablePromise<model$0.WorkspaceListItemDTO[]> {
-    return $Call.ByID(2887877563).then(($result: any) => {
+    return $Call.ByID(737251475).then(($result: any) => {
         return $$createType11($result);
     });
 }
@@ -157,7 +157,7 @@ export function ListWorkspaces(): $CancellablePromise<model$0.WorkspaceListItemD
  * LoadWorkspace は WS を読み込む。
  */
 export function LoadWorkspace(id: string): $CancellablePromise<model$0.WorkspaceDTO | null> {
-    return $Call.ByID(1251890114, id).then(($result: any) => {
+    return $Call.ByID(1245564714, id).then(($result: any) => {
         return $$createType1($result);
     });
 }
@@ -166,7 +166,7 @@ export function LoadWorkspace(id: string): $CancellablePromise<model$0.Workspace
  * MergeResults は結果をマージする。
  */
 export function MergeResults(workspaceID: string, nodeIDs: string[], formats: string[]): $CancellablePromise<model$0.MergeResultsResponseDTO> {
-    return $Call.ByID(1725193583, workspaceID, nodeIDs, formats).then(($result: any) => {
+    return $Call.ByID(1679166919, workspaceID, nodeIDs, formats).then(($result: any) => {
         return $$createType12($result);
     });
 }
@@ -175,21 +175,21 @@ export function MergeResults(workspaceID: string, nodeIDs: string[], formats: st
  * PatchGraphNodePositions はノード座標を部分更新する。
  */
 export function PatchGraphNodePositions(req: model$0.PatchGraphNodePositionsRequest): $CancellablePromise<void> {
-    return $Call.ByID(2701437225, req);
+    return $Call.ByID(617561921, req);
 }
 
 /**
  * PatchGraphNodeStatus はノード status を更新する。
  */
 export function PatchGraphNodeStatus(req: model$0.PatchGraphNodeStatusRequest): $CancellablePromise<void> {
-    return $Call.ByID(1748401541, req);
+    return $Call.ByID(4080782077, req);
 }
 
 /**
  * SaveAppDefaults はアプリ既定設定を保存する。
  */
 export function SaveAppDefaults(config: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
-    return $Call.ByID(3060042429, config).then(($result: any) => {
+    return $Call.ByID(2781423509, config).then(($result: any) => {
         return $$createType13($result);
     });
 }
@@ -200,7 +200,7 @@ export function SaveAppDefaults(config: json$0.RawMessage): $CancellablePromise<
  * defaultExt はダイアログの既定拡張子（"md" または "html"）。
  */
 export function SaveExportFile(content: string, defaultExt: string): $CancellablePromise<void> {
-    return $Call.ByID(474749408, content, defaultExt);
+    return $Call.ByID(2344457880, content, defaultExt);
 }
 
 /**
@@ -210,14 +210,14 @@ export function SaveExportFile(content: string, defaultExt: string): $Cancellabl
  * ZIP 内のファイル名は entries の Name をそのまま使う。
  */
 export function SaveExportZip(entries: model$0.ExportZipEntryDTO[], defaultExt: string): $CancellablePromise<void> {
-    return $Call.ByID(1924064885, entries, defaultExt);
+    return $Call.ByID(2925762301, entries, defaultExt);
 }
 
 /**
  * SaveNodeSettings はノード設定を保存する。
  */
 export function SaveNodeSettings(workspaceID: string, nodeID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
-    return $Call.ByID(3533873137, workspaceID, nodeID, settings).then(($result: any) => {
+    return $Call.ByID(3704504073, workspaceID, nodeID, settings).then(($result: any) => {
         return $$createType13($result);
     });
 }
@@ -226,28 +226,28 @@ export function SaveNodeSettings(workspaceID: string, nodeID: string, settings: 
  * SaveResults は baseline 用に結果を保存する。
  */
 export function SaveResults(workspaceID: string, nodeIDs: string[]): $CancellablePromise<void> {
-    return $Call.ByID(965942430, workspaceID, nodeIDs);
+    return $Call.ByID(1321913430, workspaceID, nodeIDs);
 }
 
 /**
  * SaveResultsSnapshot は baseline snapshot を保存する。
  */
 export function SaveResultsSnapshot(workspaceID: string, runID: string): $CancellablePromise<string> {
-    return $Call.ByID(1866471234, workspaceID, runID);
+    return $Call.ByID(2727732938, workspaceID, runID);
 }
 
 /**
  * SaveWorkspace は WS を保存する。
  */
 export function SaveWorkspace(ws: model$0.WorkspaceDTO): $CancellablePromise<void> {
-    return $Call.ByID(3619559933, ws);
+    return $Call.ByID(1336534245, ws);
 }
 
 /**
  * SaveWorkspaceSettings は WS 設定を保存する。
  */
 export function SaveWorkspaceSettings(workspaceID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
-    return $Call.ByID(2942997632, workspaceID, settings).then(($result: any) => {
+    return $Call.ByID(1553310216, workspaceID, settings).then(($result: any) => {
         return $$createType13($result);
     });
 }
@@ -256,42 +256,42 @@ export function SaveWorkspaceSettings(workspaceID: string, settings: json$0.RawM
  * SetApp は Wails App を後から注入する（最大化・エクスポートウィンドウ用）。
  */
 export function SetApp(app: application$0.App | null): $CancellablePromise<void> {
-    return $Call.ByID(2657825710, app);
+    return $Call.ByID(3115946214, app);
 }
 
 /**
  * SetAppDefaults はアプリ既定設定を設定する。
  */
 export function SetAppDefaults(config: json$0.RawMessage): $CancellablePromise<void> {
-    return $Call.ByID(3135309632, config);
+    return $Call.ByID(2075852616, config);
 }
 
 /**
  * ShowExportWindow は別 WebviewWindow でエクスポート画面を表示する。
  */
 export function ShowExportWindow(req: model$0.ExportSessionRequest): $CancellablePromise<void> {
-    return $Call.ByID(3833380526, req);
+    return $Call.ByID(3382306870, req);
 }
 
 /**
  * ShowMaximizedNodeResult は別 WebviewWindow でノード結果を拡大表示する。
  */
 export function ShowMaximizedNodeResult(req: model$0.MaximizedNodeResultRequest): $CancellablePromise<void> {
-    return $Call.ByID(510085547, req);
+    return $Call.ByID(916939843, req);
 }
 
 /**
  * ShowNodeDiffWindow は別 WebviewWindow でノード差分を表示する。
  */
 export function ShowNodeDiffWindow(req: model$0.NodeDiffViewerRequest): $CancellablePromise<void> {
-    return $Call.ByID(3122055687, req);
+    return $Call.ByID(4173351135, req);
 }
 
 /**
  * UpdateNodeResult はノード結果の手動編集を保存する。
  */
 export function UpdateNodeResult(req: model$0.UpdateNodeResultRequest): $CancellablePromise<model$0.CrawlResultDTO | null> {
-    return $Call.ByID(2763335505, req).then(($result: any) => {
+    return $Call.ByID(3146172057, req).then(($result: any) => {
         return $$createType7($result);
     });
 }
@@ -300,7 +300,7 @@ export function UpdateNodeResult(req: model$0.UpdateNodeResultRequest): $Cancell
  * UpsertDiscoveredGraph は crawl 中に発見したノードとエッジを永続化する。
  */
 export function UpsertDiscoveredGraph(req: model$0.UpsertDiscoveredGraphRequest): $CancellablePromise<void> {
-    return $Call.ByID(617689704, req);
+    return $Call.ByID(1887043808, req);
 }
 
 // Private type creation functions

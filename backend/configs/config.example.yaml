@@ -1,8 +1,8 @@
-# scraperbot 設定ファイル例
+# meguri 設定ファイル例
 #
 # 使い方:
 #   cp configs/config.example.yaml my-config.yaml
-#   ./bin/scraperbot --config my-config.yaml
+#   ./bin/meguri --config my-config.yaml
 #
 # 設定の優先順位: 組み込みデフォルト → この YAML → CLI フラグ（フラグが最優先）
 # 詳細: README.md / doc/03-設定詳細設計.md
@@ -25,7 +25,7 @@ request:
   # - User-Agent 未設定時はサーバー側の既定値が使われる
   # - preprocessors に header を指定すると、ここで設定したヘッダが転写される
   headers:
-    User-Agent: "scraperbot/0.1"
+    User-Agent: "meguri/0.1"
 
   # timeout: 1 リクエストあたりのタイムアウト
   # 範囲: 1s ～ 300s（既定: 60s）
@@ -184,7 +184,7 @@ crawl:
 # -----------------------------------------------------------------------------
 # plugins: 使用するコンパイル時プラグイン名
 # -----------------------------------------------------------------------------
-# ビルドに含まれるプラグインは cmd/scraperbot/main.go の import で決まる。
+# ビルドに含まれるプラグインは cmd/meguri/main.go の import で決まる。
 # ここでは「どれを有効にするか」だけを指定する。
 plugins:
   # fetcher: URL フェッチ実装の選択
@@ -196,7 +196,7 @@ plugins:
   # fetcher_config: fetcher が chromium のときの実行設定
   fetcher_config:
     # browser_path: ブラウザ実行ファイル（空 = 自動検出）
-    # 探索順: browser_path → SCRAPERBOT_CHROMIUM_PATH → Chromium → Edge
+    # 探索順: browser_path → MEGURI_CHROMIUM_PATH → Chromium → Edge
     browser_path: ""
     # user_agent: chromium 時の UA（空 = request.headers の User-Agent または既定値）
     user_agent: ""

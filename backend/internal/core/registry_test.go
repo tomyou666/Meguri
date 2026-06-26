@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
 )
 
 // --- レジストリ単体テスト用の最小フェイクプラグイン群 ---

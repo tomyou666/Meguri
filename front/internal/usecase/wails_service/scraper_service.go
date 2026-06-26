@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"scraperbot-front/internal/domain"
-	"scraperbot-front/internal/model"
-	"scraperbot/pkg/runner"
+	"meguri-app/internal/domain"
+	"meguri-app/internal/model"
+	"meguri/pkg/runner"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )

@@ -44,7 +44,7 @@ import type {
 } from '@/types/crawl';
 import type { GraphNode, NodeStatus } from '@/types/graph';
 import type { Workspace } from '@/types/workspace';
-import * as ScraperService from '../../bindings/scraperbot-front/internal/usecase/wails_service/scraperservice';
+import * as ScraperService from '../../bindings/meguri-app/internal/usecase/wails_service/scraperservice';
 
 function uid(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

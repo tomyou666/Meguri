@@ -1,4 +1,4 @@
-# scraperbot
+# Meguri
 
 Web ページとリンク先 PDF を取得し、Markdown などの形式に変換するスクレイピングツールです。
 

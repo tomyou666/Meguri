@@ -3,7 +3,7 @@ package domain
 import (
 	"testing"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 )
 
 // TestNodeResultToPreviewHTML は html / raw_html が DTO にマップされることを検証する。

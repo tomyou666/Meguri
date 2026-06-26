@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/core/fetchlimit"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/core"
+	"meguri/internal/core/fetchlimit"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
 )
 
 type slowFetcher struct {

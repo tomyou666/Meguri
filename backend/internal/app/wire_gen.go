@@ -8,7 +8,7 @@ package app
 
 import (
 	"context"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // Injectors from wire.go:

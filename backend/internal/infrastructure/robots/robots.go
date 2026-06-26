@@ -9,7 +9,7 @@ import (
 
 	"github.com/temoto/robotstxt"
 
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/domain/plugin"
 )
 
 // Cache はホスト単位で robots.txt を一度だけ取得・キャッシュする。

@@ -24,7 +24,7 @@ todos:
     content: "compositeScraperAdapter: StartCrawl RPC + Events.On 橋渡し + runId 一元化、crawlStub 削除"
     status: completed
   - id: 3b-wire-main
-    content: Wire/providers/main.go 更新、go.mod require scraperbot、bindings 再生成
+    content: Wire/providers/main.go 更新、go.mod require meguri、bindings 再生成
     status: completed
   - id: 3b-appstore-pause
     content: appStore pause/stop を ScraperService RPC と連携
@@ -66,7 +66,7 @@ isProject: false
 - Phase 2 完了: [`compositeScraperAdapter`](front/frontend/src/adapters/compositeScraperAdapter.ts) が Store RPC + [`crawlStub`](front/frontend/src/services/crawlStub.ts) で crawl 実行
 - Go 側: [`StoreService`](front/internal/usecase/wails_service/store_service.go) / [`ProjectService`](front/internal/usecase/wails_service/project_service.go) のみ。`ScraperService` なし
 - backend: BFS [`Crawler.Run`](backend/internal/core/crawler.go) はあるが `ResultSink` のみ。Progress / `exclude_urls` / per-URL Config API なし
-- **ブロッカー**: `scraperbot/internal/...` は `scraperbot-front` から import 不可（Go internal ルール）
+- **ブロッカー**: `meguri/internal/...` は `meguri` から import 不可（Go internal ルール）
 
 ---
 
@@ -165,7 +165,7 @@ func ScrapeWithConfig(ctx context.Context, url string, cfg *model.Config, progre
 2. `core.NewKernel(cfg, host, registry).Init(ctx)`
 3. `defer kernel.Close(ctx)`
 4. `Pipeline.Run(ctx, url)` → Progress `started` / `succeeded` / `failed`
-5. プラグイン登録は [`cmd/scraperbot/main.go`](backend/cmd/scraperbot/main.go) と同様の blank import を `pkg/runner` の `init` または `RegisterPlugins()` で集約
+5. プラグイン登録は [`cmd/meguri/main.go`](backend/cmd/meguri/main.go) と同様の blank import を `pkg/runner` の `init` または `RegisterPlugins()` で集約
 
 ### 3a-4. `CrawlWithProgress`
 
@@ -195,10 +195,10 @@ func CrawlWithProgress(ctx context.Context, cfg *model.Config, seeds []string, p
 [`front/go.mod`](front/go.mod):
 
 ```
-require scraperbot v0.0.0
+require meguri v0.0.0
 ```
 
-[`go.work`](go.work) 既存利用で `./backend` を解決。import は **`scraperbot/pkg/runner` のみ**（`internal/` 直 import 禁止）。
+[`go.work`](go.work) 既存利用で `./backend` を解決。import は **`meguri/pkg/runner` のみ**（`internal/` 直 import 禁止）。
 
 ### 3b-2. `GraphNode.origin` + マイグレーション
 

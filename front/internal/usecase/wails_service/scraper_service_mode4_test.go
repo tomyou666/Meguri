@@ -3,7 +3,7 @@ package wails_service
 import (
 	"testing"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

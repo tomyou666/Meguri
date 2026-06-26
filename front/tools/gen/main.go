@@ -21,7 +21,7 @@ func stripIntDefault(column string) gen.ModelOpt {
 func main() {
 	dbPath := os.Getenv("DB")
 	if dbPath == "" {
-		dbPath = "data/scraperbot.db"
+		dbPath = "data/meguri.db"
 	}
 	db, err := gorm.Open(sqlite.Open(dbPath+"?_pragma=foreign_keys(1)"), &gorm.Config{})
 	if err != nil {

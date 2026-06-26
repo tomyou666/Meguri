@@ -8,7 +8,7 @@ describe('defaults', () => {
 		expect(DEFAULT_APP_CONFIG).toEqual(defaultsJson);
 		expect(DEFAULT_APP_CONFIG.crawl?.max_depth).toBe(2);
 		expect(DEFAULT_APP_CONFIG.request?.headers?.['User-Agent']).toBe(
-			'scraperbot/0.1',
+			'meguri/0.1',
 		);
 	});
 });

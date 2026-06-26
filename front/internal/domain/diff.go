@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"sort"
 
-	"scraperbot-front/internal/infrastructure/persistence"
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/infrastructure/persistence"
+	"meguri-app/internal/model"
 )
 
 // DiffService は WS 差分計算。

@@ -14,7 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { PartialConfig } from '@/types/config';
 import type { GraphNode } from '@/types/graph';
-import * as ScraperService from '../../../bindings/scraperbot-front/internal/usecase/wails_service/scraperservice';
+import * as ScraperService from '../../../bindings/meguri-app/internal/usecase/wails_service/scraperservice';
 
 type RobotsStatus = 'loading' | 'found' | 'not_found' | 'error';
 

@@ -1,7 +1,7 @@
 package chromiumfetch
 
 import (
-	"scraperbot/internal/infrastructure/chromium"
+	"meguri/internal/infrastructure/chromium"
 )
 
 // EnvBrowserPath はブラウザ実行ファイルを明示指定する環境変数名。

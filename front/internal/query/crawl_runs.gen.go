@@ -17,7 +17,7 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 )
 
 func newCrawlRun(db *gorm.DB, opts ...gen.DOOption) crawlRun {

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"scraperbot/internal/core"
+	"meguri/internal/core"
 )
 
 // TestPauseController は一時停止・再開と context キャンセルの挙動を検証する。

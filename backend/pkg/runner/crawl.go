@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/infrastructure/robots"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
+	"meguri/internal/infrastructure/robots"
 )
 
 // CrawlWithProgress はマージ済み Config とシード URL から BFS クロールを実行する。

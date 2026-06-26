@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"scraperbot-front/internal/domain"
-	"scraperbot-front/internal/infrastructure/persistence"
-	"scraperbot-front/internal/usecase/wails_service"
+	"meguri-app/internal/domain"
+	"meguri-app/internal/infrastructure/persistence"
+	"meguri-app/internal/usecase/wails_service"
 
 	"github.com/libtnb/sqlite"
 	"gorm.io/gorm"

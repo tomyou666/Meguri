@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
 )
 
 // hostImpl は plugin.Host の具象実装。

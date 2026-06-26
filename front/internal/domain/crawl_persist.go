@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"scraperbot-front/internal/infrastructure/persistence"
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/infrastructure/persistence"
+	"meguri-app/internal/model"
 )
 
 // CrawlPersistService は crawl run 永続化。

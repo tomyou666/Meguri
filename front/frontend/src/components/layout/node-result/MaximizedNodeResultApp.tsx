@@ -11,7 +11,7 @@ import { crawlResultFromDTO } from '@/lib/wailsMappers';
 import type { MaximizedNodeResultSnapshot } from '@/types/adapter';
 import type { ContentFormat } from '@/types/config';
 import type { CrawlResultPreview } from '@/types/crawl';
-import type { CrawlResultDTO } from '../../../../bindings/scraperbot-front/internal/model/models.js';
+import type { CrawlResultDTO } from '../../../../bindings/meguri-app/internal/model/models.js';
 
 const TOPIC_NODE_RESULT_MAXIMIZE = 'node-result:maximize';
 const TOPIC_NODE_RESULT_UPDATED = 'node-result:updated';

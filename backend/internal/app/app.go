@@ -2,9 +2,9 @@
 package app
 
 import (
-	"scraperbot/internal/core"
-	"scraperbot/internal/infrastructure/storage"
-	"scraperbot/internal/usecase"
+	"meguri/internal/core"
+	"meguri/internal/infrastructure/storage"
+	"meguri/internal/usecase"
 )
 
 // Application は実行時に必要な依存を束ねる。

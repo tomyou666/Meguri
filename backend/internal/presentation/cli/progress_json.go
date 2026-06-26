@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"scraperbot/pkg/runner"
+	"meguri/pkg/runner"
 )
 
 // progressJSONLine は NDJSON 1 行分の進捗イベント。

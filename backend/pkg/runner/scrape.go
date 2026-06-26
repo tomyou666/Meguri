@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
 )
 
 // ScrapeWithConfig は 1 URL を任意 Config で実行する。

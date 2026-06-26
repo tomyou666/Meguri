@@ -1,13 +1,13 @@
 export const messages = {
-	appName: 'Scraper Bot',
+	appName: 'Meguri',
 	version: '0.1.0',
 	toast: {
 		dismissAria: '通知を閉じる',
 	},
 	menu: {
 		file: 'ファイル',
-		openScrb: '開く (.scrb)',
-		saveScrb: '保存 (.scrb)',
+		openScrb: '開く (.crawlproj)',
+		saveScrb: '保存 (.crawlproj)',
 		openFileMenu: 'ファイルメニューを開く',
 		settings: '設定',
 		appDefaults: 'デフォルト設定',

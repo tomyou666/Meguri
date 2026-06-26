@@ -3,7 +3,7 @@ package plugin
 import (
 	"context"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // PreProcessor (P2) はリクエスト送信前のリクエスト改変を担う。

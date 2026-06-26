@@ -1,3 +1,3 @@
 package app
 
-const dbFileName = "scraperbot.db"
+const dbFileName = "meguri.db"

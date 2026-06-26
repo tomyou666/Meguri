@@ -10,22 +10,22 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/logger"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
+	"meguri/internal/logger"
 
 	// プラグイン副作用 import: 実装プラグインをレジストリへ登録する
-	_ "scraperbot/plugins/fetcher-chromium"
-	_ "scraperbot/plugins/fetcher-http"
-	_ "scraperbot/plugins/filter-maincontent"
-	_ "scraperbot/plugins/filter-selector"
-	_ "scraperbot/plugins/linkextractor-default"
-	_ "scraperbot/plugins/parser-html"
-	_ "scraperbot/plugins/parser-pdf"
-	_ "scraperbot/plugins/preprocessor-header"
-	_ "scraperbot/plugins/transformer-html"
-	_ "scraperbot/plugins/transformer-markdown"
-	_ "scraperbot/plugins/transformer-raw-html"
+	_ "meguri/plugins/fetcher-chromium"
+	_ "meguri/plugins/fetcher-http"
+	_ "meguri/plugins/filter-maincontent"
+	_ "meguri/plugins/filter-selector"
+	_ "meguri/plugins/linkextractor-default"
+	_ "meguri/plugins/parser-html"
+	_ "meguri/plugins/parser-pdf"
+	_ "meguri/plugins/preprocessor-header"
+	_ "meguri/plugins/transformer-html"
+	_ "meguri/plugins/transformer-markdown"
+	_ "meguri/plugins/transformer-raw-html"
 )
 
 // setupKernel はテスト用に初期化済みカーネルを組み立てる共通関数。
@@ -132,7 +132,7 @@ func TestPipeline_SingleURL(t *testing.T) {
 
 	t.Run("正常系: PreProcessor 'header' が User-Agent をリクエストに付与する", func(t *testing.T) {
 		cfg := baseConfig()
-		cfg.Request.Headers = map[string]string{"User-Agent": "scraperbot-test/1.0"}
+		cfg.Request.Headers = map[string]string{"User-Agent": "meguri-test/1.0"}
 		cfg.Plugins.PreProcessors = []string{"header"}
 
 		k := setupKernel(t, cfg)
@@ -144,7 +144,7 @@ func TestPipeline_SingleURL(t *testing.T) {
 		_, err := p.Run(context.Background(), req)
 
 		assert.NoError(t, err)
-		assert.Equal(t, "scraperbot-test/1.0", req.Headers["User-Agent"],
+		assert.Equal(t, "meguri-test/1.0", req.Headers["User-Agent"],
 			"P2 PreProcessor 経由でヘッダが転写されること")
 	})
 

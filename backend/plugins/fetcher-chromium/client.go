@@ -10,7 +10,7 @@ import (
 
 	"github.com/chromedp/chromedp"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 func (c *client) get(ctx context.Context, u *url.URL, headers map[string]string) (*model.Response, error) {

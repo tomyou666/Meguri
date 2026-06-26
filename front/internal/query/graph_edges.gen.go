@@ -17,7 +17,7 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 )
 
 func newGraphEdge(db *gorm.DB, opts ...gen.DOOption) graphEdge {

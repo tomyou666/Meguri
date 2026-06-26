@@ -3,7 +3,7 @@ package persistence
 import (
 	"context"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 )
 
 // Repository は永続化操作の interface。

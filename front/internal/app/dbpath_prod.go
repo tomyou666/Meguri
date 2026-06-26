@@ -11,7 +11,7 @@ import (
 
 // dataDir は本番用アプリデータディレクトリを返す。
 func dataDir() (string, error) {
-	dir := filepath.Join(xdg.DataHome, "scraperbot")
+	dir := filepath.Join(xdg.DataHome, "meguri")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}

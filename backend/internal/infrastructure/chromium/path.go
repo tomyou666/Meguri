@@ -10,7 +10,7 @@ import (
 )
 
 // EnvBrowserPath はブラウザ実行ファイルを明示指定する環境変数名。
-const EnvBrowserPath = "SCRAPERBOT_CHROMIUM_PATH"
+const EnvBrowserPath = "MEGURI_CHROMIUM_PATH"
 
 var chromiumNames = []string{
 	"chromium",
@@ -42,7 +42,7 @@ var edgeFixedPaths = []string{
 //
 // 優先順位:
 // 1) configuredPath（設定の browser_path）
-// 2) 環境変数 SCRAPERBOT_CHROMIUM_PATH
+// 2) 環境変数 MEGURI_CHROMIUM_PATH
 // 3) Chromium 系候補（PATH / 固定パス）
 // 4) Edge 系候補（PATH / 固定パス）
 func ResolveBrowserPath(configuredPath string) (string, error) {

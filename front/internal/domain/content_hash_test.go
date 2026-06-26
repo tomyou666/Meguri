@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot-front/internal/domain"
+	"meguri-app/internal/domain"
 )
 
 // TestContentHashFromMarkdown はフロントエンドと同一の正規化・ハッシュ算法を検証する。

@@ -3,7 +3,7 @@ package chromiumfetch
 import (
 	"strings"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // DefaultUserAgent は chromedp 既定の HeadlessChrome UA を避けるための一般的な Chromium UA。

@@ -1,7 +1,7 @@
 services:
   runcomfy:
     build: .
-    image: scraper-bot-runcomfy:latest
+    image: meguri-runcomfy:latest
     env_file:
       - path: .env
         required: false

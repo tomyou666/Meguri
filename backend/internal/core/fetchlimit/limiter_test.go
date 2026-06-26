@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"scraperbot/internal/core/fetchlimit"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core/fetchlimit"
+	"meguri/internal/domain/model"
 )
 
 // TestFetchLimiter は同時実行上限と解放を検証する。

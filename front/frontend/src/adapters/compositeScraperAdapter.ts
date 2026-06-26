@@ -34,9 +34,9 @@ import {
 	StartCrawlRequest,
 	UpdateNodeResultPatchDTO,
 	UpdateNodeResultRequest,
-} from '../../bindings/scraperbot-front/internal/model/models.js';
-import * as ScraperService from '../../bindings/scraperbot-front/internal/usecase/wails_service/scraperservice';
-import * as StoreService from '../../bindings/scraperbot-front/internal/usecase/wails_service/storeservice';
+} from '../../bindings/meguri-app/internal/model/models.js';
+import * as ScraperService from '../../bindings/meguri-app/internal/usecase/wails_service/scraperservice';
+import * as StoreService from '../../bindings/meguri-app/internal/usecase/wails_service/storeservice';
 
 const TOPIC_NODE_STARTED = 'scraper:crawl:nodeStarted';
 const TOPIC_NODE_SUCCEEDED = 'scraper:crawl:nodeSucceeded';

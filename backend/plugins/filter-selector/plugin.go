@@ -7,9 +7,9 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
-	pluginpkg "scraperbot/internal/domain/plugin"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
+	pluginpkg "meguri/internal/domain/plugin"
 )
 
 func init() {

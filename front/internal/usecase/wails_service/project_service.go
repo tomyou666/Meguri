@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"scraperbot-front/internal/domain"
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/domain"
+	"meguri-app/internal/model"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -33,8 +33,9 @@ func (s *ProjectService) OpenScrb() (model.OpenScrbResponse, error) {
 		return model.OpenScrbResponse{}, fmt.Errorf("app not initialized")
 	}
 	path, err := s.app.Dialog.OpenFile().
-		SetTitle("Open .scrb").
-		AddFilter("Scraper Bot Project", "*.scrb").
+		SetTitle("Open Meguri Project").
+		AddFilter("Meguri Project", "*.crawlproj").
+		AddFilter("Legacy Project", "*.scrb").
 		AddFilter("All Files", "*.*").
 		PromptForSingleSelection()
 	if err != nil || path == "" {
@@ -58,9 +59,10 @@ func (s *ProjectService) SaveScrb(workspaceID string) error {
 	}
 	defaultName := domain.BundleName(ws)
 	path, err := s.app.Dialog.SaveFile().
-		SetMessage("Save .scrb").
+		SetMessage("Save Meguri Project").
 		SetFilename(defaultName).
-		AddFilter("Scraper Bot Project", "*.scrb").
+		AddFilter("Meguri Project", "*.crawlproj").
+		AddFilter("Legacy Project", "*.scrb").
 		AddFilter("All Files", "*.*").
 		PromptForSingleSelection()
 	if err != nil || path == "" {

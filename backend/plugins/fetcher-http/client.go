@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"time"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // get はリトライ付き GET で model.Response を返す。

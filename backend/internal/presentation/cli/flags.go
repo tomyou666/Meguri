@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // Flags は CLI 引数のパース結果を保持する。
@@ -194,7 +194,7 @@ func (f *formatFlag) Set(v string) error {
 
 // ParseArgs はサブコマンド引数群をパースする。
 func ParseArgs(args []string) (*Flags, error) {
-	fs := flag.NewFlagSet("scraperbot", flag.ContinueOnError)
+	fs := flag.NewFlagSet("meguri-cli", flag.ContinueOnError)
 	f := &Flags{Headers: map[string]string{}}
 
 	fs.StringVar(&f.ConfigPath, "config", "", "設定ファイルパス (YAML)")

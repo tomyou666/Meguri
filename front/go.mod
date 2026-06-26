@@ -1,4 +1,4 @@
-module scraperbot-front
+module meguri-app
 
 go 1.26.3
 
@@ -12,7 +12,7 @@ require (
 	gorm.io/gen v0.3.28
 	gorm.io/gorm v1.31.1
 	gorm.io/plugin/dbresolver v1.6.2
-	scraperbot v0.0.0
+	meguri v0.0.0
 )
 
 require (
@@ -344,7 +344,7 @@ require (
 	mvdan.cc/sh/v3 v3.12.0 // indirect
 )
 
-replace scraperbot => ../backend
+replace meguri => ../backend
 
 tool (
 	github.com/go-delve/delve/cmd/dlv

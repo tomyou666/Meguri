@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // normalizeConfigLayer は Wails 経由で JSON 文字列として渡されたレイヤをオブジェクト JSON に正規化する。

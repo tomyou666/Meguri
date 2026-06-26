@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
-	"scraperbot/pkg/runner"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
+	"meguri/pkg/runner"
 )
 
 // TestScrapeWithConfig は単一 URL スクレイプの進捗通知を検証する。
@@ -23,7 +23,7 @@ func TestScrapeWithConfig(t *testing.T) {
 				Timeout:       10_000_000_000,
 				RetryCount:    0,
 				RetryInterval: 100_000_000,
-				Headers:       map[string]string{"User-Agent": "scraperbot-test"},
+				Headers:       map[string]string{"User-Agent": "meguri-test"},
 			},
 			Content: model.ContentConfig{
 				Formats:         []model.OutputFormat{model.FormatMarkdown},

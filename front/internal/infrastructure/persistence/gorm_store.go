@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"scraperbot-front/internal/model"
-	"scraperbot-front/internal/query"
+	"meguri-app/internal/model"
+	"meguri-app/internal/query"
 
 	"gorm.io/gen/field"
 	"gorm.io/gorm"

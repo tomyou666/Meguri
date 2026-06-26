@@ -1,6 +1,6 @@
 package core
 
-import "scraperbot/internal/domain/model"
+import "meguri/internal/domain/model"
 
 // ProgressKind はクロール進捗イベントの種別。
 type ProgressKind string

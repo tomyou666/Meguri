@@ -3,7 +3,7 @@ package plugin
 import (
 	"context"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // Kind はプラグインのパイプライン上の役割を表す。

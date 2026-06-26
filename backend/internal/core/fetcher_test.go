@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/logger"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
+	"meguri/internal/logger"
 
-	_ "scraperbot/plugins/fetcher-chromium"
-	_ "scraperbot/plugins/fetcher-http"
+	_ "meguri/plugins/fetcher-chromium"
+	_ "meguri/plugins/fetcher-http"
 )
 
 // TestKernel_InitFetcher は設定に応じた Fetcher 初期化の成否を検証する。

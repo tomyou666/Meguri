@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"scraperbot/pkg/runner"
+	"meguri/pkg/runner"
 )
 
 // testRobotsConfigLayer は httptest 向けの最小 HTTP fetcher 設定を返す。

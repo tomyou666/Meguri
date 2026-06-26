@@ -1,7 +1,7 @@
 package app
 
 import (
-	"scraperbot-front/internal/usecase/wails_service"
+	"meguri-app/internal/usecase/wails_service"
 )
 
 // Application は Wails 登録用ルート struct。

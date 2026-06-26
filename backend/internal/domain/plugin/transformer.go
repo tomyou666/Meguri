@@ -3,7 +3,7 @@ package plugin
 import (
 	"context"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // Transformer (P6) は中間表現を最終 Result に変換する。

@@ -1,6 +1,6 @@
 import { workspaceToDTO } from '@/lib/wailsMappers';
 import type { Workspace } from '@/types/workspace';
-import * as StoreService from '../../bindings/scraperbot-front/internal/usecase/wails_service/storeservice';
+import * as StoreService from '../../bindings/meguri-app/internal/usecase/wails_service/storeservice';
 
 export type NodePositionPatch = {
 	nodeId: string;

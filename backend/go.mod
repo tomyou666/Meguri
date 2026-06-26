@@ -1,4 +1,4 @@
-module scraperbot
+module meguri
 
 go 1.26.3
 

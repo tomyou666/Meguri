@@ -1,8 +1,8 @@
 package runner
 
 import (
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
 )
 
 // ProgressKind はクロール進捗イベントの種別（core.ProgressKind のエイリアス）。

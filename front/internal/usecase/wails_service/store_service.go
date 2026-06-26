@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"scraperbot-front/internal/domain"
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/domain"
+	"meguri-app/internal/model"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )

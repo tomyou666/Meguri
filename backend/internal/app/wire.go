@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/wire"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 //go:generate go run github.com/google/wire/cmd/wire

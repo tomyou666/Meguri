@@ -9,8 +9,8 @@ import (
 
 	"github.com/chromedp/chromedp"
 
-	"scraperbot/internal/core/fetchlimit/memprobe"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core/fetchlimit/memprobe"
+	"meguri/internal/domain/model"
 )
 
 const calibrationMemoryFraction = 0.6

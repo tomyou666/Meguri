@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // FileWriter は OutputConfig に従い *model.Result を保存する。

@@ -3,7 +3,7 @@ package scrb
 import (
 	"testing"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 )
 
 // TestExportImport は .scrb 形式のエクスポート・インポートの往復を検証する。

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"scraperbot-front/internal/infrastructure/persistence"
+	"meguri-app/internal/infrastructure/persistence"
 )
 
 // AppConfigService はアプリ既定設定のドメインサービス。

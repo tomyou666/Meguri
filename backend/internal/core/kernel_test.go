@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/domain/plugin"
+	"meguri/internal/core"
+	"meguri/internal/domain/model"
+	"meguri/internal/domain/plugin"
 )
 
 // --- Init/Close 動作確認用フェイク ---

@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"sync"
 
-	"scraperbot/internal/core"
-	"scraperbot/internal/core/fetchlimit"
-	"scraperbot/internal/domain/model"
+	"meguri/internal/core"
+	"meguri/internal/core/fetchlimit"
+	"meguri/internal/domain/model"
 )
 
 const defaultCacheMaxEntries = 8

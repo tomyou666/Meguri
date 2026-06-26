@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // RobotsChecker は robots.txt ベースの許可判定を抽象化する。

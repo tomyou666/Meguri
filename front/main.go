@@ -7,13 +7,13 @@ import (
 	"log/slog"
 	"os"
 
-	"scraperbot-front/internal/app"
-	"scraperbot-front/internal/logger"
-	"scraperbot-front/internal/usecase/wails_service"
+	"meguri-app/internal/app"
+	"meguri-app/internal/logger"
+	"meguri-app/internal/usecase/wails_service"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
-	_ "scraperbot/pkg/runner"
+	_ "meguri/pkg/runner"
 )
 
 //go:embed all:frontend/dist
@@ -30,8 +30,8 @@ func main() {
 	defer cleanup()
 
 	webApp := application.New(application.Options{
-		Name:        "scraperbot",
-		Description: "Scraper Bot desktop UI",
+		Name:        "meguri",
+		Description: "Meguri desktop UI",
 		Services: []application.Service{
 			application.NewService(wailsApp.StoreService),
 			application.NewService(wailsApp.ProjectService),
@@ -51,7 +51,7 @@ func main() {
 
 	mainWindow := webApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:             "main",
-		Title:            "scraperbot",
+		Title:            "Meguri",
 		Width:            1024,
 		Height:           680,
 		InitialPosition:  application.WindowCentered,

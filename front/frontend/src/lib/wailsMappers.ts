@@ -5,7 +5,7 @@ import type { Workspace } from '@/types/workspace';
 import type {
 	CrawlResultDTO,
 	WorkspaceDTO,
-} from '../../bindings/scraperbot-front/internal/model/models.js';
+} from '../../bindings/meguri-app/internal/model/models.js';
 
 export function workspaceFromDTO(dto: WorkspaceDTO): Workspace {
 	const settings = parseJSON<PartialConfig>(dto.settings, {});

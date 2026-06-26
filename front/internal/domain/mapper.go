@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"scraperbot-front/internal/model"
+	"meguri-app/internal/model"
 )
 
 func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {

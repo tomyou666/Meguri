@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"scraperbot/internal/domain/model"
+	"meguri/internal/domain/model"
 )
 
 // FetchLimiter はフェッチャ種別ごとの同時取得数を制限する。

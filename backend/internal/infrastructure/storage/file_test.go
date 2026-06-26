@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"scraperbot/internal/domain/model"
-	"scraperbot/internal/infrastructure/storage"
+	"meguri/internal/domain/model"
+	"meguri/internal/infrastructure/storage"
 )
 
 // TestFileWriter_Write は結果ファイルの書き出しパターンと連番を検証する。
