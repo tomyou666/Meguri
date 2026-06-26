@@ -100,11 +100,29 @@ export function GetMaximizedNodeResult(): $CancellablePromise<model$0.MaximizedN
 }
 
 /**
+ * GetNodeDiffDetail は単一ノードの差分詳細を返す。
+ */
+export function GetNodeDiffDetail(workspaceID: string, nodeID: string): $CancellablePromise<model$0.NodeDiffDetailDTO> {
+    return $Call.ByID(2454595397, workspaceID, nodeID).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+/**
+ * GetNodeDiffViewerSession は差分ビューアウィンドウ用の直近スナップショットを返す。
+ */
+export function GetNodeDiffViewerSession(): $CancellablePromise<model$0.NodeDiffViewerRequest> {
+    return $Call.ByID(3350353810).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+/**
  * GetNodeResult はノード結果を返す。
  */
 export function GetNodeResult(workspaceID: string, nodeID: string): $CancellablePromise<model$0.CrawlResultDTO | null> {
     return $Call.ByID(2230381414, workspaceID, nodeID).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType7($result);
     });
 }
 
@@ -113,7 +131,7 @@ export function GetNodeResult(workspaceID: string, nodeID: string): $Cancellable
  */
 export function GetNodeResults(workspaceID: string, nodeIDs: string[]): $CancellablePromise<model$0.CrawlResultDTO[]> {
     return $Call.ByID(1547833871, workspaceID, nodeIDs).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType8($result);
     });
 }
 
@@ -122,7 +140,7 @@ export function GetNodeResults(workspaceID: string, nodeIDs: string[]): $Cancell
  */
 export function GetWorkspaceDiff(workspaceID: string): $CancellablePromise<model$0.WorkspaceDiffDTO> {
     return $Call.ByID(962553539, workspaceID).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType9($result);
     });
 }
 
@@ -131,7 +149,7 @@ export function GetWorkspaceDiff(workspaceID: string): $CancellablePromise<model
  */
 export function ListWorkspaces(): $CancellablePromise<model$0.WorkspaceListItemDTO[]> {
     return $Call.ByID(2887877563).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType11($result);
     });
 }
 
@@ -149,7 +167,7 @@ export function LoadWorkspace(id: string): $CancellablePromise<model$0.Workspace
  */
 export function MergeResults(workspaceID: string, nodeIDs: string[], formats: string[]): $CancellablePromise<model$0.MergeResultsResponseDTO> {
     return $Call.ByID(1725193583, workspaceID, nodeIDs, formats).then(($result: any) => {
-        return $$createType10($result);
+        return $$createType12($result);
     });
 }
 
@@ -172,7 +190,7 @@ export function PatchGraphNodeStatus(req: model$0.PatchGraphNodeStatusRequest): 
  */
 export function SaveAppDefaults(config: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(3060042429, config).then(($result: any) => {
-        return $$createType11($result);
+        return $$createType13($result);
     });
 }
 
@@ -200,7 +218,7 @@ export function SaveExportZip(entries: model$0.ExportZipEntryDTO[], defaultExt: 
  */
 export function SaveNodeSettings(workspaceID: string, nodeID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(3533873137, workspaceID, nodeID, settings).then(($result: any) => {
-        return $$createType11($result);
+        return $$createType13($result);
     });
 }
 
@@ -230,7 +248,7 @@ export function SaveWorkspace(ws: model$0.WorkspaceDTO): $CancellablePromise<voi
  */
 export function SaveWorkspaceSettings(workspaceID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(2942997632, workspaceID, settings).then(($result: any) => {
-        return $$createType11($result);
+        return $$createType13($result);
     });
 }
 
@@ -263,11 +281,18 @@ export function ShowMaximizedNodeResult(req: model$0.MaximizedNodeResultRequest)
 }
 
 /**
+ * ShowNodeDiffWindow は別 WebviewWindow でノード差分を表示する。
+ */
+export function ShowNodeDiffWindow(req: model$0.NodeDiffViewerRequest): $CancellablePromise<void> {
+    return $Call.ByID(3122055687, req);
+}
+
+/**
  * UpdateNodeResult はノード結果の手動編集を保存する。
  */
 export function UpdateNodeResult(req: model$0.UpdateNodeResultRequest): $CancellablePromise<model$0.CrawlResultDTO | null> {
     return $Call.ByID(2763335505, req).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType7($result);
     });
 }
 
@@ -283,11 +308,13 @@ const $$createType0 = model$0.WorkspaceDTO.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = model$0.ExportSessionRequest.createFrom;
 const $$createType3 = model$0.MaximizedNodeResultRequest.createFrom;
-const $$createType4 = model$0.CrawlResultDTO.createFrom;
-const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = $Create.Array($$createType4);
-const $$createType7 = model$0.WorkspaceDiffDTO.createFrom;
-const $$createType8 = model$0.WorkspaceListItemDTO.createFrom;
-const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = model$0.MergeResultsResponseDTO.createFrom;
-const $$createType11 = model$0.SaveSettingsResponseDTO.createFrom;
+const $$createType4 = model$0.NodeDiffDetailDTO.createFrom;
+const $$createType5 = model$0.NodeDiffViewerRequest.createFrom;
+const $$createType6 = model$0.CrawlResultDTO.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = $Create.Array($$createType6);
+const $$createType9 = model$0.WorkspaceDiffDTO.createFrom;
+const $$createType10 = model$0.WorkspaceListItemDTO.createFrom;
+const $$createType11 = $Create.Array($$createType10);
+const $$createType12 = model$0.MergeResultsResponseDTO.createFrom;
+const $$createType13 = model$0.SaveSettingsResponseDTO.createFrom;

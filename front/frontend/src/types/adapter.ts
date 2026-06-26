@@ -15,6 +15,22 @@ export interface NodeDiff {
 	kinds: DiffKind[];
 }
 
+export interface NodeDiffDetail {
+	nodeId: string;
+	url: string;
+	kinds: DiffKind[];
+	content?: { old: string; new: string };
+	links?: { old: string; new: string };
+	fetch?: { old: string; new: string };
+}
+
+export type NodeDiffViewerSnapshot = {
+	workspaceId: string;
+	nodeId: string;
+	initialKind?: DiffKind;
+	title: string;
+};
+
 export interface WorkspaceDiff {
 	workspaceId: string;
 	hasDiff: boolean;
@@ -169,6 +185,12 @@ export interface ScraperPort {
 	saveResultsSnapshot(workspaceId: string, runId?: string): Promise<string>;
 
 	getWorkspaceDiff(workspaceId: string): Promise<WorkspaceDiff>;
+	getNodeDiffDetail(
+		workspaceId: string,
+		nodeId: string,
+	): Promise<NodeDiffDetail>;
+	showNodeDiffWindow(snapshot: NodeDiffViewerSnapshot): Promise<void>;
+	getNodeDiffViewerSession(): Promise<NodeDiffViewerSnapshot | null>;
 
 	startCrawl(params: StartCrawlParams): Promise<string>;
 }

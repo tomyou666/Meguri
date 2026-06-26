@@ -25,6 +25,7 @@ type StoreService struct {
 	crawlPersist  *domain.CrawlPersistService
 	nodeResultWin *NodeResultWindowManager
 	exportWin     *ExportWindowManager
+	nodeDiffWin   *NodeDiffWindowManager
 }
 
 // NewStoreService は StoreService を構築する。
@@ -49,6 +50,7 @@ func (s *StoreService) SetApp(app *application.App) {
 	s.app = app
 	s.nodeResultWin = NewNodeResultWindowManager(app)
 	s.exportWin = NewExportWindowManager(app)
+	s.nodeDiffWin = NewNodeDiffWindowManager(app)
 }
 
 // WireMainWindow はメインウィンドウ終了時のプレビュー連動を登録する。
@@ -58,6 +60,9 @@ func WireMainWindow(s *StoreService, w application.Window) {
 	}
 	if s.exportWin != nil {
 		s.exportWin.SetMainWindow(w)
+	}
+	if s.nodeDiffWin != nil {
+		s.nodeDiffWin.SetMainWindow(w)
 	}
 }
 
@@ -300,6 +305,27 @@ func (s *StoreService) SaveResultsSnapshot(workspaceID, runID string) (string, e
 // GetWorkspaceDiff は WS 差分を返す。
 func (s *StoreService) GetWorkspaceDiff(workspaceID string) (model.WorkspaceDiffDTO, error) {
 	return s.diff.GetWorkspaceDiff(s.ctx(), workspaceID)
+}
+
+// GetNodeDiffDetail は単一ノードの差分詳細を返す。
+func (s *StoreService) GetNodeDiffDetail(workspaceID, nodeID string) (model.NodeDiffDetailDTO, error) {
+	return s.diff.GetNodeDiffDetail(s.ctx(), workspaceID, nodeID)
+}
+
+// ShowNodeDiffWindow は別 WebviewWindow でノード差分を表示する。
+func (s *StoreService) ShowNodeDiffWindow(req model.NodeDiffViewerRequest) error {
+	if s.nodeDiffWin == nil {
+		return fmt.Errorf("app not initialized")
+	}
+	return s.nodeDiffWin.Show(req)
+}
+
+// GetNodeDiffViewerSession は差分ビューアウィンドウ用の直近スナップショットを返す。
+func (s *StoreService) GetNodeDiffViewerSession() (model.NodeDiffViewerRequest, error) {
+	if s.nodeDiffWin == nil {
+		return model.NodeDiffViewerRequest{}, fmt.Errorf("app not initialized")
+	}
+	return s.nodeDiffWin.GetSnapshot()
 }
 
 // BeginCrawlRun は crawl run を開始する。

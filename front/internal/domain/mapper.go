@@ -181,6 +181,19 @@ func latestSuccessByNode(rows []model.NodeResult) map[string]model.NodeResult {
 	return out
 }
 
+// latestResultByNode はノードごとの最新結果（成功/失敗問わず）を返す。
+//
+// rows は fetched_at DESC 想定。先頭行が最新。
+func latestResultByNode(rows []model.NodeResult) map[string]model.NodeResult {
+	out := map[string]model.NodeResult{}
+	for _, r := range rows {
+		if _, ok := out[r.NodeID]; !ok {
+			out[r.NodeID] = r
+		}
+	}
+	return out
+}
+
 func rowsForRun(rows []model.NodeResult, runID string) map[string]model.NodeResult {
 	out := map[string]model.NodeResult{}
 	for _, r := range rows {

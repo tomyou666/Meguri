@@ -20,7 +20,7 @@ import {
 	getDescendantNodeIds,
 } from '@/lib/graph';
 import { normalizeUrl } from '@/lib/normalizeUrl';
-import { notifyError, notifySuccess } from '@/lib/notify';
+import { notifyDiffDetected, notifyError, notifySuccess } from '@/lib/notify';
 import { withDerivedContentFormats } from '@/lib/previewFormats';
 import {
 	redoGraph,
@@ -28,6 +28,7 @@ import {
 	undoGraph,
 } from '@/stores/graphHistoryStore';
 import type {
+	DiffKind,
 	MaximizedNodeResultSnapshot,
 	UpdateNodeResultPatch,
 	WorkspaceDiff,
@@ -151,6 +152,8 @@ interface AppState {
 	loadedNodeResult: CrawlResultPreview | null;
 	resultPreview: CrawlResultPreview[] | null;
 	workspaceDiffCache: Record<string, WorkspaceDiff>;
+	diffSummaryOpen: boolean;
+	diffSummaryWorkspaceId: string | null;
 	runMode: RunMode;
 	rescrapeExisting: boolean;
 	crawlStatus: CrawlRunStatus;
@@ -229,6 +232,14 @@ interface AppState {
 	deleteSelectedResults: () => Promise<void>;
 	bulkScrapeSelected: () => Promise<void>;
 	fetchWorkspaceDiff: (workspaceId: string) => Promise<WorkspaceDiff>;
+	setDiffSummaryOpen: (open: boolean) => void;
+	openDiffSummary: (workspaceId: string) => void;
+	openNodeDiff: (nodeId: string, kind?: DiffKind) => Promise<void>;
+	handleCrawlDiffAfterComplete: (
+		workspaceId: string,
+		runId: string,
+	) => Promise<void>;
+	updateBaselineToCurrent: () => Promise<void>;
 	setRunMode: (mode: RunMode) => void;
 	setRescrapeExisting: (value: boolean) => void;
 	updateNodePosition: (id: string, position: { x: number; y: number }) => void;
@@ -274,6 +285,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 	loadedNodeResult: null,
 	resultPreview: null,
 	workspaceDiffCache: {},
+	diffSummaryOpen: false,
+	diffSummaryWorkspaceId: null,
 	runMode: 1,
 	rescrapeExisting: false,
 	crawlStatus: 'idle',
@@ -1021,6 +1034,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 					_activeRunId: null,
 					runHistory: [full, ...s.runHistory].slice(0, 20),
 				}));
+				if (summary.stoppedReason === 'completed') {
+					void get().handleCrawlDiffAfterComplete(ws.id, runId);
+				}
 			},
 			onCrawlError: (message) => {
 				set({
@@ -1351,6 +1367,88 @@ export const useAppStore = create<AppState>((set, get) => ({
 			workspaceDiffCache: { ...s.workspaceDiffCache, [workspaceId]: diff },
 		}));
 		return diff;
+	},
+
+	setDiffSummaryOpen: (open) => {
+		set({ diffSummaryOpen: open });
+		if (!open) {
+			set({ diffSummaryWorkspaceId: null });
+		}
+	},
+
+	openDiffSummary: (workspaceId) => {
+		set({
+			diffSummaryOpen: true,
+			diffSummaryWorkspaceId: workspaceId,
+		});
+	},
+
+	openNodeDiff: async (nodeId, kind) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		const node = ws.nodes.find((n) => n.id === nodeId);
+		const title =
+			node?.urlNormalized ?? node?.label ?? messages.diff.windowTitle;
+		try {
+			await scraperPort.showNodeDiffWindow({
+				workspaceId: ws.id,
+				nodeId,
+				initialKind: kind,
+				title,
+			});
+		} catch (err) {
+			notifyError(messages.diff.openWindowFailed, {
+				description: err instanceof Error ? err.message : String(err),
+			});
+		}
+	},
+
+	handleCrawlDiffAfterComplete: async (workspaceId, runId) => {
+		const ws = get().workspaces.find((w) => w.id === workspaceId);
+		if (!ws) return;
+
+		if (!ws.baselineRunId) {
+			const baselineRunId = await scraperPort.saveResultsSnapshot(
+				workspaceId,
+				runId,
+			);
+			set((s) => ({
+				workspaces: s.workspaces.map((w) =>
+					w.id === workspaceId ? { ...w, baselineRunId } : w,
+				),
+			}));
+			return;
+		}
+
+		const diff = await get().fetchWorkspaceDiff(workspaceId);
+		if (!diff.hasDiff) return;
+
+		const count = diff.nodes.length;
+		notifyDiffDetected(
+			messages.diff.toastTitle(count),
+			messages.diff.toastAction,
+			() => get().openDiffSummary(workspaceId),
+			diff.summary,
+		);
+	},
+
+	updateBaselineToCurrent: async () => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return;
+		try {
+			const baselineRunId = await scraperPort.saveResultsSnapshot(ws.id);
+			set((s) => ({
+				workspaces: s.workspaces.map((w) =>
+					w.id === ws.id ? { ...w, baselineRunId } : w,
+				),
+			}));
+			await get().fetchWorkspaceDiff(ws.id);
+			notifySuccess(messages.diff.baselineUpdated);
+		} catch (err) {
+			notifyError(messages.diff.baselineUpdateFailed, {
+				description: err instanceof Error ? err.message : String(err),
+			});
+		}
 	},
 
 	getActiveWorkspace: () => {

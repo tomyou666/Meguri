@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Group, Panel, Separator, usePanelRef } from 'react-resizable-panels';
+import { DiffUiLayer } from '@/components/diff/DiffUiLayer';
 import { CrawlGraph } from '@/components/graph/CrawlGraph';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useNodeResultSync } from '@/hooks/useNodeResultSync';
@@ -85,6 +86,7 @@ export function AppShell() {
 						<SidebarPanels />
 					</Group>
 					<AppDialogs />
+					<DiffUiLayer />
 				</div>
 			</TooltipProvider>
 		</AppBootstrap>

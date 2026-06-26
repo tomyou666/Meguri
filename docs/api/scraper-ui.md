@@ -129,6 +129,9 @@ UI トリガー:
 | Wails | ScraperPort |
 |-------|-------------|
 | `GetWorkspaceDiff` | `getWorkspaceDiff` |
+| `GetNodeDiffDetail` | `getNodeDiffDetail` |
+| `ShowNodeDiffWindow` | `showNodeDiffWindow` |
+| `GetNodeDiffViewerSession` | `getNodeDiffViewerSession` |
 
 ## DTO
 

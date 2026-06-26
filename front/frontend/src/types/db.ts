@@ -46,7 +46,7 @@ export interface DbGraphEdge {
 export interface DbCrawlRun {
 	id: string;
 	workspace_id: string;
-	mode: 1 | 2 | 3;
+	mode: 1 | 2 | 3 | 4;
 	status: 'running' | 'paused' | 'completed' | 'stopped' | 'error';
 	started_at: string;
 	finished_at: string | null;
@@ -69,6 +69,7 @@ export interface DbNodeResult {
 	error: string | null;
 	fetched_at: string;
 	content_hash: string | null;
+	manually_edited: 0 | 1;
 }
 
 export interface DbGraphUiState {

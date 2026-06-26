@@ -11,6 +11,8 @@ import type {
 	ExportSessionSnapshot,
 	MaximizedNodeResultSnapshot,
 	MergeResultsResponse,
+	NodeDiffDetail,
+	NodeDiffViewerSnapshot,
 	SaveSettingsResponse,
 	ScraperPort,
 	StartCrawlParams,
@@ -28,6 +30,7 @@ import type { Workspace } from '@/types/workspace';
 import {
 	ExportSessionRequest,
 	MaximizedNodeResultRequest,
+	NodeDiffViewerRequest,
 	StartCrawlRequest,
 	UpdateNodeResultPatchDTO,
 	UpdateNodeResultRequest,
@@ -325,6 +328,51 @@ export class CompositeScraperAdapter implements ScraperPort {
 			})),
 			summary: dto.summary,
 		};
+	}
+
+	async getNodeDiffDetail(
+		workspaceId: string,
+		nodeId: string,
+	): Promise<NodeDiffDetail> {
+		const dto = await StoreService.GetNodeDiffDetail(workspaceId, nodeId);
+		return {
+			nodeId: dto.nodeId,
+			url: dto.url,
+			kinds: (dto.kinds ?? []) as NodeDiffDetail['kinds'],
+			content: dto.content
+				? { old: dto.content.old, new: dto.content.new }
+				: undefined,
+			links: dto.links ? { old: dto.links.old, new: dto.links.new } : undefined,
+			fetch: dto.fetch ? { old: dto.fetch.old, new: dto.fetch.new } : undefined,
+		};
+	}
+
+	async showNodeDiffWindow(snapshot: NodeDiffViewerSnapshot): Promise<void> {
+		await StoreService.ShowNodeDiffWindow(
+			new NodeDiffViewerRequest({
+				workspaceId: snapshot.workspaceId,
+				nodeId: snapshot.nodeId,
+				initialKind: snapshot.initialKind ?? '',
+				title: snapshot.title,
+			}),
+		);
+	}
+
+	async getNodeDiffViewerSession(): Promise<NodeDiffViewerSnapshot | null> {
+		try {
+			const dto = await StoreService.GetNodeDiffViewerSession();
+			if (!dto?.workspaceId || !dto.nodeId) return null;
+			return {
+				workspaceId: dto.workspaceId,
+				nodeId: dto.nodeId,
+				initialKind: (dto.initialKind || undefined) as
+					| NodeDiffViewerSnapshot['initialKind']
+					| undefined,
+				title: dto.title,
+			};
+		} catch {
+			return null;
+		}
 	}
 
 	async startCrawl(params: StartCrawlParams): Promise<string> {

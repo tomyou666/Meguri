@@ -22,6 +22,7 @@ function row(nodeId: string, fetchedAt: string, id?: string): DbNodeResult {
 		error: null,
 		fetched_at: fetchedAt,
 		content_hash: null,
+		manually_edited: 0,
 	};
 }
 

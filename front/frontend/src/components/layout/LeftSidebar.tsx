@@ -9,10 +9,12 @@ import {
 	Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
+import { diffNodeCount } from '@/components/diff/diffSummaryUtils';
 import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
 import { DomainStatusPanel } from '@/components/layout/DomainStatusPanel';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -47,6 +49,7 @@ export function LeftSidebarContent() {
 		(s) => s.openDuplicateWorkspaceDialog,
 	);
 	const fetchWorkspaceDiff = useAppStore((s) => s.fetchWorkspaceDiff);
+	const openDiffSummary = useAppStore((s) => s.openDiffSummary);
 	const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
 	const persistWorkspaceSettings = useAppStore(
 		(s) => s.persistWorkspaceSettings,
@@ -56,7 +59,11 @@ export function LeftSidebarContent() {
 	);
 	const appDefaults = useAppStore((s) => s.appDefaults);
 	const [wsSettingsOpen, setWsSettingsOpen] = useState(false);
-	const [diffDialogWs, setDiffDialogWs] = useState<string | null>(null);
+
+	const openDiffForWorkspace = async (wsId: string) => {
+		await fetchWorkspaceDiff(wsId);
+		openDiffSummary(wsId);
+	};
 
 	if (leftCollapsed) {
 		return (
@@ -107,6 +114,7 @@ export function LeftSidebarContent() {
 					) : (
 						workspaces.map((ws) => {
 							const diff = workspaceDiffCache[ws.id];
+							const diffCount = diffNodeCount(diff);
 							return (
 								<div
 									key={ws.id}
@@ -157,10 +165,19 @@ export function LeftSidebarContent() {
 											<Button
 												variant='ghost'
 												size='icon-xs'
+												className='relative'
 												aria-label={messages.sidebar.openWorkspaceMenu}
 												onClick={(e) => e.stopPropagation()}
 											>
 												<Menu className='size-3' />
+												{diffCount > 0 && (
+													<Badge
+														variant='destructive'
+														className='absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 text-[8px] leading-none'
+													>
+														{diffCount}
+													</Badge>
+												)}
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent
@@ -181,20 +198,19 @@ export function LeftSidebarContent() {
 											</DropdownMenuItem>
 											<DropdownMenuItem
 												className='gap-2 px-2 py-1.5 text-xs'
-												onClick={async () => {
-													await fetchWorkspaceDiff(ws.id);
-													setDiffDialogWs(ws.id);
-												}}
+												onClick={() => void openDiffForWorkspace(ws.id)}
 											>
 												<GitCompare className='size-3.5 text-muted-foreground' />
 												<span className='flex-1'>
 													{messages.sidebar.diffSummary}
 												</span>
-												{diff?.hasDiff && (
-													<span
-														className='size-1.5 shrink-0 rounded-full bg-amber-500'
-														aria-hidden
-													/>
+												{diffCount > 0 && (
+													<Badge
+														variant='destructive'
+														className='h-4 min-w-4 px-1 text-[9px] leading-none'
+													>
+														{diffCount}
+													</Badge>
 												)}
 											</DropdownMenuItem>
 										</DropdownMenuContent>
@@ -244,22 +260,6 @@ export function LeftSidebarContent() {
 								onSave={(settings) => persistWorkspaceSettings(settings)}
 							/>
 						</div>
-					</DialogContent>
-				</Dialog>
-			)}
-
-			{diffDialogWs && workspaceDiffCache[diffDialogWs] && (
-				<Dialog
-					open={!!diffDialogWs}
-					onOpenChange={() => setDiffDialogWs(null)}
-				>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>{messages.sidebar.diffSummary}</DialogTitle>
-						</DialogHeader>
-						<pre className='text-xs'>
-							{JSON.stringify(workspaceDiffCache[diffDialogWs], null, 2)}
-						</pre>
 					</DialogContent>
 				</Dialog>
 			)}

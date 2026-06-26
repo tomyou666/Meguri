@@ -1,4 +1,5 @@
 import {
+	CheckCheck,
 	ChevronDown,
 	FileDown,
 	ListChecks,
@@ -40,12 +41,16 @@ export function ControlBar() {
 	const resumeCrawl = useAppStore((s) => s.resumeCrawl);
 	const stopCrawl = useAppStore((s) => s.stopCrawl);
 	const ws = useAppStore((s) => s.getActiveWorkspace());
+	const workspaceDiffCache = useAppStore((s) => s.workspaceDiffCache);
+	const updateBaselineToCurrent = useAppStore((s) => s.updateBaselineToCurrent);
 	const openExportWindow = useAppStore((s) => s.openExportWindow);
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const [modeMenuOpen, setModeMenuOpen] = useState(false);
 
 	const isRunning = crawlStatus === 'running';
 	const isPaused = crawlStatus === 'paused';
+	const hasDiff = ws ? (workspaceDiffCache[ws.id]?.hasDiff ?? false) : false;
+	const diffCount = ws ? (workspaceDiffCache[ws.id]?.nodes.length ?? 0) : 0;
 
 	return (
 		<div className='flex h-12 items-center justify-between gap-2 border-b border-border bg-card px-3'>
@@ -123,6 +128,19 @@ export function ControlBar() {
 					<Button size='sm' variant='destructive' onClick={stopCrawl}>
 						<Square className='size-3.5' />
 						{messages.control.stop}
+					</Button>
+				)}
+
+				{hasDiff && (
+					<Button
+						size='sm'
+						variant='outline'
+						className='border-amber-500 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700'
+						aria-label={messages.diff.markReviewedAria(diffCount)}
+						onClick={() => void updateBaselineToCurrent()}
+					>
+						<CheckCheck className='size-3.5' />
+						{messages.diff.markReviewed}
 					</Button>
 				)}
 

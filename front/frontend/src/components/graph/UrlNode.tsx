@@ -5,7 +5,9 @@ import {
 	ChevronDown,
 	ChevronRight,
 	Circle,
+	FileText,
 	Info,
+	Link2,
 	Loader2,
 	SkipForward,
 } from 'lucide-react';
@@ -71,6 +73,21 @@ const statusConfig: Record<
 	},
 };
 
+const diffKindConfig: Record<DiffKind, { icon: ReactNode; label: string }> = {
+	content: {
+		icon: <FileText className='size-2.5' />,
+		label: messages.diff.tooltipContent,
+	},
+	links: {
+		icon: <Link2 className='size-2.5' />,
+		label: messages.diff.tooltipLinks,
+	},
+	fetch: {
+		icon: <AlertCircle className='size-2.5' />,
+		label: messages.diff.tooltipFetch,
+	},
+};
+
 function NodeIconButton({
 	title,
 	onClick,
@@ -103,6 +120,7 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 	const handles = handlePositionsForDirection(d.layoutDirection ?? 'LR');
 	const toggleDetail = useAppStore((s) => s.toggleNodeDetailExpand);
 	const toggleSubtree = useAppStore((s) => s.toggleNodeSubtreeCollapse);
+	const openNodeDiff = useAppStore((s) => s.openNodeDiff);
 	const node = useAppStore((s) => {
 		const ws = s.getActiveWorkspace();
 		return ws?.nodes.find((n) => n.id === id) ?? null;
@@ -177,11 +195,29 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 				</div>
 				{d.diffKinds && d.diffKinds.length > 0 && (
 					<div className='flex flex-wrap gap-0.5'>
-						{d.diffKinds.map((k) => (
-							<Badge key={k} variant='outline' className='px-1 py-0 text-[8px]'>
-								{k}
-							</Badge>
-						))}
+						{d.diffKinds.map((k) => {
+							const cfg = diffKindConfig[k];
+							return (
+								<ActionTooltip key={k} label={cfg.label}>
+									<button
+										type='button'
+										className='nodrag nopan inline-flex'
+										aria-label={cfg.label}
+										onClick={(e) => {
+											e.stopPropagation();
+											void openNodeDiff(id, k);
+										}}
+									>
+										<Badge
+											variant='outline'
+											className='gap-0.5 px-1 py-0 text-[8px]'
+										>
+											{cfg.icon}
+										</Badge>
+									</button>
+								</ActionTooltip>
+							);
+						})}
 					</div>
 				)}
 				{detailExpanded && d.url && (

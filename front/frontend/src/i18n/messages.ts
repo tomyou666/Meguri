@@ -1,6 +1,9 @@
 export const messages = {
 	appName: 'Scraper Bot',
 	version: '0.1.0',
+	toast: {
+		dismissAria: '通知を閉じる',
+	},
 	menu: {
 		file: 'ファイル',
 		openScrb: '開く (.scrb)',
@@ -49,6 +52,35 @@ export const messages = {
 		deleteWorkspace: 'ワークスペースを削除',
 		duplicateWorkspace: 'ワークスペースをコピー',
 		openWorkspaceMenu: 'ワークスペースのその他操作',
+		diffCompare: '差分を表示',
+		diffCountAria: (count: number) => `差分 ${count} 件`,
+	},
+	diff: {
+		summaryTitle: '差分サマリ',
+		filterAll: 'すべて',
+		kindContent: 'content',
+		kindLinks: 'links',
+		kindFetch: 'fetch',
+		emptyNodes: '差分ノードはありません',
+		loading: '読み込み中…',
+		toastTitle: (count: number) => `差分を検出しました（${count} ノード）`,
+		toastAction: '詳細を見る',
+		baselineUpdated: '変更を確認済みにしました',
+		baselineUpdateFailed: '変更の確認に失敗しました',
+		markReviewed: '変更を確認済みにする',
+		markReviewedAria: (count: number) =>
+			`未確認の差分 ${count} 件を確認済みにする`,
+		windowTitle: 'ノード差分',
+		openWindowFailed: '差分ウィンドウを開けませんでした',
+		fetchState: {
+			success: '成功',
+			error: '失敗',
+			skipped: 'スキップ',
+			none: '未取得',
+		},
+		tooltipContent: '本文の差分',
+		tooltipLinks: 'リンクの差分',
+		tooltipFetch: '取得状態の差分',
 	},
 	domainStatus: {
 		statusLabel: (status: string, count: number) => {

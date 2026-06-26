@@ -97,6 +97,14 @@ type MaximizedNodeResultRequest struct {
 	Result       CrawlResultDTO `json:"result"`
 }
 
+// NodeDiffViewerRequest は差分ビューアウィンドウ表示用スナップショット。
+type NodeDiffViewerRequest struct {
+	WorkspaceID string `json:"workspaceId"`
+	NodeID      string `json:"nodeId"`
+	InitialKind string `json:"initialKind,omitempty"`
+	Title       string `json:"title"`
+}
+
 // ExportSessionNodeDTO はエクスポートツリー用ノード。
 type ExportSessionNodeDTO struct {
 	// ID はグラフノード ID。
@@ -167,6 +175,22 @@ type MergeResultsResponseDTO struct {
 	Merged    string `json:"merged"`
 	Format    string `json:"format"`
 	NodeCount int    `json:"nodeCount"`
+}
+
+// DiffPairDTO は old/new の文字列ペア。
+type DiffPairDTO struct {
+	Old string `json:"old"`
+	New string `json:"new"`
+}
+
+// NodeDiffDetailDTO は単一ノードの差分詳細。
+type NodeDiffDetailDTO struct {
+	NodeID  string       `json:"nodeId"`
+	URL     string       `json:"url"`
+	Kinds   []string     `json:"kinds"`
+	Content *DiffPairDTO `json:"content,omitempty"`
+	Links   *DiffPairDTO `json:"links,omitempty"`
+	Fetch   *DiffPairDTO `json:"fetch,omitempty"`
 }
 
 // NodeDiffDTO は差分ノード。

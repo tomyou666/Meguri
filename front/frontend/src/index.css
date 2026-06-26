@@ -242,15 +242,3 @@
 .rf-tool-select .react-flow__pane {
 	cursor: default;
 }
-
-[data-sonner-toaster] [data-sonner-toast] [data-button] {
-	background: transparent;
-	color: var(--muted-foreground);
-	border: none;
-	box-shadow: none;
-}
-
-[data-sonner-toaster] [data-sonner-toast] [data-button]:hover {
-	background: color-mix(in oklch, var(--muted) 50%, transparent);
-	color: var(--foreground);
-}
