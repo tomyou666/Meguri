@@ -11,6 +11,7 @@
 			"!**/dist",
 			"!**/node_modules",
 			"!**/bindings",
+			"!**/.bindings-tmp-*",
 			"!**/.git",
 			"!**/*.json"
 		]

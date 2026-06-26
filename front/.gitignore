@@ -3,5 +3,6 @@ bin
 data/
 frontend/dist
 frontend/node_modules
+frontend/.bindings-tmp-*
 build/linux/appimage/build
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
