@@ -8,7 +8,7 @@
       "computedHash": "b0e7741886c0c32270cedc1a2fc21c2879d90964d3ce00f24952de7064613404"
     },
     "gpt-image-2": {
-      "source": "doany-ai/skills",
+      "source": "runcomfy-com/skills",
       "sourceType": "github",
       "skillPath": "gpt-image-2/SKILL.md",
       "computedHash": "e1647bdf96f4c5e26e485366967a2ed4389c73930a2fe7737abc7f52eab8d22a"
