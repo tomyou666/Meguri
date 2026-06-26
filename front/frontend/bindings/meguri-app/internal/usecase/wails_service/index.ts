@@ -4,8 +4,14 @@
 import * as ProjectService from "./projectservice.js";
 import * as ScraperService from "./scraperservice.js";
 import * as StoreService from "./storeservice.js";
+import * as UpdateService from "./updateservice.js";
 export {
     ProjectService,
     ScraperService,
-    StoreService
+    StoreService,
+    UpdateService
 };
+
+export {
+    UpdateCheckResult
+} from "./models.js";

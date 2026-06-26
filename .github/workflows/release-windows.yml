@@ -1,0 +1,75 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: front/go.mod
+          cache-dependency-path: |
+            front/go.sum
+            backend/go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: front/frontend/package-lock.json
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Sync app version files
+        run: go run ./tools/version-mng "${{ steps.version.outputs.value }}"
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: front/frontend
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.101
+        working-directory: front
+
+      - name: Build and package
+        run: wails3 task windows:package INSTALL_SCOPE=user APP_VERSION=${{ steps.version.outputs.value }}
+        working-directory: front
+
+      - name: Create updater zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "front/bin/meguri.exe" -DestinationPath "front/bin/meguri-windows-amd64.zip" -Force
+
+      - name: Generate SHA256SUMS and signature
+        env:
+          UPDATER_PRIVATE_KEY: ${{ secrets.UPDATER_PRIVATE_KEY }}
+        run: go run ./tools/sign-release ./front/bin
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            front/bin/meguri-amd64-installer.exe
+            front/bin/meguri-windows-amd64.zip
+            front/bin/SHA256SUMS
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,6 +2,7 @@ import {
 	ChevronDown,
 	FolderOpen,
 	MessageSquare,
+	RefreshCw,
 	Save,
 	Settings,
 } from 'lucide-react';
@@ -25,9 +26,10 @@ import {
 import { messages } from '@/i18n/messages';
 import { openExternalBrowserUrl } from '@/lib/externalLinkDelegation';
 import { getFeedbackUrl } from '@/lib/feedbackUrl';
-import { notifyError } from '@/lib/notify';
+import { notifyError, notifySuccess } from '@/lib/notify';
 import { useAppStore } from '@/stores/appStore';
 import * as ProjectService from '../../../bindings/meguri-app/internal/usecase/wails_service/projectservice';
+import * as UpdateService from '../../../bindings/meguri-app/internal/usecase/wails_service/updateservice';
 
 export function MenuBar() {
 	const appDefaults = useAppStore((s) => s.appDefaults);
@@ -35,6 +37,7 @@ export function MenuBar() {
 	const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
 	const loadWorkspace = useAppStore((s) => s.loadWorkspaceFromServer);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [checkingUpdates, setCheckingUpdates] = useState(false);
 	const feedbackUrl = getFeedbackUrl();
 
 	const handleOpenScrb = async () => {
@@ -57,6 +60,34 @@ export function MenuBar() {
 			await ProjectService.SaveScrb(activeWorkspaceId);
 		} catch (e) {
 			notifyError(e instanceof Error ? e.message : String(e));
+		}
+	};
+
+	const handleCheckForUpdates = async () => {
+		if (checkingUpdates) {
+			return;
+		}
+		setCheckingUpdates(true);
+		try {
+			const result = await UpdateService.CheckAndInstall();
+			if (result.status === 'update_ready') {
+				notifySuccess(
+					result.version
+						? messages.update.updateReady(result.version)
+						: messages.update.updateReadyNoVersion,
+				);
+				return;
+			}
+			notifySuccess(messages.update.upToDate);
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
+			if (msg.includes('updater unavailable')) {
+				notifyError(messages.update.unavailable);
+				return;
+			}
+			notifyError(messages.update.checkFailed, { description: msg });
+		} finally {
+			setCheckingUpdates(false);
 		}
 	};
 
@@ -127,6 +158,16 @@ export function MenuBar() {
 						>
 							<Settings className='size-3.5 text-muted-foreground' />
 							{messages.menu.appDefaults}
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							className='gap-2 px-2 py-1.5 text-xs'
+							disabled={checkingUpdates}
+							onClick={() => void handleCheckForUpdates()}
+						>
+							<RefreshCw
+								className={`size-3.5 text-muted-foreground${checkingUpdates ? ' animate-spin' : ''}`}
+							/>
+							{messages.menu.checkForUpdates}
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

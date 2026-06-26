@@ -1,15 +1,10 @@
 {
 	"fixed": {
-		"file_version": "0.0.1"
+		"file_version": "0.1.0.0"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "0.0.1",
-			"CompanyName": "Meguri",
-			"FileDescription": "Desktop web-crawl workspace",
-			"LegalCopyright": "(c) 2026, Meguri",
-			"ProductName": "Meguri",
-			"Comments": "Meguri desktop application"
+			"ProductVersion": "0.1.0"
 		}
 	}
 }

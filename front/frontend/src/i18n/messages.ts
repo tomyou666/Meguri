@@ -4,6 +4,15 @@ export const messages = {
 	toast: {
 		dismissAria: '通知を閉じる',
 	},
+	update: {
+		upToDate: '最新バージョンです',
+		updateReady: (version: string) =>
+			`バージョン ${version} の更新をダウンロードしました。アプリを再起動して適用してください。`,
+		updateReadyNoVersion:
+			'更新をダウンロードしました。アプリを再起動して適用してください。',
+		unavailable: '更新機能は利用できません',
+		checkFailed: '更新の確認に失敗しました',
+	},
 	menu: {
 		file: 'ファイル',
 		openScrb: '開く (.crawlproj)',
@@ -14,6 +23,7 @@ export const messages = {
 		openSettingsMenu: '設定メニューを開く',
 		feedback: 'フィードバック',
 		openFeedback: 'フィードバックを送る',
+		checkForUpdates: '更新を確認…',
 		mergeAll: '全結果をマージ',
 		mergeSelected: '選択マージ',
 		exportAll: '全結果エクスポート',

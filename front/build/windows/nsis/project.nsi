@@ -34,10 +34,11 @@ Unicode true
 ## Include the wails tools
 ####
 !include "wails_tools.nsh"
+!include "..\version-nsis.nsh"
 
-# The version information for this two must consist of 4 parts
-VIProductVersion "${INFO_PRODUCTVERSION}.0"
-VIFileVersion    "${INFO_PRODUCTVERSION}.0"
+# NSIS VIProductVersion requires numeric X.X.X.X; version-nsis.nsh supplies core X.Y.Z.
+VIProductVersion "${INFO_PRODUCTVERSION_NUMERIC}.0"
+VIFileVersion    "${INFO_PRODUCTVERSION_NUMERIC}.0"
 
 VIAddVersionKey "CompanyName"     "${INFO_COMPANYNAME}"
 VIAddVersionKey "FileDescription" "${INFO_PRODUCTNAME} Installer"
@@ -106,6 +107,10 @@ Section "uninstall"
     !insertmacro wails.setShellContext
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
+
+    MessageBox MB_YESNO|MB_ICONQUESTION "Also delete user data (including the database) in $LOCALAPPDATA\meguri?" IDNO skip_appdata
+    RMDir /r "$LOCALAPPDATA\meguri"
+    skip_appdata:
 
     RMDir /r $INSTDIR
 
