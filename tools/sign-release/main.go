@@ -20,8 +20,9 @@ func main() {
 	loadDotEnv()
 	dir := os.Args[1]
 	files := []string{
-		"meguri-amd64-installer.exe",
+		"meguri-amd64_arm64-installer.exe",
 		"meguri-windows-amd64.zip",
+		"meguri-windows-arm64.zip",
 	}
 	var lines []string
 	for _, name := range files {

@@ -49,14 +49,26 @@ jobs:
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.101
         working-directory: front
 
+      - name: Configure frontend environment
+        shell: bash
+        working-directory: front/frontend
+        env:
+          VITE_FEEDBACK_URL: ${{ secrets.VITE_FEEDBACK_URL }}
+        run: |
+          {
+            echo '# フィードバック送信先 URL（未設定時は MenuBar のボタンを非表示）'
+            printf 'VITE_FEEDBACK_URL=%s\n' "${VITE_FEEDBACK_URL}"
+          } > .env
+
       - name: Build and package
-        run: wails3 task windows:package INSTALL_SCOPE=user APP_VERSION=${{ steps.version.outputs.value }}
+        run: wails3 task windows:package-universal INSTALL_SCOPE=user APP_VERSION=${{ steps.version.outputs.value }}
         working-directory: front
 
-      - name: Create updater zip
+      - name: Create updater zips
         shell: pwsh
         run: |
-          Compress-Archive -Path "front/bin/meguri.exe" -DestinationPath "front/bin/meguri-windows-amd64.zip" -Force
+          Compress-Archive -Path "front/bin/meguri-amd64.exe" -DestinationPath "front/bin/meguri-windows-amd64.zip" -Force
+          Compress-Archive -Path "front/bin/meguri-arm64.exe" -DestinationPath "front/bin/meguri-windows-arm64.zip" -Force
 
       - name: Generate SHA256SUMS and signature
         env:
@@ -67,8 +79,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            front/bin/meguri-amd64-installer.exe
+            front/bin/meguri-amd64_arm64-installer.exe
             front/bin/meguri-windows-amd64.zip
+            front/bin/meguri-windows-arm64.zip
             front/bin/SHA256SUMS
           generate_release_notes: true
         env:
