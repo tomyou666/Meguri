@@ -26,7 +26,7 @@ var updaterPublicKey []byte
 // currentVersion は CI が -ldflags "-X main.currentVersion=1.0.0" で注入する。
 var currentVersion = "dev"
 
-const githubRepository = "tomyou666/scraper-bot"
+const githubRepository = "tomyou666/Meguri"
 
 func main() {
 	if err := app.InitLogger(); err != nil {

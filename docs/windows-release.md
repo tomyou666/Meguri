@@ -17,7 +17,7 @@ Wails v3 デスクトップアプリの Windows 版を GitHub Releases に公開
 |------|------|
 | CI ワークフロー | [`.github/workflows/release-windows.yml`](../.github/workflows/release-windows.yml) |
 | トリガー | `v*` タグの push |
-| リポジトリ（updater） | `tomyou666/scraper-bot`（[`front/main.go`](../front/main.go) の `githubRepository`） |
+| リポジトリ（updater） | `tomyou666/Meguri`（[`front/main.go`](../front/main.go) の `githubRepository`） |
 | ローカル手動ビルド | NSIS（`makensis`）が PATH にあること |
 
 ### GitHub Secrets（初回セットアップ）
@@ -128,7 +128,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-6. [Actions](https://github.com/tomyou666/scraper-bot/actions) で `Release Windows` を確認
+6. [Actions](https://github.com/tomyou666/Meguri/actions) で `Release Windows` を確認
 7. GitHub Release の資産・リリースノートを確認
 
 CI の処理概要: tag 抽出 → `version-mng` → `front/frontend/.env` 生成（`VITE_FEEDBACK_URL`） → `wails3 task windows:package-universal INSTALL_SCOPE=user APP_VERSION=<版>` → arch 別 zip 作成 → `go run ./tools/sign-release ./front/bin` → Release 公開
