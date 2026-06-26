@@ -99,3 +99,11 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload SHA256SUMS signature
+        if: hashFiles('front/bin/SHA256SUMS.sig') != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: front/bin/SHA256SUMS.sig
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

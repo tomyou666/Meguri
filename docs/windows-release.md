@@ -132,7 +132,7 @@ git push origin v1.0.0
 6. [Actions](https://github.com/tomyou666/Meguri/actions) で `Release Windows` を確認
 7. GitHub Release の資産・リリースノートを確認
 
-CI の処理概要: tag 抽出 → `version-mng` → `front/frontend/.env` 生成（`VITE_FEEDBACK_URL`） → `wails3 task windows:package-universal INSTALL_SCOPE=user APP_VERSION=<版>` → arch 別 zip 作成 → `go run ./tools/sign-release ./front/bin` → Release 公開
+CI の処理概要: tag 抽出 → `version-mng` → `front/frontend/.env` 生成（`VITE_FEEDBACK_URL`） → `wails3 task windows:package-universal INSTALL_SCOPE=user APP_VERSION=<版>` → arch 別 zip 作成 → `go run ./tools/sign-release ./front/bin` → Release 公開（`SHA256SUMS.sig` は Secret 設定時のみ追加アップロード）
 
 フロント依存は `wails3 task` 内の `npm install` で解決する（workflow 側の `npm ci` は重複のため行わない）。`setup-go` / `setup-node` の組み込みキャッシュに加え、`wails3` CLI バイナリもキャッシュする。初回 Release はモジュール取得で長め、2 回目以降は短縮される。
 
