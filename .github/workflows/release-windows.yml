@@ -21,6 +21,7 @@ jobs:
         with:
           go-version-file: front/go.mod
           cache-dependency-path: |
+            go.work.sum
             front/go.sum
             backend/go.sum
 
@@ -32,7 +33,21 @@ jobs:
           cache-dependency-path: front/frontend/package-lock.json
 
       - name: Install NSIS
-        run: choco install nsis -y
+        uses: negrutiu/nsis-install@v2
+
+      - name: Resolve Go bin directory
+        id: go-env
+        shell: bash
+        run: |
+          echo "gobin=$(go env GOPATH | tr '\\' '/')/bin" >> "$GITHUB_OUTPUT"
+          echo "$(go env GOPATH | tr '\\' '/')/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Wails CLI
+        uses: actions/cache@v4
+        id: wails3-cache
+        with:
+          path: ${{ steps.go-env.outputs.gobin }}/wails3.exe
+          key: ${{ runner.os }}-wails3-v3.0.0-alpha.101
 
       - name: Extract version from tag
         id: version
@@ -42,11 +57,8 @@ jobs:
       - name: Sync app version files
         run: go run ./tools/version-mng "${{ steps.version.outputs.value }}"
 
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: front/frontend
-
       - name: Install Wails CLI
+        if: steps.wails3-cache.outputs.cache-hit != 'true'
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.101
         working-directory: front
 
