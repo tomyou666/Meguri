@@ -42,9 +42,10 @@ If the user explicitly asked for GPT Image 2 / ChatGPT Image 2 / Image 2, route 
 
 ## Prerequisites
 
-1. **RunComfy CLI** — `npm i -g @runcomfy/cli`
+1. **RunComfy CLI** — `npm i -g @runcomfy/cli` (Linux / macOS)
 2. **RunComfy account** — `runcomfy login` opens a browser device-code flow.
 3. **CI / containers** — set `RUNCOMFY_TOKEN=<token>` instead of `runcomfy login`.
+4. **Windows (native)** — CLI is Linux/macOS only. Use the Docker wrapper in `tools/runcomfy/`: `docker compose run --rm runcomfy run ...` (set `RUNCOMFY_TOKEN` in `.env`).
 
 ## Endpoints + input schema
 

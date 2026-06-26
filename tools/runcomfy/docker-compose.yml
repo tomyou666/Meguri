@@ -1,0 +1,11 @@
+services:
+  runcomfy:
+    build: .
+    image: scraper-bot-runcomfy:latest
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      RUNCOMFY_TOKEN: ${RUNCOMFY_TOKEN:-}
+    volumes:
+      - ./output:/output
