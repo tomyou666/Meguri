@@ -44,13 +44,26 @@ func TestUpdateConfigYml(t *testing.T) {
 // TestUpdateMessagesTS は messages.ts の version 行を単一引用符付きで置換する。
 func TestUpdateMessagesTS(t *testing.T) {
 	input := "export const messages = {\n\tversion: '0.0.1',\n}\n"
-	got, err := updateMessagesTS(input, "9.9.9")
-	if err != nil {
-		t.Fatalf("updateMessagesTS: %v", err)
-	}
-	if !strings.Contains(got, "version: '9.9.9'") {
-		t.Fatalf("version not updated: %q", got)
-	}
+
+	t.Run("updates version", func(t *testing.T) {
+		got, err := updateMessagesTS(input, "9.9.9")
+		if err != nil {
+			t.Fatalf("updateMessagesTS: %v", err)
+		}
+		if !strings.Contains(got, "version: '9.9.9'") {
+			t.Fatalf("version not updated: %q", got)
+		}
+	})
+
+	t.Run("same version is no-op", func(t *testing.T) {
+		got, err := updateMessagesTS(input, "0.0.1")
+		if err != nil {
+			t.Fatalf("updateMessagesTS: %v", err)
+		}
+		if got != input {
+			t.Fatalf("expected unchanged content, got %q", got)
+		}
+	})
 }
 
 // TestUpdateInfoJSON は ProductVersion と file_version を同期する。

@@ -173,14 +173,13 @@ func updateConfigYml(content, appVersion string) (string, error) {
 var messagesVersionRE = regexp.MustCompile(`(?m)^(\s*version:\s*)'(?:\\.|[^'\\])*'`)
 
 func updateMessagesTS(content, appVersion string) (string, error) {
+	if !messagesVersionRE.MatchString(content) {
+		return "", fmt.Errorf("messages.ts: version line not found")
+	}
 	escaped := strings.ReplaceAll(appVersion, `\`, `\\`)
 	escaped = strings.ReplaceAll(escaped, `'`, `\'`)
 	replacement := fmt.Sprintf("$1'%s'", escaped)
-	updated := messagesVersionRE.ReplaceAllString(content, replacement)
-	if updated == content {
-		return "", fmt.Errorf("messages.ts: version line not found")
-	}
-	return updated, nil
+	return messagesVersionRE.ReplaceAllString(content, replacement), nil
 }
 
 func updateInfoJSON(content, appVersion, fileVersion string) (string, error) {
