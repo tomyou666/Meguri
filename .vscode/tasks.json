@@ -2,6 +2,18 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "frontend: install",
+            "type": "shell",
+            "command": "npm install",
+            "options": {
+                "cwd": "${workspaceFolder}/front/frontend"
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        },
+        {
             "label": "vite: dev",
             "type": "shell",
             "command": "npm run dev -- --port 9245 --strictPort",
@@ -49,7 +61,7 @@
                 "background": {
                     "activeOnStart": true,
                     "beginsPattern": ".",
-                    "endsPattern": "(devServerURL|127\\.0\\.0\\.1:9245|Local:\\s+http://127\\.0\\.0\\.1:9245|ready in \\d+ ms)"
+                    "endsPattern": "Connected to frontend dev server"
                 }
             },
             "presentation": {
@@ -57,6 +69,15 @@
                 "panel": "dedicated",
                 "focus": false
             }
+        },
+        {
+            "label": "wails3: dev stack",
+            "dependsOn": [
+                "frontend: install",
+                "wails3: dev"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
         },
         {
             "label": "dlv: attach scraperbot",

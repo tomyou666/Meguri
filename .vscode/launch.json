@@ -81,7 +81,7 @@
             "configurations": [
                 "Wails3: Debug Frontend TSX (Chrome)"
             ],
-            "preLaunchTask": "wails3: dev",
+            "preLaunchTask": "wails3: dev stack",
             "presentation": {
                 "order": 1
             }
@@ -92,7 +92,7 @@
                 "Wails3: Debug Frontend TSX (Chrome)",
                 "Wails3: Attach Go (scraperbot, remote)"
             ],
-            "preLaunchTask": "wails3: dev",
+            "preLaunchTask": "wails3: dev stack",
             "presentation": {
                 "order": 1
             },
