@@ -74,7 +74,6 @@
         {
             "label": "wails3: dev stack",
             "dependsOn": [
-                "frontend: install",
                 "wails3: dev"
             ],
             "dependsOrder": "sequence",
