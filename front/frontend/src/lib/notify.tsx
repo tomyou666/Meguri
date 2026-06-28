@@ -2,7 +2,9 @@ import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { summaryBadgeLabels } from '@/components/diff/diffSummaryUtils';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { messages } from '@/i18n/messages';
+import { setDismissedUpdateToastVersion } from '@/lib/updatePreferences';
 import type { WorkspaceDiff } from '@/types/adapter';
 
 export const TOAST_DURATION_MS = 5_000;
@@ -89,5 +91,51 @@ export function notifyDiffDetected(
 			},
 		},
 		cancel: toastDismissCancel(() => toastId),
+	});
+}
+
+function UpdateToastDescription({
+	dismissRef,
+}: {
+	dismissRef: React.MutableRefObject<boolean>;
+}) {
+	const checkboxId = 'update-toast-dismiss';
+	return (
+		<div className='flex items-center gap-2 pt-1 text-xs text-muted-foreground'>
+			<Checkbox
+				id={checkboxId}
+				onCheckedChange={(checked) => {
+					dismissRef.current = checked === true;
+				}}
+			/>
+			<label htmlFor={checkboxId} className='cursor-pointer'>
+				{messages.update.toastDismissLabel}
+			</label>
+		</div>
+	);
+}
+
+export function notifyUpdateAvailable(
+	version: string,
+	onDetails: () => void,
+): void {
+	const dismissRef = { current: false };
+	let toastId: string | number;
+	toastId = toast.info(messages.update.toastTitle(version), {
+		description: <UpdateToastDescription dismissRef={dismissRef} />,
+		duration: Number.POSITIVE_INFINITY,
+		action: {
+			label: messages.update.toastAction,
+			onClick: () => {
+				onDetails();
+				toast.dismiss(toastId);
+			},
+		},
+		cancel: toastDismissCancel(() => toastId),
+		onDismiss: () => {
+			if (dismissRef.current) {
+				setDismissedUpdateToastVersion(version);
+			}
+		},
 	});
 }

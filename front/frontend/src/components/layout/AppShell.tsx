@@ -4,6 +4,7 @@ import { DiffUiLayer } from '@/components/diff/DiffUiLayer';
 import { CrawlGraph } from '@/components/graph/CrawlGraph';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useNodeResultSync } from '@/hooks/useNodeResultSync';
+import { useUpdateAvailability } from '@/hooks/useUpdateAvailability';
 import { useAppStore } from '@/stores/appStore';
 import { AppBootstrap } from './AppBootstrap';
 import { AppDialogs } from './AppDialogs';
@@ -74,13 +75,17 @@ function SidebarPanels() {
 
 export function AppShell() {
 	useNodeResultSync();
+	const { updateAvailable, refreshStatus } = useUpdateAvailability();
 
 	return (
 		<AppBootstrap>
 			<TooltipProvider>
 				<AppKeyboardShortcuts />
 				<div className='flex h-screen w-full flex-col overflow-hidden'>
-					<MenuBar />
+					<MenuBar
+						updateAvailable={updateAvailable}
+						refreshUpdateStatus={refreshStatus}
+					/>
 					<ControlBar />
 					<Group orientation='horizontal' className='min-h-0 w-full flex-1'>
 						<SidebarPanels />

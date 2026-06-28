@@ -28,6 +28,8 @@ var currentVersion = "dev"
 
 const githubRepository = "tomyou666/Meguri"
 
+const periodicUpdateCheckInterval = 6 * time.Hour
+
 func main() {
 	if err := app.InitLogger(); err != nil {
 		log.Fatal(err)
@@ -87,25 +89,39 @@ func main() {
 		},
 	})
 	wails_service.WireMainWindow(wailsApp.StoreService, mainWindow)
+	wails_service.WireUpdateMainWindow(updateSvc, mainWindow)
 
 	appMenu := webApp.Menu.New()
 	appMenu.Add("更新を確認…").OnClick(func(*application.Context) {
-		go func() {
-			if err := webApp.Updater.CheckAndInstall(context.Background()); err != nil {
-				webApp.Logger.Error("update check and install", "error", err)
-			}
-		}()
+		go handleNativeMenuUpdateCheck(updateSvc, webApp)
 	})
 	webApp.Menu.SetApplicationMenu(appMenu)
 
-	go func() {
-		if _, err := webApp.Updater.Check(context.Background()); err != nil {
-			webApp.Logger.Error("update check", "error", err)
-		}
-	}()
+	go updateSvc.CheckOnStartup()
+	updateSvc.StartPeriodicCheck(periodicUpdateCheckInterval)
 
 	if err := webApp.Run(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func handleNativeMenuUpdateCheck(updateSvc *wails_service.UpdateService, webApp *application.App) {
+	result, err := updateSvc.CheckForUpdates()
+	if err != nil {
+		webApp.Logger.Error("update check", "error", err)
+		return
+	}
+	switch result.Action {
+	case wails_service.PromptActionConfirmed:
+		if err := updateSvc.ApplyUpdate(); err != nil {
+			webApp.Logger.Error("apply update", "error", err)
+		}
+	case wails_service.PromptActionOpenRelease:
+		if result.ReleaseURL != "" {
+			if err := webApp.Browser.OpenURL(result.ReleaseURL); err != nil {
+				webApp.Logger.Error("open release url", "error", err)
+			}
+		}
 	}
 }
 
@@ -122,7 +138,7 @@ func initUpdater(webApp *application.App) error {
 		CurrentVersion: currentVersion,
 		PublicKey:      updaterPublicKey,
 		Providers:      []updater.Provider{gh},
-		CheckInterval:  6 * time.Hour,
+		CheckInterval:  0,
 		Window:         updater.WindowNone,
 	})
 }

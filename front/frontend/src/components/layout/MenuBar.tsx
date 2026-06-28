@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -27,11 +28,20 @@ import { messages } from '@/i18n/messages';
 import { openExternalBrowserUrl } from '@/lib/externalLinkDelegation';
 import { getFeedbackUrl } from '@/lib/feedbackUrl';
 import { notifyError, notifySuccess } from '@/lib/notify';
+import { handleUpdatePromptResult } from '@/lib/updateFlow';
 import { useAppStore } from '@/stores/appStore';
 import * as ProjectService from '../../../bindings/meguri-app/internal/usecase/wails_service/projectservice';
 import * as UpdateService from '../../../bindings/meguri-app/internal/usecase/wails_service/updateservice';
 
-export function MenuBar() {
+type MenuBarProps = {
+	updateAvailable: boolean;
+	refreshUpdateStatus: () => Promise<void>;
+};
+
+export function MenuBar({
+	updateAvailable,
+	refreshUpdateStatus,
+}: MenuBarProps) {
 	const appDefaults = useAppStore((s) => s.appDefaults);
 	const persistAppDefaults = useAppStore((s) => s.persistAppDefaults);
 	const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
@@ -73,16 +83,14 @@ export function MenuBar() {
 		}
 		setCheckingUpdates(true);
 		try {
-			const result = await UpdateService.CheckAndInstall();
-			if (result.status === 'update_ready') {
-				notifySuccess(
-					result.version
-						? messages.update.updateReady(result.version)
-						: messages.update.updateReadyNoVersion,
-				);
+			const result = await UpdateService.CheckForUpdates();
+			await refreshUpdateStatus();
+			if (result.status === 'up_to_date') {
+				notifySuccess(messages.update.upToDate);
 				return;
 			}
-			notifySuccess(messages.update.upToDate);
+			await handleUpdatePromptResult(result.action, result.releaseURL);
+			await refreshUpdateStatus();
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : String(e);
 			if (msg.includes('updater unavailable')) {
@@ -171,7 +179,18 @@ export function MenuBar() {
 							<RefreshCw
 								className={`size-3.5 text-muted-foreground${checkingUpdates ? ' animate-spin' : ''}`}
 							/>
-							{messages.menu.checkForUpdates}
+							<span className='flex flex-1 items-center justify-between gap-2'>
+								{messages.menu.checkForUpdates}
+								{updateAvailable ? (
+									<Badge
+										variant='destructive'
+										className='h-4 min-w-4 px-1 text-[10px] leading-none'
+										aria-label={messages.update.badgeAria}
+									>
+										!
+									</Badge>
+								) : null}
+							</span>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

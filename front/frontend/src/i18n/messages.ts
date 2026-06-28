@@ -12,6 +12,12 @@ export const messages = {
 			'更新をダウンロードしました。アプリを再起動して適用してください。',
 		unavailable: '更新機能は利用できません',
 		checkFailed: '更新の確認に失敗しました',
+		applyFailed: '更新の適用に失敗しました',
+		toastTitle: (version: string) =>
+			`バージョン ${version} の更新が利用可能です`,
+		toastAction: '詳細',
+		toastDismissLabel: '今後表示しない',
+		badgeAria: '更新あり',
 	},
 	menu: {
 		file: 'ファイル',

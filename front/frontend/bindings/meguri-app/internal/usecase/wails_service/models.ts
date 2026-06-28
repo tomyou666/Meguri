@@ -6,21 +6,31 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * UpdateCheckResult は手動更新確認の結果。
+ * CheckForUpdatesResult は手動更新確認の結果。
  */
-export class UpdateCheckResult {
+export class CheckForUpdatesResult {
     /**
-     * Status は結果種別（up_to_date / update_ready）。
+     * Status は up_to_date / available（ダイアログ表示後）など。
      */
     "status": string;
 
     /**
-     * Version は対象リリースのバージョン（update_ready のとき）。
+     * Action は PromptUpdate の結果（confirmed / open_release / dismissed）。
+     */
+    "action"?: string;
+
+    /**
+     * Version は対象リリース版。
      */
     "version"?: string;
 
-    /** Creates a new UpdateCheckResult instance. */
-    constructor($$source: Partial<UpdateCheckResult> = {}) {
+    /**
+     * ReleaseURL は GitHub リリースページ URL。
+     */
+    "releaseURL"?: string;
+
+    /** Creates a new CheckForUpdatesResult instance. */
+    constructor($$source: Partial<CheckForUpdatesResult> = {}) {
         if (!("status" in $$source)) {
             this["status"] = "";
         }
@@ -29,10 +39,84 @@ export class UpdateCheckResult {
     }
 
     /**
-     * Creates a new UpdateCheckResult instance from a string or object.
+     * Creates a new CheckForUpdatesResult instance from a string or object.
      */
-    static createFrom($$source: any = {}): UpdateCheckResult {
+    static createFrom($$source: any = {}): CheckForUpdatesResult {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new UpdateCheckResult($$parsedSource as Partial<UpdateCheckResult>);
+        return new CheckForUpdatesResult($$parsedSource as Partial<CheckForUpdatesResult>);
+    }
+}
+
+/**
+ * UpdatePromptResult はネイティブ更新確認ダイアログの結果。
+ */
+export class UpdatePromptResult {
+    /**
+     * Action は confirmed / open_release / dismissed。
+     */
+    "action": string;
+
+    /**
+     * Version は対象リリース版。
+     */
+    "version"?: string;
+
+    /**
+     * ReleaseURL は GitHub リリースページ URL。
+     */
+    "releaseURL"?: string;
+
+    /** Creates a new UpdatePromptResult instance. */
+    constructor($$source: Partial<UpdatePromptResult> = {}) {
+        if (!("action" in $$source)) {
+            this["action"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new UpdatePromptResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): UpdatePromptResult {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new UpdatePromptResult($$parsedSource as Partial<UpdatePromptResult>);
+    }
+}
+
+/**
+ * UpdateStatus はフロント向けの更新状態。
+ */
+export class UpdateStatus {
+    /**
+     * Status は up_to_date / available / ready / unavailable。
+     */
+    "status": string;
+
+    /**
+     * Version は対象リリース版（available / ready のとき）。
+     */
+    "version"?: string;
+
+    /**
+     * ReleaseURL は GitHub リリースページ URL。
+     */
+    "releaseURL"?: string;
+
+    /** Creates a new UpdateStatus instance. */
+    constructor($$source: Partial<UpdateStatus> = {}) {
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new UpdateStatus instance from a string or object.
+     */
+    static createFrom($$source: any = {}): UpdateStatus {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new UpdateStatus($$parsedSource as Partial<UpdateStatus>);
     }
 }

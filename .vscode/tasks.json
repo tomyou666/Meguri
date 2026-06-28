@@ -47,6 +47,7 @@
             "command": "wails3 dev -config ./build/config.yml -port 9245",
             "options": {
                 "cwd": "${workspaceFolder}/front",
+                "envFile": "${workspaceFolder}/.env",
                 "env": {
                     "WAILS_VITE_PORT": "9245",
                     "EXTRA_TAGS": "dev"

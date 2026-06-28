@@ -13,19 +13,61 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as application$0 from "../../../../github.com/wailsapp/wails/v3/pkg/application/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as time$0 from "../../../../time/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
 /**
- * CheckAndInstall は更新を確認し、利用可能ならダウンロードしてステージする。
- * 
- * WindowNone 構成では Wails 標準 UI を開かず、結果を UpdateCheckResult で返す。
+ * ApplyUpdate は pending 更新をダウンロードしてステージし、exe を差し替えて再起動する。
  */
-export function CheckAndInstall(): $CancellablePromise<$models.UpdateCheckResult> {
-    return $Call.ByID(4194660025).then(($result: any) => {
+export function ApplyUpdate(): $CancellablePromise<void> {
+    return $Call.ByID(2251658320);
+}
+
+/**
+ * Check は更新を確認し、利用可能なら pending に保持する（ダウンロードはしない）。
+ */
+export function Check(): $CancellablePromise<$models.UpdateStatus> {
+    return $Call.ByID(77746993).then(($result: any) => {
         return $$createType0($result);
+    });
+}
+
+/**
+ * CheckForUpdates は手動更新確認（Check → 利用可能なら PromptUpdate）を行う。
+ */
+export function CheckForUpdates(): $CancellablePromise<$models.CheckForUpdatesResult> {
+    return $Call.ByID(55604786).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
+ * CheckOnStartup は起動時の更新確認を行い、利用可能ならイベントを発火する。
+ */
+export function CheckOnStartup(): $CancellablePromise<void> {
+    return $Call.ByID(3059510365);
+}
+
+/**
+ * GetStatus は現在の更新状態を返す。
+ */
+export function GetStatus(): $CancellablePromise<$models.UpdateStatus> {
+    return $Call.ByID(3872011227).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+/**
+ * PromptUpdate はネイティブダイアログで更新確認を行う。
+ */
+export function PromptUpdate(): $CancellablePromise<$models.UpdatePromptResult> {
+    return $Call.ByID(1284834148).then(($result: any) => {
+        return $$createType2($result);
     });
 }
 
@@ -36,5 +78,14 @@ export function SetApp(app: application$0.App | null): $CancellablePromise<void>
     return $Call.ByID(3332553932, app);
 }
 
+/**
+ * StartPeriodicCheck は interval ごとに Check のみを実行するバックグラウンドループを開始する。
+ */
+export function StartPeriodicCheck(interval: time$0.Duration): $CancellablePromise<void> {
+    return $Call.ByID(1087651044, interval);
+}
+
 // Private type creation functions
-const $$createType0 = $models.UpdateCheckResult.createFrom;
+const $$createType0 = $models.UpdateStatus.createFrom;
+const $$createType1 = $models.CheckForUpdatesResult.createFrom;
+const $$createType2 = $models.UpdatePromptResult.createFrom;

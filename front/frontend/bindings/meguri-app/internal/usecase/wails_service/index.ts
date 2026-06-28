@@ -13,5 +13,7 @@ export {
 };
 
 export {
-    UpdateCheckResult
+    CheckForUpdatesResult,
+    UpdatePromptResult,
+    UpdateStatus
 } from "./models.js";
