@@ -63,11 +63,20 @@ export function GetStatus(): $CancellablePromise<$models.UpdateStatus> {
 }
 
 /**
- * PromptUpdate はネイティブダイアログで更新確認を行う。
+ * GetUpdatePromptSnapshot は更新確認ウィンドウ用の直近スナップショットを返す。
+ */
+export function GetUpdatePromptSnapshot(): $CancellablePromise<$models.UpdatePromptSnapshot> {
+    return $Call.ByID(325402770).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
+ * PromptUpdate は別 WebviewWindow で更新確認を行う。
  */
 export function PromptUpdate(): $CancellablePromise<$models.UpdatePromptResult> {
     return $Call.ByID(1284834148).then(($result: any) => {
-        return $$createType2($result);
+        return $$createType3($result);
     });
 }
 
@@ -85,7 +94,17 @@ export function StartPeriodicCheck(interval: time$0.Duration): $CancellablePromi
     return $Call.ByID(1087651044, interval);
 }
 
+/**
+ * SubmitUpdatePrompt は更新確認ウィンドウからの選択を受け取る。
+ * 
+ * action は confirmed / open_release / dismissed のいずれか。
+ */
+export function SubmitUpdatePrompt(action: string): $CancellablePromise<void> {
+    return $Call.ByID(1560439932, action);
+}
+
 // Private type creation functions
 const $$createType0 = $models.UpdateStatus.createFrom;
 const $$createType1 = $models.CheckForUpdatesResult.createFrom;
-const $$createType2 = $models.UpdatePromptResult.createFrom;
+const $$createType2 = $models.UpdatePromptSnapshot.createFrom;
+const $$createType3 = $models.UpdatePromptResult.createFrom;

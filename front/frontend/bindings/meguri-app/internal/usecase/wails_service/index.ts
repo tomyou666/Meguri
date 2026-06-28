@@ -15,5 +15,6 @@ export {
 export {
     CheckForUpdatesResult,
     UpdatePromptResult,
+    UpdatePromptSnapshot,
     UpdateStatus
 } from "./models.js";

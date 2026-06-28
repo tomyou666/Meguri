@@ -11,8 +11,8 @@ import (
 
 // UpdateService は Wails updater の手動確認 RPC。
 type UpdateService struct {
-	app        *application.App
-	mainWindow application.Window
+	app       *application.App
+	promptWin *UpdateWindowManager
 
 	mu             sync.RWMutex
 	pendingRelease *updater.Release
@@ -26,11 +26,14 @@ func NewUpdateService() *UpdateService {
 // SetApp は Wails App を後から注入する。
 func (s *UpdateService) SetApp(app *application.App) {
 	s.app = app
+	s.promptWin = NewUpdateWindowManager(app)
 }
 
 // WireUpdateMainWindow は UpdateService にメインウィンドウを注入する。
 func WireUpdateMainWindow(s *UpdateService, window application.Window) {
-	s.mainWindow = window
+	if s.promptWin != nil {
+		s.promptWin.SetMainWindow(window)
+	}
 }
 
 func (s *UpdateService) ctx() context.Context {
@@ -103,7 +106,7 @@ func (s *UpdateService) GetStatus() (UpdateStatus, error) {
 	return UpdateStatus{Status: updateStatusUpToDate}, nil
 }
 
-// PromptUpdate はネイティブダイアログで更新確認を行う。
+// PromptUpdate は別 WebviewWindow で更新確認を行う。
 func (s *UpdateService) PromptUpdate() (UpdatePromptResult, error) {
 	s.mu.RLock()
 	rel := s.pendingRelease
@@ -115,15 +118,39 @@ func (s *UpdateService) PromptUpdate() (UpdatePromptResult, error) {
 		return UpdatePromptResult{Action: promptActionDismissed}, nil
 	}
 
-	action, err := showUpdatePrompt(s.app, s.mainWindow, rel.Version, releaseURLFrom(rel))
+	if s.promptWin == nil {
+		return UpdatePromptResult{}, ErrUpdaterUnavailable
+	}
+
+	version := rel.Version
+	releaseURL := releaseURLFrom(rel)
+	action, err := s.promptWin.ShowAndWait(version, releaseURL)
 	if err != nil {
 		return UpdatePromptResult{}, err
 	}
 	return UpdatePromptResult{
 		Action:     action,
-		Version:    rel.Version,
-		ReleaseURL: releaseURLFrom(rel),
+		Version:    version,
+		ReleaseURL: releaseURL,
 	}, nil
+}
+
+// SubmitUpdatePrompt は更新確認ウィンドウからの選択を受け取る。
+//
+// action は confirmed / open_release / dismissed のいずれか。
+func (s *UpdateService) SubmitUpdatePrompt(action string) error {
+	if s.promptWin == nil {
+		return ErrUpdaterUnavailable
+	}
+	return s.promptWin.Submit(action)
+}
+
+// GetUpdatePromptSnapshot は更新確認ウィンドウ用の直近スナップショットを返す。
+func (s *UpdateService) GetUpdatePromptSnapshot() (UpdatePromptSnapshot, error) {
+	if s.promptWin == nil {
+		return UpdatePromptSnapshot{}, ErrUpdaterUnavailable
+	}
+	return s.promptWin.GetSnapshot()
 }
 
 // ApplyUpdate は pending 更新をダウンロードしてステージし、exe を差し替えて再起動する。

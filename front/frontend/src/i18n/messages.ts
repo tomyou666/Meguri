@@ -18,6 +18,13 @@ export const messages = {
 		toastAction: '詳細',
 		toastDismissLabel: '今後表示しない',
 		badgeAria: '更新あり',
+		promptTitle: '更新の確認',
+		promptBody: (version: string) =>
+			`バージョン ${version} の更新が利用可能です。`,
+		promptReleaseLabel: 'リリース',
+		confirmAndRestart: '更新して再起動',
+		openRelease: 'リリースを開く',
+		later: '後で',
 	},
 	menu: {
 		file: 'ファイル',

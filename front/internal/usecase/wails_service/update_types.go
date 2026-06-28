@@ -48,7 +48,15 @@ type UpdateStatus struct {
 	ReleaseURL string `json:"releaseURL,omitempty"`
 }
 
-// UpdatePromptResult はネイティブ更新確認ダイアログの結果。
+// UpdatePromptSnapshot は更新確認ウィンドウ表示用スナップショット。
+type UpdatePromptSnapshot struct {
+	// Version は利用可能なリリース版。
+	Version string `json:"version"`
+	// ReleaseURL は GitHub リリースページ URL。
+	ReleaseURL string `json:"releaseURL"`
+}
+
+// UpdatePromptResult は更新確認ウィンドウの結果。
 type UpdatePromptResult struct {
 	// Action は confirmed / open_release / dismissed。
 	Action string `json:"action"`

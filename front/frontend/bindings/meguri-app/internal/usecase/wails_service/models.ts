@@ -48,7 +48,7 @@ export class CheckForUpdatesResult {
 }
 
 /**
- * UpdatePromptResult はネイティブ更新確認ダイアログの結果。
+ * UpdatePromptResult は更新確認ウィンドウの結果。
  */
 export class UpdatePromptResult {
     /**
@@ -81,6 +81,41 @@ export class UpdatePromptResult {
     static createFrom($$source: any = {}): UpdatePromptResult {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new UpdatePromptResult($$parsedSource as Partial<UpdatePromptResult>);
+    }
+}
+
+/**
+ * UpdatePromptSnapshot は更新確認ウィンドウ表示用スナップショット。
+ */
+export class UpdatePromptSnapshot {
+    /**
+     * Version は利用可能なリリース版。
+     */
+    "version": string;
+
+    /**
+     * ReleaseURL は GitHub リリースページ URL。
+     */
+    "releaseURL": string;
+
+    /** Creates a new UpdatePromptSnapshot instance. */
+    constructor($$source: Partial<UpdatePromptSnapshot> = {}) {
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+        if (!("releaseURL" in $$source)) {
+            this["releaseURL"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new UpdatePromptSnapshot instance from a string or object.
+     */
+    static createFrom($$source: any = {}): UpdatePromptSnapshot {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new UpdatePromptSnapshot($$parsedSource as Partial<UpdatePromptSnapshot>);
     }
 }
 
