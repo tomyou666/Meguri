@@ -1,20 +1,17 @@
 package main
 
 import (
-	"embed"
-	"io/fs"
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
 
-//go:embed fixtures/**
-var testFixturesFS embed.FS
-
 // TestFixtures は各シナリオの a/b フィクスチャ制約を検証する。
 func TestFixtures(t *testing.T) {
 	t.Run("content: a と b で本文が異なる", func(t *testing.T) {
-		a := readFixture(t, "fixtures/content/a/index.html")
-		b := readFixture(t, "fixtures/content/b/index.html")
+		a := readFixture(t, fmt.Sprintf("%s/content/a/index.html", fixturesDir))
+		b := readFixture(t, fmt.Sprintf("%s/content/b/index.html", fixturesDir))
 		if a == b {
 			t.Fatal("content a and b should differ")
 		}
@@ -24,8 +21,8 @@ func TestFixtures(t *testing.T) {
 	})
 
 	t.Run("links: a と b で出リンクが異なり本文は同一", func(t *testing.T) {
-		a := readFixture(t, "fixtures/links/a/index.html")
-		b := readFixture(t, "fixtures/links/b/index.html")
+		a := readFixture(t, fmt.Sprintf("%s/links/a/index.html", fixturesDir))
+		b := readFixture(t, fmt.Sprintf("%s/links/b/index.html", fixturesDir))
 		if stripLinks(a) != stripLinks(b) {
 			t.Fatal("links scenario body text should match between a and b")
 		}
@@ -35,8 +32,8 @@ func TestFixtures(t *testing.T) {
 	})
 
 	t.Run("fetch: / の本文は a と b で同一", func(t *testing.T) {
-		a := readFixture(t, "fixtures/fetch/a/index.html")
-		b := readFixture(t, "fixtures/fetch/b/index.html")
+		a := readFixture(t, fmt.Sprintf("%s/fetch/a/index.html", fixturesDir))
+		b := readFixture(t, fmt.Sprintf("%s/fetch/b/index.html", fixturesDir))
 		if a != b {
 			t.Fatal("fetch root pages should be identical")
 		}
@@ -45,7 +42,7 @@ func TestFixtures(t *testing.T) {
 
 func readFixture(t *testing.T, path string) string {
 	t.Helper()
-	data, err := fs.ReadFile(testFixturesFS, path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)
 	}

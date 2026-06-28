@@ -2,17 +2,13 @@
 package main
 
 import (
-	"embed"
 	"flag"
 	"fmt"
-	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
-
-//go:embed fixtures/**
-var fixturesFS embed.FS
 
 // variant は配信するフィクスチャを表す。
 //
@@ -29,6 +25,7 @@ const (
 	variantLinksB   variant = "links-b"
 	variantFetchA   variant = "fetch-a"
 	variantFetchB   variant = "fetch-b"
+	fixturesDir     string  = "../../../testdata/diffsite"
 )
 
 func parseVariant(raw string) (variant, error) {
@@ -81,8 +78,8 @@ func main() {
 		if v.scenario() == "fetch" {
 			phase = v.phase()
 		}
-		path := fmt.Sprintf("fixtures/fetch/%s/error.html", phase)
-		data, err := fs.ReadFile(fixturesFS, path)
+		path := fmt.Sprintf("%s/fetch/%s/error.html", fixturesDir, phase)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			http.NotFound(w, r)
 			return
@@ -97,8 +94,8 @@ func main() {
 }
 
 func serveFixture(w http.ResponseWriter, scenario, phase, name string) {
-	path := fmt.Sprintf("fixtures/%s/%s/%s", scenario, phase, name)
-	data, err := fs.ReadFile(fixturesFS, path)
+	path := fmt.Sprintf("%s/%s/%s/%s", fixturesDir, scenario, phase, name)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		http.Error(w, "fixture not found", http.StatusNotFound)
 		return
