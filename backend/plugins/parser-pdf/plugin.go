@@ -1,11 +1,10 @@
-// Package pdf は PDF レスポンスを最小限テキスト抽出する P5 Parser を提供する。
-//
-// 注: 完全な PDF テキスト抽出（fast/auto/ocr モード切替）は将来の置換可能なライブラリに委ねる前提で、
-// 本 MVP では PDF と判定された場合に Content を組み立てるルーティングが成立することを優先する。
+// Package pdf は PDF レスポンスをテキスト抽出する P5 Parser を提供する。
 package pdf
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"strings"
 
 	"meguri/internal/core"
@@ -27,9 +26,9 @@ type parser struct {
 func (p *parser) Metadata() plugin.Metadata {
 	return plugin.Metadata{
 		Name:        "pdf",
-		Version:     "0.1.0",
+		Version:     "0.2.0",
 		Kind:        plugin.KindParser,
-		Description: "PDF レスポンスを Content にラップする（MVP: テキスト擬似抽出）",
+		Description: "ledongthuc/pdf による PDF テキスト抽出（fast モード）",
 	}
 }
 
@@ -51,15 +50,21 @@ func (p *parser) CanParse(res *model.Response) bool {
 	return strings.HasSuffix(strings.ToLower(res.URL.Path), ".pdf")
 }
 
-// Parse は PDF レスポンスを暫定的にテキストに見立てた Content にして返す。
-// 実 PDF パース（埋め込みテキスト/OCR）は今後のプラグイン拡張で差し替える。
+// Parse は PDF レスポンスを ledongthuc/pdf でテキスト化した Content として返す。
 func (p *parser) Parse(_ context.Context, res *model.Response) (*model.Content, error) {
-	text := extractText(res.Body)
+	mode := p.resolveMode()
+	maxPages := p.resolveMaxPages()
+
+	text, err := extractPlainText(res.Body, maxPages)
+	if err != nil {
+		return nil, fmt.Errorf("pdf parse: %w", err)
+	}
 
 	meta := map[string]string{
 		"content_type":   res.ContentType,
 		"bytes_total":    sprintInt(len(res.Body)),
-		"parse_strategy": "stub",
+		"parse_strategy": "ledongthuc",
+		"parse_mode":     mode,
 	}
 
 	return &model.Content{
@@ -73,28 +78,50 @@ func (p *parser) Parse(_ context.Context, res *model.Response) (*model.Content, 
 	}, nil
 }
 
-// extractText は PDF バイナリから ASCII テキスト断片を保守的に抜き出す簡易実装。
-// 真の PDF コンテンツストリーム解析は行わないが、テストデータでは目視可能な文字列を返せる。
-func extractText(b []byte) string {
-	var sb strings.Builder
-	prevPrintable := false
-	for _, ch := range b {
-		if ch >= 0x20 && ch <= 0x7e {
-			sb.WriteByte(ch)
-			prevPrintable = true
-		} else if ch == '\n' || ch == '\r' || ch == '\t' {
-			if prevPrintable {
-				sb.WriteByte(' ')
-			}
-			prevPrintable = false
-		} else {
-			if prevPrintable {
-				sb.WriteByte(' ')
-			}
-			prevPrintable = false
+// resolveMode は pdf.mode を解決し、未対応モードは fast にフォールバックする。
+func (p *parser) resolveMode() string {
+	mode := string(model.PDFModeFast)
+	if p.host != nil {
+		if v, ok := p.host.Config("pdf.mode"); ok && v != "" {
+			mode = v
 		}
 	}
-	return strings.Join(strings.Fields(sb.String()), " ")
+	switch model.PDFParseMode(mode) {
+	case model.PDFModeFast:
+		return string(model.PDFModeFast)
+	case model.PDFModeAuto, model.PDFModeOCR:
+		slog.Warn("pdf mode not implemented; falling back to fast", "mode", mode)
+		return string(model.PDFModeFast)
+	default:
+		return string(model.PDFModeFast)
+	}
+}
+
+// resolveMaxPages は pdf.max_pages 設定を返す（0 は無制限）。
+func (p *parser) resolveMaxPages() int {
+	if p.host == nil {
+		return 0
+	}
+	v, ok := p.host.Config("pdf.max_pages")
+	if !ok || v == "" {
+		return 0
+	}
+	n, err := parsePositiveInt(v)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+func parsePositiveInt(s string) (int, error) {
+	n := 0
+	for _, ch := range s {
+		if ch < '0' || ch > '9' {
+			return 0, fmt.Errorf("invalid integer %q", s)
+		}
+		n = n*10 + int(ch-'0')
+	}
+	return n, nil
 }
 
 func sprintInt(n int) string {

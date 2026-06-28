@@ -93,14 +93,14 @@ func (k *Kernel) Init(ctx context.Context) error {
 		return rollback(fmt.Errorf("init fetcher %s: %w", fetcherName, err))
 	}
 	k.initialized = append(k.initialized, f)
-	if k.fetchLimiter != nil {
-		kind := k.cfg.Plugins.Fetcher
-		if kind == "" {
-			kind = model.FetcherHTTP
-		}
-		k.fetcher = newLimitingFetcher(f, k.fetchLimiter, kind)
-	} else {
-		k.fetcher = f
+
+	kind := k.cfg.Plugins.Fetcher
+	if kind == "" {
+		kind = model.FetcherHTTP
+	}
+
+	if err := k.initFetcherWithRouting(ctx, f, kind, rollback); err != nil {
+		return err
 	}
 
 	for _, name := range k.cfg.Plugins.Parsers {

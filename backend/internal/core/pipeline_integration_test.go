@@ -9,9 +9,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"meguri/internal/core"
 	"meguri/internal/domain/model"
+	"meguri/internal/infrastructure/chromium"
 	"meguri/pkg/logger"
 
 	// プラグイン副作用 import: 実装プラグインをレジストリへ登録する
@@ -110,8 +112,28 @@ func TestPipeline_SingleURL(t *testing.T) {
 
 		assert.NoError(t, err, "PDFが有効なら処理が通る")
 		assert.NotNil(t, out)
-		assert.Contains(t, out.Result.Markdown, "FAKE-PDF-CONTENT",
-			"PDFパーサーがバイナリからテキストを取り出している")
+		assert.Contains(t, out.Result.Markdown, "MEGURI-PDF-FIXTURE-ASCII",
+			"PDFパーサーが ledongthuc/pdf でテキストを取り出している")
+	})
+
+	t.Run("正常系: fetcher=chromium でも PDF は HTTP フォールバックで本文取得できる", func(t *testing.T) {
+		if _, err := chromium.ResolveBrowserPath(""); err != nil {
+			t.Skip("chromium browser not available: " + err.Error())
+		}
+		cfg := baseConfig()
+		cfg.Plugins.Fetcher = model.FetcherChromium
+		k := setupKernel(t, cfg)
+		p := core.NewPipeline(k)
+
+		u, _ := url.Parse(srv.URL + "/files/report.pdf")
+		req := model.NewRequest(u, 0)
+
+		out, err := p.Run(context.Background(), req)
+
+		require.NoError(t, err)
+		require.NotNil(t, out)
+		assert.Contains(t, out.Result.Markdown, "MEGURI-PDF-FIXTURE-ASCII")
+		assert.NotContains(t, out.Result.Markdown, "pdf_embedder")
 	})
 
 	t.Run("異常系: pdf.enabled=false の場合 PDF リンクを開くと当該URLはエラー", func(t *testing.T) {

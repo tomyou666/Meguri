@@ -8,11 +8,12 @@ require (
 	github.com/andybalholm/cascadia v1.3.3
 	github.com/chromedp/chromedp v0.15.1
 	github.com/google/wire v0.7.0
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/stretchr/testify v1.11.1
 	github.com/temoto/robotstxt v1.1.2
 	github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4
 	golang.org/x/net v0.54.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.45.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
