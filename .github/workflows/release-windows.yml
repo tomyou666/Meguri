@@ -88,7 +88,32 @@ jobs:
           UPDATER_PRIVATE_KEY: ${{ secrets.UPDATER_PRIVATE_KEY }}
         run: go run ./tools/sign-release ./front/bin
 
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        shell: bash
+        run: |
+          if go run ./tools/changelog-extract "${{ steps.version.outputs.value }}" > release-notes.md; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish GitHub Release
+        if: steps.changelog.outputs.found == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            front/bin/meguri-amd64_arm64-installer.exe
+            front/bin/meguri-windows-amd64.zip
+            front/bin/meguri-windows-arm64.zip
+            front/bin/SHA256SUMS
+          body_path: release-notes.md
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish GitHub Release
+        if: steps.changelog.outputs.found != 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: |

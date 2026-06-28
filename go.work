@@ -3,6 +3,7 @@ go 1.26.3
 use (
 	./backend
 	./front
+	./tools/changelog-extract
 	./tools/sign-release
 	./tools/updater-keygen
 	./tools/version-mng
