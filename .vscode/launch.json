@@ -89,7 +89,6 @@
         {
             "name": "Wails3: Dev + TSX + Attach Go",
             "configurations": [
-                "Wails3: Debug Frontend TSX (Chrome)",
                 "Wails3: Attach Go (meguri, remote)"
             ],
             "preLaunchTask": "wails3: dev stack",
