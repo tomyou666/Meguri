@@ -31,16 +31,21 @@ info:
 #   comments: "Some Product Comments"
 
 # Dev mode configuration
+# root_path: .. でリポジトリルートを監視し、replace 先の backend/ 変更でも再ビルドする。
+# executes の dir: front で Taskfile がある front/ からビルド・実行する。
 dev_mode:
-  root_path: .
+  root_path: ..
   log_level: warn
   debounce: 1000
   ignore:
     dir:
       - .git
-      - node_modules
-      - frontend
-      - bin
+      - front/node_modules
+      - front/frontend
+      - front/bin
+      - backend/bin
+      - backend/out
+      - backend/doc
     file:
       - .DS_Store
       - .gitignore
@@ -54,10 +59,13 @@ dev_mode:
   executes:
     - cmd: wails3 build DEV=true
       type: blocking
+      dir: front
     - cmd: wails3 task common:dev:frontend
       type: background
+      dir: front
     - cmd: wails3 task run
       type: primary
+      dir: front
 
 # File Associations
 # More information at: https://v3.wails.io/noit/done/yet
