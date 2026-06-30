@@ -99,9 +99,7 @@ func (k *Kernel) Init(ctx context.Context) error {
 		kind = model.FetcherHTTP
 	}
 
-	if err := k.initFetcherWithRouting(ctx, f, kind, rollback); err != nil {
-		return err
-	}
+	k.initFetcherWithLimiter(f, kind)
 
 	for _, name := range k.cfg.Plugins.Parsers {
 		p, err := k.reg.NewParser(name)

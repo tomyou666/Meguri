@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 ### 修正
 
 - テキストをctrl + c でコピーできない問題を修正
+- PDFのFetch方法について、Chromiumを選択した場合にnet/httpを利用してしまう問題を修正
+  - CDPを使用するように修正
 
 ## [0.3.0] - 2026-06-29
 

@@ -53,6 +53,8 @@ func lookupFlat(c *model.Config, key string) (string, bool) {
 		return v, ok
 	case key == "content.selector":
 		return c.Content.Selector, true
+	case key == "pdf.enabled":
+		return fmt.Sprintf("%t", c.PDF.Enabled), true
 	case key == "pdf.mode":
 		return string(c.PDF.Mode), true
 	case key == "pdf.output":

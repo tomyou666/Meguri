@@ -4,6 +4,7 @@ package chromiumfetch
 import (
 	"context"
 	"net/url"
+	"strconv"
 
 	"meguri/internal/core"
 	"meguri/internal/domain/model"
@@ -22,6 +23,8 @@ type client struct {
 	fetcherCfg model.FetcherConfig
 	// browserPath は解決済みブラウザ実行ファイルパス。
 	browserPath string
+	// pdfCfg は IsPDFTarget 判定用の PDF 設定スナップショット。
+	pdfCfg *model.Config
 }
 
 // Metadata は plugin.Plugin.Metadata の実装。
@@ -43,7 +46,19 @@ func (c *client) Init(_ context.Context, host plugin.Host) error {
 		return err
 	}
 	c.browserPath = path
+	c.pdfCfg = pdfConfigFromHost(host)
 	return nil
+}
+
+// pdfConfigFromHost は Host から PDF 有効化設定を読み取る。
+func pdfConfigFromHost(host plugin.Host) *model.Config {
+	enabled := true
+	if v, ok := host.Config("pdf.enabled"); ok {
+		if parsed, err := strconv.ParseBool(v); err == nil {
+			enabled = parsed
+		}
+	}
+	return &model.Config{PDF: model.PDFConfig{Enabled: enabled}}
 }
 
 // Close は plugin.Plugin.Close の実装。

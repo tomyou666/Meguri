@@ -116,7 +116,7 @@ func TestPipeline_SingleURL(t *testing.T) {
 			"PDFパーサーが ledongthuc/pdf でテキストを取り出している")
 	})
 
-	t.Run("正常系: fetcher=chromium でも PDF は HTTP フォールバックで本文取得できる", func(t *testing.T) {
+	t.Run("正常系: fetcher=chromium でも CDP Fetch で PDF 本文取得できる", func(t *testing.T) {
 		if _, err := chromium.ResolveBrowserPath(""); err != nil {
 			t.Skip("chromium browser not available: " + err.Error())
 		}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/chromedp/chromedp"
 
+	"meguri/internal/core"
 	"meguri/internal/domain/model"
 )
 
@@ -43,19 +44,12 @@ func (c *client) get(ctx context.Context, u *url.URL, headers map[string]string)
 }
 
 func (c *client) fetchOnce(ctx context.Context, u *url.URL, headers map[string]string) (*model.Response, error) {
-	ua := resolveUserAgent(c.fetcherCfg, headers)
-
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.ExecPath(c.browserPath),
-		chromedp.UserAgent(ua),
-		chromedp.Flag("disable-gpu", true),
-		chromedp.Flag("no-sandbox", true),
-	)
-	if c.fetcherCfg.Headless {
-		opts = append(opts, chromedp.Flag("headless", true))
-	} else {
-		opts = append(opts, chromedp.Flag("headless", false))
+	if core.IsPDFTarget(u, c.pdfCfg) {
+		return c.fetchPDFViaCDP(ctx, u, headers)
 	}
+
+	ua := resolveUserAgent(c.fetcherCfg, headers)
+	opts := c.chromedpAllocatorOptions(ua)
 
 	allocCtx, allocCancel := chromedp.NewExecAllocator(ctx, opts...)
 	defer allocCancel()
@@ -84,6 +78,22 @@ func (c *client) fetchOnce(ctx context.Context, u *url.URL, headers map[string]s
 		Body:        []byte(html),
 		FetchedAt:   time.Now(),
 	}, nil
+}
+
+// chromedpAllocatorOptions はブラウザ起動用の chromedp オプションを返す。
+func (c *client) chromedpAllocatorOptions(ua string) []chromedp.ExecAllocatorOption {
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.ExecPath(c.browserPath),
+		chromedp.UserAgent(ua),
+		chromedp.Flag("disable-gpu", true),
+		chromedp.Flag("no-sandbox", true),
+	)
+	if c.fetcherCfg.Headless {
+		opts = append(opts, chromedp.Flag("headless", true))
+	} else {
+		opts = append(opts, chromedp.Flag("headless", false))
+	}
+	return opts
 }
 
 func isRetryableFetchError(err error) bool {
