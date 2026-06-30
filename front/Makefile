@@ -18,7 +18,8 @@ MIGRATIONS_PATH ?= internal/app/migrations
 MIGRATE_DATABASE ?= sqlite://$(DB)
 MIGRATE ?= $(GO) tool migrate
 
-GTEST_PKGS := $(filter-out meguri-app,$(shell $(GO) list -tags dev ./...))
+# main (//go:embed frontend/dist) はビルド済みアセットが無いと go list ./... が失敗するため除外する。
+GTEST_DIRS := ./internal/... ./cmd/... ./shared/... ./tools/... ./build/...
 
 all: check
 
@@ -135,7 +136,7 @@ glint:
 lintfix: flintfix
 
 gtest:
-	$(GO) test $(GO_TEST_FLAGS) -tags dev $(GTEST_PKGS)
+	$(GO) test $(GO_TEST_FLAGS) -tags dev $(GTEST_DIRS)
 
 gbuild:
 	$(GO) build ./...
