@@ -30,6 +30,14 @@ jobs:
           cache: npm
           cache-dependency-path: front/frontend/package-lock.json
 
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config \
+            libgtk-4-dev \
+            libwebkitgtk-6.0-dev
+
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 

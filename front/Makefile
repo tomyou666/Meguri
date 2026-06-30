@@ -18,16 +18,7 @@ MIGRATIONS_PATH ?= internal/app/migrations
 MIGRATE_DATABASE ?= sqlite://$(DB)
 MIGRATE ?= $(GO) tool migrate
 
-# Linux で GTK4 が無い headless 環境では Wails の CGO 依存を避け、Windows 向けとして解析・テストする。
-ifneq ($(OS),Windows_NT)
-UNAME_S := $(shell uname -s 2>/dev/null)
-ifeq ($(UNAME_S),Linux)
-HAS_GTK4 := $(shell pkg-config --exists gtk4 2>/dev/null && echo 1 || echo 0)
-ifneq ($(HAS_GTK4),1)
-WAILS_GO_ENV := GOOS=windows CGO_ENABLED=0
-endif
-endif
-endif
+GTEST_PKGS := $(filter-out meguri-app,$(shell $(GO) list -tags dev ./...))
 
 all: check
 
@@ -136,15 +127,15 @@ gfmt:
 	$(GO) fmt ./...
 
 gvet:
-	$(WAILS_GO_ENV) $(GO) vet -tags dev ./...
+	$(GO) vet -tags dev ./...
 
 glint:
-	$(WAILS_GO_ENV) $(GOLANGCI_LINT) run ./...
+	$(GOLANGCI_LINT) run ./...
 
 lintfix: flintfix
 
 gtest:
-	$(WAILS_GO_ENV) $(GO) test $(GO_TEST_FLAGS) -tags dev ./...
+	$(GO) test $(GO_TEST_FLAGS) -tags dev $(GTEST_PKGS)
 
 gbuild:
 	$(GO) build ./...
@@ -153,7 +144,7 @@ gtidy:
 	$(GO) mod tidy
 
 gvuln:
-	$(WAILS_GO_ENV) $(GOVULNCHECK) ./...
+	$(GOVULNCHECK) ./...
 
 gupgrade-patch:
 	$(GO) get -u=patch ./...
