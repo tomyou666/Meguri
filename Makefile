@@ -1,5 +1,5 @@
 .PHONY: help all check fmt vet lint test build tidy wire tools \
-	bcheck bbuild btidy bwire \
+	bcheck bbuild btidy bwire blint bfmt \
 	fdev fbuild frun ftest flint ffmt fcheck fsetup ftools \
 	tlint tfmt
 
@@ -23,7 +23,7 @@ help:
 	@echo "  tools         Download front Go tool dependencies (dlv, migrate, wails3)"
 	@echo ""
 	@echo "Backend shortcuts:"
-	@echo "  bcheck bbuild btidy bwire"
+	@echo "  bcheck bbuild btidy bwire blint bfmt"
 	@echo ""
 	@echo "Front shortcuts:"
 	@echo "  fsetup fdev fbuild frun"
@@ -70,6 +70,12 @@ btidy:
 
 bwire:
 	$(MAKE) -C $(BACKEND_DIR) wire
+
+blint:
+	$(MAKE) -C $(BACKEND_DIR) lint
+
+bfmt:
+	$(MAKE) -C $(BACKEND_DIR) fmt
 
 fsetup:
 	$(MAKE) -C $(FRONT_DIR) setup
