@@ -9,7 +9,11 @@ permissions:
   contents: write
 
 jobs:
+  quality:
+    uses: ./.github/workflows/quality.yml
+
   release:
+    needs: quality
     runs-on: windows-latest
     environment: MEGURI
     steps:
@@ -47,7 +51,7 @@ jobs:
         id: wails3-cache
         with:
           path: ${{ steps.go-env.outputs.gobin }}/wails3.exe
-          key: ${{ runner.os }}-wails3-v3.0.0-alpha.101
+          key: ${{ runner.os }}-wails3-v3.0.0-alpha2.109
 
       - name: Extract version from tag
         id: version
@@ -59,7 +63,7 @@ jobs:
 
       - name: Install Wails CLI
         if: steps.wails3-cache.outputs.cache-hit != 'true'
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.101
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.109
         working-directory: front
 
       - name: Configure frontend environment
