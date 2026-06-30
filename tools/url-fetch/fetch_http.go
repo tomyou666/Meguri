@@ -13,6 +13,8 @@ type httpVariant struct {
 	id string
 	// headers はリクエストに付与するヘッダ。nil なら付与しない。
 	headers map[string]string
+	// utlsTransport は utls 利用時のトランスポート。"http2" / "http1"。空なら標準 net/http。
+	utlsTransport string
 }
 
 // fetchAllHTTPVariants は HTTP バリアントを並列実行して結果を返す。
@@ -63,6 +65,12 @@ func fetchHTTPOnce(ctx context.Context, target string, v httpVariant) trialResul
 	}
 
 	client := &http.Client{}
+	switch v.utlsTransport {
+	case "http2":
+		client = newUTLSHTTP2Client()
+	case "http1":
+		client = newUTLSHTTP1Client()
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		res.duration = time.Since(start)

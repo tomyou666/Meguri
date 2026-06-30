@@ -111,6 +111,20 @@ func httpVariantsFor(target string) ([]httpVariant, error) {
 				"Referer":         referer,
 			},
 		},
+		{
+			id: "utls_chrome_ua",
+			headers: map[string]string{
+				"User-Agent": cfg.ChromeUserAgent,
+			},
+			utlsTransport: "http2",
+		},
+		{
+			id: "utls_chrome_ua_http1",
+			headers: map[string]string{
+				"User-Agent": cfg.ChromeUserAgent,
+			},
+			utlsTransport: "http1",
+		},
 	}, nil
 }
 
