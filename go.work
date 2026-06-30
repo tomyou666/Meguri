@@ -7,4 +7,5 @@ use (
 	./tools/sign-release
 	./tools/updater-keygen
 	./tools/version-mng
+	./tools/url-fetch
 )
