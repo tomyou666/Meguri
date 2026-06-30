@@ -6,7 +6,7 @@
 # ビルド例:
 #   docker build -f .devcontainer/DockerFile -t scraper-bot-dev .
 
-FROM golang:1.26.3-trixie
+FROM golang:1.26.4-trixie
 
 ARG USERNAME=vscode
 ARG UID=1000

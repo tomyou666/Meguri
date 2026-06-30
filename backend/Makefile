@@ -1,7 +1,9 @@
-.PHONY: fmt vet lint test build all check tidy wire
+.PHONY: fmt vet lint test build all check tidy wire \
+	gvuln gupgrade-patch gupgrade-minor vuln upgrade-patch upgrade-minor
 
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
+GOVULNCHECK ?= govulncheck
 PKG := ./...
 
 # -race requires CGO; Windows disables CGO by default.
@@ -35,3 +37,20 @@ tidy:
 
 wire:
 	cd internal/app && $(GO) run github.com/google/wire/cmd/wire
+
+gvuln:
+	$(GOVULNCHECK) ./...
+
+gupgrade-patch:
+	$(GO) get -u=patch ./...
+	$(GO) mod tidy
+
+gupgrade-minor:
+	$(GO) get -u ./...
+	$(GO) mod tidy
+
+vuln: gvuln
+
+upgrade-patch: gupgrade-patch
+
+upgrade-minor: gupgrade-minor

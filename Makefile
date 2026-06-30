@@ -1,7 +1,8 @@
 .PHONY: help all check fmt vet lint test build tidy wire tools \
-	bcheck bbuild btidy bwire blint bfmt \
-	fdev fbuild frun ftest flint ffmt fcheck fsetup ftools \
-	tlint tfmt
+	vuln upgrade-patch upgrade-minor \
+	bcheck bbuild btidy bwire blint bfmt bvuln bupgrade-patch bupgrade-minor \
+	fdev fbuild frun ftest flint ffmt fcheck fsetup ftools fvuln fupgrade-patch fupgrade-minor \
+	tlint tfmt tvuln tupgrade-patch tupgrade-minor
 
 BACKEND_DIR ?= backend
 FRONT_DIR ?= front
@@ -21,6 +22,9 @@ help:
 	@echo "  tidy          Run backend go mod tidy"
 	@echo "  wire          Regenerate backend wire_gen.go"
 	@echo "  tools         Download front Go tool dependencies (dlv, migrate, wails3)"
+	@echo "  vuln          Run govulncheck (all Go modules) + npm audit"
+	@echo "  upgrade-patch Upgrade patch versions (Go + npm)"
+	@echo "  upgrade-minor Upgrade minor versions (Go + npm)"
 	@echo ""
 	@echo "Backend shortcuts:"
 	@echo "  bcheck bbuild btidy bwire blint bfmt"
@@ -56,6 +60,12 @@ wire: bwire
 
 tools: ftools
 
+vuln: bvuln fvuln tvuln
+
+upgrade-patch: bupgrade-patch fupgrade-patch tupgrade-patch
+
+upgrade-minor: bupgrade-minor fupgrade-minor tupgrade-minor
+
 ftools:
 	$(MAKE) -C $(FRONT_DIR) tools
 
@@ -76,6 +86,15 @@ blint:
 
 bfmt:
 	$(MAKE) -C $(BACKEND_DIR) fmt
+
+bvuln:
+	$(MAKE) -C $(BACKEND_DIR) gvuln
+
+bupgrade-patch:
+	$(MAKE) -C $(BACKEND_DIR) gupgrade-patch
+
+bupgrade-minor:
+	$(MAKE) -C $(BACKEND_DIR) gupgrade-minor
 
 fsetup:
 	$(MAKE) -C $(FRONT_DIR) setup
@@ -101,8 +120,26 @@ ffmt:
 fcheck:
 	$(MAKE) -C $(FRONT_DIR) check
 
+fvuln:
+	$(MAKE) -C $(FRONT_DIR) vuln
+
+fupgrade-patch:
+	$(MAKE) -C $(FRONT_DIR) upgrade-patch
+
+fupgrade-minor:
+	$(MAKE) -C $(FRONT_DIR) upgrade-minor
+
 tlint:
 	$(MAKE) -C $(TOOLS_DIR) lint
 
 tfmt:
 	$(MAKE) -C $(TOOLS_DIR) fmt
+
+tvuln:
+	$(MAKE) -C $(TOOLS_DIR) gvuln
+
+tupgrade-patch:
+	$(MAKE) -C $(TOOLS_DIR) gupgrade-patch
+
+tupgrade-minor:
+	$(MAKE) -C $(TOOLS_DIR) gupgrade-minor

@@ -1,4 +1,4 @@
-go 1.26.3
+go 1.26.4
 
 use (
 	./backend
@@ -6,6 +6,6 @@ use (
 	./tools/changelog-extract
 	./tools/sign-release
 	./tools/updater-keygen
-	./tools/version-mng
 	./tools/url-fetch
+	./tools/version-mng
 )

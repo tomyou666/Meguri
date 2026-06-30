@@ -1,11 +1,15 @@
 .PHONY: help setup dev run build clean check test lint fmt lintfix \
-	gtest gbuild gtidy gfmt gvet glint \
+	gtest gbuild gtidy gfmt gvet glint gvuln gupgrade-patch gupgrade-minor \
 	finstall fdev fbuild fpreview ftest flint ftypecheck ffmt flintfix \
+	faudit fupgrade-patch fupgrade-minor vuln upgrade-patch upgrade-minor \
 	tools migrate-up migrate-down migrate-version gen wire bindings generate
 
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
+GOVULNCHECK ?= govulncheck
 NPM ?= npm
+NPM_AUDIT_LEVEL ?= high
+NCU ?= npx --yes npm-check-updates
 WAILS ?= $(GO) tool wails3
 FRONTEND_DIR ?= frontend
 
@@ -43,6 +47,17 @@ help:
 	@echo "  test      Run Go + frontend tests"
 	@echo "  gfmt      Run go fmt on Go packages"
 	@echo "  glint     Run golangci-lint on Go packages"
+	@echo ""
+	@echo "Dependency targets:"
+	@echo "  vuln            Run govulncheck + npm audit"
+	@echo "  gvuln           Run govulncheck on Go packages"
+	@echo "  faudit          Run npm audit"
+	@echo "  upgrade-patch   Upgrade Go (patch) + npm (patch) dependencies"
+	@echo "  upgrade-minor   Upgrade Go (minor) + npm (minor) dependencies"
+	@echo "  gupgrade-patch  Upgrade Go dependencies (patch only)"
+	@echo "  gupgrade-minor  Upgrade Go dependencies (minor + patch)"
+	@echo "  fupgrade-patch  Upgrade npm dependencies (patch only)"
+	@echo "  fupgrade-minor  Upgrade npm dependencies (minor + patch)"
 	@echo ""
 	@echo "Frontend-only shortcuts:"
 	@echo "  fdev fbuild fpreview ftest"
@@ -125,6 +140,35 @@ gbuild:
 
 gtidy:
 	$(GO) mod tidy
+
+gvuln:
+	$(GOVULNCHECK) ./...
+
+gupgrade-patch:
+	$(GO) get -u=patch ./...
+	$(GO) mod tidy
+
+gupgrade-minor:
+	$(GO) get -u ./...
+	$(GO) mod tidy
+
+faudit:
+	$(NPM) --prefix $(FRONTEND_DIR) audit --audit-level=$(NPM_AUDIT_LEVEL)
+
+fupgrade-patch:
+	cd $(FRONTEND_DIR) && $(NCU) -u --target patch
+	$(NPM) --prefix $(FRONTEND_DIR) install
+	-$(NPM) --prefix $(FRONTEND_DIR) audit fix
+
+fupgrade-minor:
+	cd $(FRONTEND_DIR) && $(NCU) -u --target minor
+	$(NPM) --prefix $(FRONTEND_DIR) install
+
+vuln: gvuln faudit
+
+upgrade-patch: gupgrade-patch fupgrade-patch
+
+upgrade-minor: gupgrade-minor fupgrade-minor
 
 fdev:
 	$(NPM) --prefix $(FRONTEND_DIR) run dev
