@@ -44,10 +44,11 @@ cd front && go mod download
 | --- | --- | --- |
 | [proto](https://moonrepo.dev/proto) | Go / Node / npm のバージョン管理 | `.prototools` を参照 |
 | [golangci-lint](https://golangci-lint.run/) | `make lint` | [公式 install.sh](https://golangci-lint.run/welcome/install/)（Dev Container では同梱） |
+| [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) | `make vuln`（backend / front / tools） | `go install golang.org/x/vuln/cmd/govulncheck@latest`（CI も同様） |
 | [gopls](https://pkg.go.dev/golang.org/x/tools/gopls) | Go 言語サーバー（補完・定義ジャンプ・エディタ診断） | VS Code の [Go 拡張](https://marketplace.visualstudio.com/items?itemName=golang.go) が初回に自動導入。手動なら `go install golang.org/x/tools/gopls@latest`（Dev Container では [`.devcontainer/DockerFile`](.devcontainer/DockerFile) で同梱） |
 | VS Code 拡張 | エディタ支援 | [`.vscode/extensions.json`](.vscode/extensions.json) の Recommendations |
 
-`gopls` は `go.mod` の `tool` には入れていません。ビルド・`make lint` には不要で、エディタ向けのツールのためです。`dlv` / `migrate` / `wails3` とは異なり、バージョン固定もしていません。
+`golangci-lint` と `govulncheck` はリポジトリ横断の品質チェック用で、PATH 上のバイナリとして使います。`front/go.mod` の `tool` には入れていません（`dlv` / `migrate` / `wails3` は front 専用の開発 CLI）。`gopls` も同様に `tool` 外です。ビルド・`make lint` には不要で、エディタ向けのためです。いずれもバージョン固定はしていません。
 
 フロント初回セットアップ（npm install、マイグレーション、コード生成）は [front/README.md](front/README.md) を参照してください。
 
