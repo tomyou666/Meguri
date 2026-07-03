@@ -589,44 +589,6 @@ export function PluginsConfigFields({
 	);
 }
 
-export function OutputConfigFields({
-	value,
-	onChange,
-	fieldErrors,
-}: FieldsProps<PartialConfig['output']>) {
-	const v = value ?? {};
-	return (
-		<div className='space-y-3'>
-			<ConfigField
-				path='output.dir'
-				errors={fieldErrors}
-				label='dir'
-				help={h.output_dir}
-			>
-				<Input
-					className={inputClassName(fieldInvalid(fieldErrors, 'output.dir'))}
-					value={v.dir ?? ''}
-					onChange={(e) => onChange({ ...v, dir: e.target.value })}
-				/>
-			</ConfigField>
-			<ConfigField
-				path='output.file_pattern'
-				errors={fieldErrors}
-				label='file_pattern'
-				help={h.file_pattern}
-			>
-				<Input
-					className={inputClassName(
-						fieldInvalid(fieldErrors, 'output.file_pattern'),
-					)}
-					value={v.file_pattern ?? ''}
-					onChange={(e) => onChange({ ...v, file_pattern: e.target.value })}
-				/>
-			</ConfigField>
-		</div>
-	);
-}
-
 const TAB_LABELS: Record<string, string> = {
 	general: t.general,
 	request: t.request,
@@ -634,7 +596,6 @@ const TAB_LABELS: Record<string, string> = {
 	pdf: t.pdf,
 	crawl: t.crawl,
 	plugins: t.plugins,
-	output: t.output,
 };
 
 type TabVisibilityOptions = {
@@ -655,7 +616,6 @@ function tabsForLayer(
 		'pdf',
 		'crawl',
 		...(layer === 'app' || layer === 'workspace' ? ['plugins'] : []),
-		...(layer === 'app' ? ['output'] : []),
 	];
 	return tabs.filter((key) => {
 		if (key === 'pdf' && options?.showPdfTab === false) return false;
@@ -787,13 +747,6 @@ export function TabsConfig({
 					<PluginsConfigFields
 						value={settings.plugins}
 						onChange={(plugins) => onChange({ ...settings, plugins })}
-						fieldErrors={fieldErrors}
-					/>
-				)}
-				{tab === 'output' && (
-					<OutputConfigFields
-						value={settings.output}
-						onChange={(output) => onChange({ ...settings, output })}
 						fieldErrors={fieldErrors}
 					/>
 				)}

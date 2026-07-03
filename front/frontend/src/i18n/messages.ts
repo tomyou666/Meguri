@@ -237,7 +237,6 @@ export const messages = {
 			pdf: 'PDF',
 			crawl: 'クロール',
 			plugins: '取得方法',
-			output: '出力先',
 		},
 		help: {
 			timeout: '1ページ取得の最大待ち時間。長すぎると全体が遅くなります。',
@@ -284,8 +283,6 @@ export const messages = {
 				'本文の変換方式。markdown / html / raw_html / json から選択。プレビューとファイル出力の主形式になります。',
 			browser_path: 'Chromium 実行ファイルのパス。空なら自動検出。',
 			headless: '画面を表示せずバックグラウンドでブラウザを動かす。',
-			output_dir: '結果ファイルを書き出すフォルダ。',
-			file_pattern: 'ファイル名のテンプレート（例: {url_hash}.md）。',
 			ws_name: '一覧に表示するワークスペース名。',
 			seed_url: 'グラフの起点となる URL。新規 WS 作成時に使います。',
 		},
