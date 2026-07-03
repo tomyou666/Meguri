@@ -33,4 +33,25 @@ describe('validatePartialConfig', () => {
 		});
 		expect(r.ok).toBe(true);
 	});
+
+	it('timeout がレンジ外ならフィールドエラーを返す', () => {
+		const errors = getConfigFieldErrors({
+			request: { timeout: '500ms' },
+		});
+		expect(errors['request.timeout']).toContain('1秒以上300秒以下');
+	});
+
+	it('retry_interval がレンジ外ならフィールドエラーを返す', () => {
+		const errors = getConfigFieldErrors({
+			request: { retry_interval: '50ms' },
+		});
+		expect(errors['request.retry_interval']).toContain('100ミリ秒以上60秒以下');
+	});
+
+	it('request_delay がレンジ外ならフィールドエラーを返す', () => {
+		const errors = getConfigFieldErrors({
+			crawl: { request_delay: '90s' },
+		});
+		expect(errors['crawl.request_delay']).toContain('0秒以上60秒以下');
+	});
 });

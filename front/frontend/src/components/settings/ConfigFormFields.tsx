@@ -5,10 +5,11 @@ import {
 	fieldInvalid,
 	inputClassName,
 	selectClassName,
-	textareaClassName,
 } from '@/components/settings/configFormUtils';
+import { DurationInput } from '@/components/settings/DurationInput';
 import { FieldLabel } from '@/components/settings/FieldLabel';
 import { OptionalNumberInput } from '@/components/settings/OptionalNumberInput';
+import { TagListInput } from '@/components/settings/TagListInput';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { messages } from '@/i18n/messages';
@@ -64,6 +65,7 @@ function StringListEditor({
 	values,
 	onChange,
 	fieldErrors,
+	compact,
 }: {
 	path: string;
 	label: string;
@@ -71,22 +73,18 @@ function StringListEditor({
 	values: string[];
 	onChange: (v: string[]) => void;
 	fieldErrors: FieldErrors;
+	compact?: boolean;
 }) {
-	const text = values.join('\n');
 	const invalid = fieldInvalid(fieldErrors, path);
 	return (
 		<ConfigField path={path} errors={fieldErrors} label={label} help={help}>
-			<textarea
-				className={textareaClassName(invalid)}
-				value={text}
-				onChange={(e) =>
-					onChange(
-						e.target.value
-							.split('\n')
-							.map((s) => s.trim())
-							.filter(Boolean),
-					)
-				}
+			<TagListInput
+				values={values}
+				onChange={onChange}
+				invalid={invalid}
+				compact={compact}
+				placeholder={messages.settings.tagList.placeholder}
+				removeLabel={messages.settings.tagList.remove}
 			/>
 		</ConfigField>
 	);
@@ -106,12 +104,10 @@ export function RequestConfigFields({
 				label='timeout'
 				help={h.timeout}
 			>
-				<Input
-					className={inputClassName(
-						fieldInvalid(fieldErrors, 'request.timeout'),
-					)}
-					value={v.timeout ?? ''}
-					onChange={(e) => onChange({ ...v, timeout: e.target.value })}
+				<DurationInput
+					invalid={fieldInvalid(fieldErrors, 'request.timeout')}
+					value={v.timeout}
+					onChange={(timeout) => onChange({ ...v, timeout })}
 				/>
 			</ConfigField>
 			<ConfigField
@@ -134,12 +130,10 @@ export function RequestConfigFields({
 				label='retry_interval'
 				help={h.retry_interval}
 			>
-				<Input
-					className={inputClassName(
-						fieldInvalid(fieldErrors, 'request.retry_interval'),
-					)}
-					value={v.retry_interval ?? ''}
-					onChange={(e) => onChange({ ...v, retry_interval: e.target.value })}
+				<DurationInput
+					invalid={fieldInvalid(fieldErrors, 'request.retry_interval')}
+					value={v.retry_interval}
+					onChange={(retry_interval) => onChange({ ...v, retry_interval })}
 				/>
 			</ConfigField>
 			<ConfigField
@@ -169,7 +163,8 @@ export function ContentConfigFields({
 	value,
 	onChange,
 	fieldErrors,
-}: FieldsProps<PartialConfig['content']>) {
+	compact,
+}: FieldsProps<PartialConfig['content']> & { compact?: boolean }) {
 	const v = value ?? {};
 	return (
 		<div className='space-y-3'>
@@ -187,6 +182,7 @@ export function ContentConfigFields({
 				values={v.include_tags ?? []}
 				onChange={(include_tags) => onChange({ ...v, include_tags })}
 				fieldErrors={fieldErrors}
+				compact={compact}
 			/>
 			<StringListEditor
 				path='content.exclude_tags'
@@ -195,6 +191,7 @@ export function ContentConfigFields({
 				values={v.exclude_tags ?? []}
 				onChange={(exclude_tags) => onChange({ ...v, exclude_tags })}
 				fieldErrors={fieldErrors}
+				compact={compact}
 			/>
 			<ConfigField
 				path='content.selector'
@@ -305,7 +302,8 @@ export function CrawlConfigFields({
 	value,
 	onChange,
 	fieldErrors,
-}: FieldsProps<PartialConfig['crawl']>) {
+	compact,
+}: FieldsProps<PartialConfig['crawl']> & { compact?: boolean }) {
 	const v = value ?? {};
 	return (
 		<div className='space-y-3'>
@@ -351,6 +349,7 @@ export function CrawlConfigFields({
 				values={v.include_paths ?? []}
 				onChange={(include_paths) => onChange({ ...v, include_paths })}
 				fieldErrors={fieldErrors}
+				compact={compact}
 			/>
 			<StringListEditor
 				path='crawl.exclude_paths'
@@ -359,6 +358,7 @@ export function CrawlConfigFields({
 				values={v.exclude_paths ?? []}
 				onChange={(exclude_paths) => onChange({ ...v, exclude_paths })}
 				fieldErrors={fieldErrors}
+				compact={compact}
 			/>
 			<ConfigCheckboxRow
 				inputId={configCheckboxId('crawl.allow_external_links')}
@@ -383,12 +383,10 @@ export function CrawlConfigFields({
 				label='request_delay'
 				help={h.request_delay}
 			>
-				<Input
-					className={inputClassName(
-						fieldInvalid(fieldErrors, 'crawl.request_delay'),
-					)}
-					value={v.request_delay ?? ''}
-					onChange={(e) => onChange({ ...v, request_delay: e.target.value })}
+				<DurationInput
+					invalid={fieldInvalid(fieldErrors, 'crawl.request_delay')}
+					value={v.request_delay}
+					onChange={(request_delay) => onChange({ ...v, request_delay })}
 				/>
 			</ConfigField>
 			<ConfigField
@@ -767,6 +765,7 @@ export function TabsConfig({
 							onChange({ ...settings, content });
 						}}
 						fieldErrors={fieldErrors}
+						compact={compact}
 					/>
 				)}
 				{tab === 'pdf' && (
@@ -781,6 +780,7 @@ export function TabsConfig({
 						value={settings.crawl}
 						onChange={(crawl) => onChange({ ...settings, crawl })}
 						fieldErrors={fieldErrors}
+						compact={compact}
 					/>
 				)}
 				{tab === 'plugins' && (

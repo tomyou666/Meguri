@@ -394,6 +394,12 @@ export type FetchExportPreviewResult = {
 	includedCount: number;
 };
 
+export type ExportPreviewSection = {
+	id: string;
+	baseUrl: string;
+	body: string;
+};
+
 /** DB 取得結果を順序どおりにマージし、結果なし件数を返す。 */
 export function buildExportPreview(
 	orderedIds: string[],
@@ -432,4 +438,28 @@ export function buildExportPreview(
 		skippedCount,
 		includedCount: orderedResults.length,
 	};
+}
+
+/** プレビュー表示用にノードごとの基準 URL 付きセクションを構築する。 */
+export function buildExportPreviewSections(
+	orderedIds: string[],
+	flatData: ExportFlatNode[],
+	results: CrawlResultPreview[],
+	settings: ExportMergeSettings,
+): ExportPreviewSection[] {
+	const metaById = new Map(flatData.map((n) => [n.id, n]));
+	const resultByUrl = new Map(results.map((r) => [r.url, r]));
+	const sections: ExportPreviewSection[] = [];
+
+	for (const id of orderedIds) {
+		const meta = metaById.get(id);
+		if (!meta) continue;
+		const result = resultByUrl.get(meta.urlNormalized);
+		if (!result) continue;
+		const body = contentForSingleNode(result, meta, settings);
+		if (!body) continue;
+		sections.push({ id: meta.id, baseUrl: result.url, body });
+	}
+
+	return sections;
 }

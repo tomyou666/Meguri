@@ -10,11 +10,13 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { messages } from '@/i18n/messages';
 import {
 	buildExportPreview,
+	buildExportPreviewSections,
 	buildInitialFlatTree,
 	buildSplitExportFiles,
 	DEFAULT_EXPORT_SETTINGS,
 	type ExportFlatNode,
 	type ExportMergeSettings,
+	type ExportPreviewSection,
 	type ExportZipFileEntry,
 	initialCheckedIds,
 	preorderNodeIds,
@@ -117,6 +119,9 @@ export function ExportApp() {
 		DEFAULT_EXPORT_SETTINGS,
 	);
 	const [previewContent, setPreviewContent] = useState<string | null>(null);
+	const [previewSections, setPreviewSections] = useState<
+		ExportPreviewSection[] | null
+	>(null);
 	const [splitFiles, setSplitFiles] = useState<ExportZipFileEntry[]>([]);
 	const [previewLoading, setPreviewLoading] = useState(false);
 	const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
@@ -136,6 +141,14 @@ export function ExportApp() {
 				mergeSettings,
 			);
 			setPreviewContent(preview.content);
+			setPreviewSections(
+				buildExportPreviewSections(
+					orderedIds,
+					flatData,
+					results,
+					mergeSettings,
+				),
+			);
 			setSplitFiles(
 				buildSplitExportFiles(orderedIds, flatData, results, mergeSettings),
 			);
@@ -150,6 +163,7 @@ export function ExportApp() {
 		setFlatData(next.flatData);
 		setCheckedIds(next.checkedIds);
 		setPreviewContent(null);
+		setPreviewSections(null);
 		setSplitFiles([]);
 		setPreviewSource(null);
 	}, []);
@@ -261,6 +275,7 @@ export function ExportApp() {
 					<Panel minSize='30%' className='min-w-0'>
 						<ExportPreviewPane
 							content={previewContent}
+							sections={previewSections}
 							format={settings.format}
 							loading={previewLoading}
 						/>

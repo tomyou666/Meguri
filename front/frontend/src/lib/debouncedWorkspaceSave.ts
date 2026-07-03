@@ -68,10 +68,14 @@ export function debouncedPatchNodePositions(
 }
 
 export function flushDebouncedWorkspaceSave(ws: Workspace): void {
-	cancelPendingPositionPatches();
+	flushAllDebouncedSaves(ws);
+}
+
+export function flushAllDebouncedSaves(ws: Workspace): void {
+	flushPendingPositionPatches();
 	if (workspaceTimer) {
 		clearTimeout(workspaceTimer);
 		workspaceTimer = null;
+		void StoreService.SaveWorkspace(workspaceToDTO(ws));
 	}
-	void StoreService.SaveWorkspace(workspaceToDTO(ws));
 }

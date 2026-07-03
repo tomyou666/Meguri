@@ -14,16 +14,7 @@ import (
 )
 
 // fetchPDFViaCDP は CDP Fetch ドメインで Response 段階をインターセプトし PDF バイナリを取得する。
-func (c *client) fetchPDFViaCDP(ctx context.Context, u *url.URL, headers map[string]string) (*model.Response, error) {
-	ua := resolveUserAgent(c.fetcherCfg, headers)
-	opts := c.chromedpAllocatorOptions(ua)
-
-	allocCtx, allocCancel := chromedp.NewExecAllocator(ctx, opts...)
-	defer allocCancel()
-
-	browserCtx, browserCancel := chromedp.NewContext(allocCtx)
-	defer browserCancel()
-
+func (c *client) fetchPDFViaCDP(ctx context.Context, u *url.URL, headers map[string]string, ua string) (*model.Response, error) {
 	targetURL := u.String()
 	var (
 		body        []byte
@@ -32,62 +23,66 @@ func (c *client) fetchPDFViaCDP(ctx context.Context, u *url.URL, headers map[str
 	)
 	ready := make(chan error, 1)
 
-	chromedp.ListenTarget(browserCtx, func(ev any) {
-		e, ok := ev.(*fetch.EventRequestPaused)
-		if !ok {
-			return
-		}
-		if !shouldInterceptPDFRequest(e.Request.URL, targetURL) {
-			go func(requestID fetch.RequestID) {
-				_ = chromedp.Run(browserCtx, fetch.ContinueRequest(requestID))
-			}(e.RequestID)
-			return
-		}
-		if e.ResponseStatusCode == 0 {
-			go func(requestID fetch.RequestID) {
-				_ = chromedp.Run(browserCtx, fetch.ContinueRequest(requestID))
-			}(e.RequestID)
-			return
-		}
-
-		go func(ev *fetch.EventRequestPaused) {
-			err := chromedp.Run(browserCtx, chromedp.ActionFunc(func(ctx context.Context) error {
-				b, err := fetch.GetResponseBody(ev.RequestID).Do(ctx)
-				if err != nil {
-					_ = fetch.ContinueRequest(ev.RequestID).Do(ctx)
-					return err
-				}
-				mime := "application/pdf"
-				for _, h := range ev.ResponseHeaders {
-					if strings.EqualFold(h.Name, "content-type") {
-						mime = h.Value
-						break
-					}
-				}
-				body = b
-				contentType = mime
-				statusCode = ev.ResponseStatusCode
-				return fetch.ContinueRequest(ev.RequestID).Do(ctx)
-			}))
-			ready <- err
-		}(e)
-	})
-
-	err := chromedp.Run(browserCtx,
-		fetch.Enable().WithPatterns([]*fetch.RequestPattern{{
-			URLPattern:   "*",
-			RequestStage: fetch.RequestStageResponse,
-		}}),
-		chromedp.Navigate(targetURL),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			select {
-			case err := <-ready:
-				return err
-			case <-ctx.Done():
-				return ctx.Err()
+	err := c.runWithTab(ctx, ua, func(tabCtx context.Context) error {
+		chromedp.ListenTarget(tabCtx, func(ev any) {
+			e, ok := ev.(*fetch.EventRequestPaused)
+			if !ok {
+				return
 			}
-		}),
-	)
+			if !shouldInterceptPDFRequest(e.Request.URL, targetURL) {
+				go func(requestID fetch.RequestID) {
+					_ = chromedp.Run(tabCtx, fetch.ContinueRequest(requestID))
+				}(e.RequestID)
+				return
+			}
+			if e.ResponseStatusCode == 0 {
+				go func(requestID fetch.RequestID) {
+					_ = chromedp.Run(tabCtx, fetch.ContinueRequest(requestID))
+				}(e.RequestID)
+				return
+			}
+
+			go func(ev *fetch.EventRequestPaused) {
+				err := chromedp.Run(tabCtx, chromedp.ActionFunc(func(ctx context.Context) error {
+					b, err := fetch.GetResponseBody(ev.RequestID).Do(ctx)
+					if err != nil {
+						_ = fetch.ContinueRequest(ev.RequestID).Do(ctx)
+						return err
+					}
+					mime := "application/pdf"
+					for _, h := range ev.ResponseHeaders {
+						if strings.EqualFold(h.Name, "content-type") {
+							mime = h.Value
+							break
+						}
+					}
+					body = b
+					contentType = mime
+					statusCode = ev.ResponseStatusCode
+					return fetch.ContinueRequest(ev.RequestID).Do(ctx)
+				}))
+				ready <- err
+			}(e)
+		})
+
+		return chromedp.Run(tabCtx,
+			fetch.Enable().WithPatterns([]*fetch.RequestPattern{{
+				URLPattern:   "*",
+				RequestStage: fetch.RequestStageResponse,
+			}}),
+			chromedp.Navigate(targetURL),
+			chromedp.ActionFunc(func(ctx context.Context) error {
+				select {
+				case err := <-ready:
+					return err
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(c.reqCfg.Timeout):
+					return ctx.Err()
+				}
+			}),
+		)
+	})
 	if err != nil {
 		return nil, err
 	}

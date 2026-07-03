@@ -59,6 +59,7 @@ export function NodeFormatContent({
 				/>
 				<MarkdownResultView
 					markdown={result.markdown ?? ''}
+					previewBaseUrl={result.url}
 					view={markdownView}
 					editing={editing}
 					saving={saving}

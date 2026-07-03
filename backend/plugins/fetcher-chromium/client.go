@@ -14,12 +14,18 @@ import (
 	"meguri/internal/domain/model"
 )
 
+// get はリトライ付きで URL を取得する。
 func (c *client) get(ctx context.Context, u *url.URL, headers map[string]string) (*model.Response, error) {
+	ua := resolveUserAgent(c.fetcherCfg, headers)
+	if err := c.joinPool(ctx, ua); err != nil {
+		return nil, err
+	}
+
 	var lastErr error
 	attempts := c.reqCfg.RetryCount + 1
 	for i := 0; i < attempts; i++ {
 		reqCtx, cancel := context.WithTimeout(ctx, c.reqCfg.Timeout)
-		res, err := c.fetchOnce(reqCtx, u, headers)
+		res, err := c.fetchOnce(reqCtx, u, headers, ua)
 		cancel()
 
 		if err == nil {
@@ -43,30 +49,24 @@ func (c *client) get(ctx context.Context, u *url.URL, headers map[string]string)
 	return nil, fmt.Errorf("chromium取得失敗 (url=%s): %w", u.String(), lastErr)
 }
 
-func (c *client) fetchOnce(ctx context.Context, u *url.URL, headers map[string]string) (*model.Response, error) {
+// fetchOnce は 1 回分の取得を実行する。PDF 対象なら CDP 経由で取得する。
+func (c *client) fetchOnce(ctx context.Context, u *url.URL, headers map[string]string, ua string) (*model.Response, error) {
 	if core.IsPDFTarget(u, c.pdfCfg) {
-		return c.fetchPDFViaCDP(ctx, u, headers)
+		return c.fetchPDFViaCDP(ctx, u, headers, ua)
 	}
-
-	ua := resolveUserAgent(c.fetcherCfg, headers)
-	opts := c.chromedpAllocatorOptions(ua)
-
-	allocCtx, allocCancel := chromedp.NewExecAllocator(ctx, opts...)
-	defer allocCancel()
-
-	browserCtx, browserCancel := chromedp.NewContext(allocCtx)
-	defer browserCancel()
 
 	var html string
-	tasks := []chromedp.Action{
-		chromedp.Navigate(u.String()),
-	}
-	if sel := strings.TrimSpace(c.fetcherCfg.WaitVisibleSelector); sel != "" {
-		tasks = append(tasks, chromedp.WaitVisible(sel, chromedp.ByQuery))
-	}
-	tasks = append(tasks, chromedp.OuterHTML("html", &html, chromedp.ByQuery))
-
-	if err := chromedp.Run(browserCtx, tasks...); err != nil {
+	err := c.runWithTab(ctx, ua, func(tabCtx context.Context) error {
+		tasks := []chromedp.Action{
+			chromedp.Navigate(u.String()),
+		}
+		if sel := strings.TrimSpace(c.fetcherCfg.WaitVisibleSelector); sel != "" {
+			tasks = append(tasks, chromedp.WaitVisible(sel, chromedp.ByQuery))
+		}
+		tasks = append(tasks, chromedp.OuterHTML("html", &html, chromedp.ByQuery))
+		return chromedp.Run(tabCtx, tasks...)
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -96,6 +96,8 @@ func (c *client) chromedpAllocatorOptions(ua string) []chromedp.ExecAllocatorOpt
 	return opts
 }
 
+// isRetryableFetchError はリトライ可能な取得エラーかどうかを返す。
+// タイムアウト・キャンセル・実行ファイル未検出はリトライしない。
 func isRetryableFetchError(err error) bool {
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		return false

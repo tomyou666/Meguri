@@ -1,8 +1,30 @@
 import { z } from 'zod';
+import {
+	createDurationRangeRefine,
+	isValidGoDuration,
+} from '@/components/settings/durationFormUtils';
+import { messages } from '@/i18n/messages';
 
-const durationSchema = z
+const durationStringSchema = z
 	.string()
-	.min(1, { message: '時間を入力してください（例: 30s）' });
+	.min(1, { message: messages.settings.validation.durationRequired })
+	.refine(isValidGoDuration, {
+		message: messages.settings.validation.durationInvalid,
+	});
+
+const timeoutSchema = durationStringSchema
+	.optional()
+	.superRefine(createDurationRangeRefine('timeout'));
+
+const retryIntervalSchema = durationStringSchema
+	.optional()
+	.superRefine(createDurationRangeRefine('retry_interval'));
+
+const requestDelaySchema = durationStringSchema
+	.optional()
+	.superRefine(createDurationRangeRefine('request_delay'));
+
+const durationSchema = durationStringSchema;
 
 const contentFormatSchema = z.enum([
 	'markdown',
@@ -23,9 +45,9 @@ const optionalInt = (min: number, max: number) =>
 
 export const requestConfigSchema = z.object({
 	headers: z.record(z.string(), z.string()).optional(),
-	timeout: durationSchema.optional(),
+	timeout: timeoutSchema,
 	retry_count: optionalInt(0, 10),
-	retry_interval: durationSchema.optional(),
+	retry_interval: retryIntervalSchema,
 });
 
 export const contentConfigSchema = z.object({
@@ -62,7 +84,7 @@ export const crawlConfigSchema = z.object({
 	exclude_paths: z.array(z.string()).optional(),
 	allow_external_links: z.boolean().optional(),
 	allow_subdomains: z.boolean().optional(),
-	request_delay: durationSchema.optional(),
+	request_delay: requestDelaySchema,
 	max_concurrency: optionalInt(1, 64),
 	respect_robots_txt: z.boolean().optional(),
 	fetch_limits: fetchLimitsConfigSchema.optional(),

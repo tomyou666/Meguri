@@ -5,12 +5,14 @@ import (
 	"context"
 	"net/url"
 	"strconv"
+	"sync"
 
 	"meguri/internal/core"
 	"meguri/internal/domain/model"
 	"meguri/internal/domain/plugin"
 )
 
+// init は chromium Fetcher をコアへ登録する。
 func init() {
 	core.RegisterFetcher(string(model.FetcherChromium), func() plugin.Fetcher { return &client{} })
 }
@@ -25,6 +27,12 @@ type client struct {
 	browserPath string
 	// pdfCfg は IsPDFTarget 判定用の PDF 設定スナップショット。
 	pdfCfg *model.Config
+	// poolMu は poolKey / poolJoined の読み書きを保護する。
+	poolMu sync.Mutex
+	// poolKey は参加中のブラウザセッションを識別するキー。
+	poolKey sessionKey
+	// poolJoined は defaultBrowserPool への参加済みかどうか。
+	poolJoined bool
 }
 
 // Metadata は plugin.Plugin.Metadata の実装。
@@ -62,7 +70,10 @@ func pdfConfigFromHost(host plugin.Host) *model.Config {
 }
 
 // Close は plugin.Plugin.Close の実装。
-func (c *client) Close(_ context.Context) error { return nil }
+func (c *client) Close(_ context.Context) error {
+	c.leavePool()
+	return nil
+}
 
 // Get は plugin.Fetcher.Get の実装。
 func (c *client) Get(ctx context.Context, u *url.URL, headers map[string]string) (*model.Response, error) {

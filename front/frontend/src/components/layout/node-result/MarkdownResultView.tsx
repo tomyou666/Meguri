@@ -2,9 +2,11 @@ import ReactMarkdown from 'react-markdown';
 import { EditableTextResult } from '@/components/layout/node-result/EditableTextResult';
 import { Button } from '@/components/ui/button';
 import { messages } from '@/i18n/messages';
+import { PREVIEW_BASE_URL_ATTR } from '@/lib/externalLinkDelegation';
 
 type MarkdownResultViewProps = {
 	markdown: string;
+	previewBaseUrl: string;
 	view: 'source' | 'preview';
 	editing: boolean;
 	saving?: boolean;
@@ -16,6 +18,7 @@ type MarkdownResultViewProps = {
 
 export function MarkdownResultView({
 	markdown,
+	previewBaseUrl,
 	view,
 	editing,
 	saving = false,
@@ -42,7 +45,10 @@ export function MarkdownResultView({
 	}
 
 	return (
-		<div className='markdown-preview space-y-2 text-xs leading-relaxed [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2 [&_code]:font-mono [&_code]:text-[11px] [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground'>
+		<div
+			className='markdown-preview space-y-2 text-xs leading-relaxed [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2 [&_code]:font-mono [&_code]:text-[11px] [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground'
+			{...{ [PREVIEW_BASE_URL_ATTR]: previewBaseUrl }}
+		>
 			<ReactMarkdown>{markdown}</ReactMarkdown>
 		</div>
 	);

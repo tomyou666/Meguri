@@ -19,6 +19,10 @@ import {
 	getBfsNodeOrder,
 	getDescendantNodeIds,
 } from '@/lib/graph';
+import {
+	getMinimapCollapsed,
+	setMinimapCollapsed,
+} from '@/lib/minimapPreferences';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import { notifyDiffDetected, notifyError, notifySuccess } from '@/lib/notify';
 import { withDerivedContentFormats } from '@/lib/previewFormats';
@@ -280,7 +284,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	graphToolMode: 'pan',
 	leftSidebarCollapsed: false,
 	rightSidebarCollapsed: false,
-	minimapCollapsed: false,
+	minimapCollapsed: getMinimapCollapsed(),
 	clipboard: null,
 	loadedNodeResult: null,
 	resultPreview: null,
@@ -623,7 +627,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 		set((s) => ({ leftSidebarCollapsed: !s.leftSidebarCollapsed })),
 	toggleRightSidebar: () =>
 		set((s) => ({ rightSidebarCollapsed: !s.rightSidebarCollapsed })),
-	toggleMinimap: () => set((s) => ({ minimapCollapsed: !s.minimapCollapsed })),
+	toggleMinimap: () =>
+		set((s) => {
+			const minimapCollapsed = !s.minimapCollapsed;
+			setMinimapCollapsed(minimapCollapsed);
+			return { minimapCollapsed };
+		}),
 
 	undo: () => {
 		const { workspaces, activeWorkspaceId } = undoGraph();
@@ -791,26 +800,30 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const ws = get().getActiveWorkspace();
 		if (!ws) return;
 		const urls = collectDescendantUrls(nodeId, ws.nodes, ws.edges);
-		set((s) => ({
-			workspaces: s.workspaces.map((w) => {
-				if (w.id !== ws.id) return w;
-				let exclude_urls = [...w.exclude_urls];
-				if (excluded) {
-					for (const u of urls) {
-						if (!exclude_urls.includes(u)) exclude_urls.push(u);
+		patchWorkspaces(
+			set,
+			get,
+			(workspaces) =>
+				workspaces.map((w) => {
+					if (w.id !== ws.id) return w;
+					let exclude_urls = [...w.exclude_urls];
+					if (excluded) {
+						for (const u of urls) {
+							if (!exclude_urls.includes(u)) exclude_urls.push(u);
+						}
+					} else {
+						exclude_urls = exclude_urls.filter((u) => !urls.includes(u));
 					}
-				} else {
-					exclude_urls = exclude_urls.filter((u) => !urls.includes(u));
-				}
-				return {
-					...w,
-					exclude_urls,
-					nodes: w.nodes.map((n) =>
-						n.id === nodeId ? { ...n, crawlExclude: excluded } : n,
-					),
-				};
-			}),
-		}));
+					return {
+						...w,
+						exclude_urls,
+						nodes: w.nodes.map((n) =>
+							n.id === nodeId ? { ...n, crawlExclude: excluded } : n,
+						),
+					};
+				}),
+			{ persist: { kind: 'workspace' } },
+		);
 	},
 
 	updateWorkspaceSettings: (settings) => {

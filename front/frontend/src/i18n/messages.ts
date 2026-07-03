@@ -214,6 +214,22 @@ export const messages = {
 		saveSuccess: '設定を保存しました',
 		saveFailed: '設定の保存に失敗しました',
 		validationFailed: '入力内容に誤りがあります',
+		units: {
+			label: '単位',
+			seconds: '秒',
+			milliseconds: 'ミリ秒',
+		},
+		validation: {
+			durationRequired: '時間を入力してください',
+			durationInvalid: '正しい時間形式ではありません',
+			timeoutRange: '1秒以上300秒以下で入力してください',
+			retryIntervalRange: '100ミリ秒以上60秒以下で入力してください',
+			requestDelayRange: '0秒以上60秒以下で入力してください',
+		},
+		tagList: {
+			placeholder: '追加…',
+			remove: (value: string) => `${value} を削除`,
+		},
 		tabs: {
 			general: '基本',
 			request: 'HTTP',
@@ -224,16 +240,16 @@ export const messages = {
 			output: '出力先',
 		},
 		help: {
-			timeout:
-				'1ページ取得の最大待ち時間（例: 30s）。長すぎると全体が遅くなります。',
+			timeout: '1ページ取得の最大待ち時間。長すぎると全体が遅くなります。',
 			retry_count: '失敗時に再試行する回数（0〜10）。',
-			retry_interval: '再試行までの待ち時間（例: 2s）。',
+			retry_interval: '再試行までの待ち時間。',
 			userAgent: 'サーバーに送るブラウザ名。ブロック対策や識別に使います。',
 			formats:
 				'保存する形式。markdown / links など複数選択できます（1つ以上必須）。',
 			only_main_content: '広告やナビを除き、記事本文だけを抽出します。',
-			include_tags: '抽出対象の HTML タグ（1行1つ）。空なら自動判定。',
-			exclude_tags: '除外する HTML タグ（1行1つ）。',
+			include_tags:
+				'抽出対象の HTML タグ。Enter またはカンマで追加。空なら自動判定。',
+			exclude_tags: '除外する HTML タグ。Enter またはカンマで追加。',
 			selector: '本文を取る CSS セレクタ。空ならページ全体から推定。',
 			extract_links: 'ページ内のリンク一覧を別形式で保存します。',
 			extract_metadata: 'タイトル・description などのメタ情報を保存します。',
@@ -244,11 +260,12 @@ export const messages = {
 			crawl_enabled: 'この設定層でリンクを辿って巡回するか。',
 			max_depth: '起点から何階層まで辿るか（0=起点のみ）。',
 			max_pages: 'ワークスペース全体で訪問する最大ページ数。',
-			include_paths: '辿る URL パス（1行1つ。例: /docs）。空=制限なし。',
-			exclude_paths: '辿らない URL パス（1行1つ）。',
+			include_paths:
+				'辿る URL パス（Enter またはカンマで追加。例: /docs）。空=制限なし。',
+			exclude_paths: '辿らない URL パス。Enter またはカンマで追加。',
 			allow_external_links: '別ドメインへのリンクも辿るか。',
 			allow_subdomains: 'サブドメイン（例: blog.example.com）も辿るか。',
-			request_delay: 'リクエスト間隔（例: 500ms）。サーバー負荷軽減用。',
+			request_delay: 'リクエスト間隔。サーバー負荷軽減用。',
 			max_concurrency:
 				'同時に走らせるクロールワーカー数（1〜64）。実際の取得数は fetch_limits で別途制限される。',
 			fetch_limits_overview:

@@ -71,6 +71,19 @@ export function textareaClassName(
 	);
 }
 
+export function tagListInputClassName(
+	invalid: boolean,
+	compact = false,
+	base = 'mt-1 flex min-h-8 w-full flex-wrap items-center gap-1 rounded-lg border border-input bg-background px-1.5 py-1',
+): string {
+	return cn(
+		base,
+		compact && 'min-h-6 px-1 py-0.5',
+		invalid &&
+			'border-destructive bg-destructive/5 focus-within:border-destructive focus-within:ring-destructive/40',
+	);
+}
+
 /** 空欄は undefined。数字以外は NaN（zod で「数値を入力してください」） */
 export function parseOptionalNumber(raw: string): number | undefined {
 	const trimmed = raw.trim();

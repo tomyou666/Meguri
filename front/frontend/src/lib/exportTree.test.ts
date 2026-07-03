@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	buildExportPreview,
+	buildExportPreviewSections,
 	buildInitialFlatTree,
 	buildSplitExportFiles,
 	computeSemiCheckedIds,
@@ -360,5 +361,86 @@ describe('buildExportPreview', () => {
 		expect(preview.includedCount).toBe(1);
 		expect(preview.skippedCount).toBe(1);
 		expect(preview.content).toBe('ok');
+	});
+});
+
+describe('buildExportPreviewSections', () => {
+	it('結果なしノードをスキップし各セクションに baseUrl を付与する', () => {
+		const flat = [
+			{
+				id: 'a',
+				parent_id: null,
+				urlNormalized: 'https://a.com/page1',
+				label: 'a',
+				status: 'success',
+			},
+			{
+				id: 'b',
+				parent_id: null,
+				urlNormalized: 'https://b.com/page2',
+				label: 'b',
+				status: 'success',
+			},
+		];
+		const sections = buildExportPreviewSections(
+			['a', 'b'],
+			flat,
+			[
+				{ url: 'https://a.com/page1', markdown: 'body a' },
+				{ url: 'https://b.com/page2', markdown: 'body b' },
+			],
+			{
+				format: 'markdown',
+				separator: '\n',
+				includeHeading: true,
+				headingField: 'url',
+				splitSave: false,
+			},
+		);
+		expect(sections).toHaveLength(2);
+		expect(sections[0]).toEqual({
+			id: 'a',
+			baseUrl: 'https://a.com/page1',
+			body: '## https://a.com/page1\n\nbody a',
+		});
+		expect(sections[1]).toEqual({
+			id: 'b',
+			baseUrl: 'https://b.com/page2',
+			body: '## https://b.com/page2\n\nbody b',
+		});
+	});
+
+	it('結果なしノードはセクションに含めない', () => {
+		const flat = [
+			{
+				id: 'a',
+				parent_id: null,
+				urlNormalized: 'https://a',
+				label: 'a',
+				status: 'success',
+			},
+			{
+				id: 'b',
+				parent_id: null,
+				urlNormalized: 'https://b',
+				label: 'b',
+				status: 'success',
+			},
+		];
+		const sections = buildExportPreviewSections(
+			['a', 'b'],
+			flat,
+			[{ url: 'https://a', markdown: 'ok' }],
+			{
+				format: 'markdown',
+				separator: '\n',
+				includeHeading: false,
+				headingField: 'url',
+				splitSave: false,
+			},
+		);
+		expect(sections).toHaveLength(1);
+		expect(sections[0]?.baseUrl).toBe('https://a');
+		expect(sections[0]?.body).toBe('ok');
 	});
 });

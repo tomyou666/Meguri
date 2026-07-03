@@ -64,7 +64,6 @@ export function CrawlGraph() {
 	const expandNodes = useAppStore((s) => s.expandNodes);
 	const deleteSelectedNodes = useAppStore((s) => s.deleteSelectedNodes);
 	const bulkScrapeSelected = useAppStore((s) => s.bulkScrapeSelected);
-	const previewSelectedResults = useAppStore((s) => s.previewSelectedResults);
 	const setNodeCrawlExclude = useAppStore((s) => s.setNodeCrawlExclude);
 
 	const [contextMenu, setContextMenu] = useState<{
@@ -85,6 +84,18 @@ export function CrawlGraph() {
 		if (!ws) return new Set<string>();
 		return getHiddenDescendantIds(ws.collapsedNodeIds ?? [], ws.edges);
 	}, [ws]);
+
+	const contextMenuNodeState = useMemo(() => {
+		if (contextMenu?.kind !== 'node' || !contextMenu.id || !ws) {
+			return null;
+		}
+		const nodeId = contextMenu.id;
+		return {
+			nodeId,
+			hasChildren: hasChildNodes(nodeId, ws.edges),
+			isCollapsed: (ws.collapsedNodeIds ?? []).includes(nodeId),
+		};
+	}, [contextMenu, ws]);
 
 	const flowNodes: Node<UrlNodeData>[] = useMemo(() => {
 		if (!ws) {
@@ -353,26 +364,24 @@ export function CrawlGraph() {
 					)}
 					{contextMenu.kind === 'node' && contextMenu.id && (
 						<>
-							<button
-								type='button'
-								className='block w-full px-2 py-1 text-left text-xs hover:bg-muted'
-								onClick={() => {
-									collapseNodes([contextMenu.id!]);
-									setContextMenu(null);
-								}}
-							>
-								{messages.graph.contextCollapse}
-							</button>
-							<button
-								type='button'
-								className='block w-full px-2 py-1 text-left text-xs hover:bg-muted'
-								onClick={() => {
-									expandNodes([contextMenu.id!]);
-									setContextMenu(null);
-								}}
-							>
-								{messages.graph.contextExpand}
-							</button>
+							{contextMenuNodeState?.hasChildren && (
+								<button
+									type='button'
+									className='block w-full px-2 py-1 text-left text-xs hover:bg-muted'
+									onClick={() => {
+										if (contextMenuNodeState.isCollapsed) {
+											expandNodes([contextMenuNodeState.nodeId]);
+										} else {
+											collapseNodes([contextMenuNodeState.nodeId]);
+										}
+										setContextMenu(null);
+									}}
+								>
+									{contextMenuNodeState.isCollapsed
+										? messages.graph.contextExpand
+										: messages.graph.contextCollapse}
+								</button>
+							)}
 							<button
 								type='button'
 								className='block w-full px-2 py-1 text-left text-xs hover:bg-muted'
@@ -392,16 +401,6 @@ export function CrawlGraph() {
 								}}
 							>
 								{messages.graph.contextScrape}
-							</button>
-							<button
-								type='button'
-								className='block w-full px-2 py-1 text-left text-xs hover:bg-muted'
-								onClick={() => {
-									void previewSelectedResults();
-									setContextMenu(null);
-								}}
-							>
-								{messages.graph.contextPreviewResult}
 							</button>
 							<button
 								type='button'

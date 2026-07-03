@@ -3,6 +3,7 @@ import { Group, Panel, Separator, usePanelRef } from 'react-resizable-panels';
 import { DiffUiLayer } from '@/components/diff/DiffUiLayer';
 import { CrawlGraph } from '@/components/graph/CrawlGraph';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useFlushPendingSavesOnUnload } from '@/hooks/useFlushPendingSavesOnUnload';
 import { useNodeResultSync } from '@/hooks/useNodeResultSync';
 import { useUpdateAvailability } from '@/hooks/useUpdateAvailability';
 import { useAppStore } from '@/stores/appStore';
@@ -75,6 +76,7 @@ function SidebarPanels() {
 
 export function AppShell() {
 	useNodeResultSync();
+	useFlushPendingSavesOnUnload();
 	const { updateAvailable, refreshStatus } = useUpdateAvailability();
 
 	return (
