@@ -247,8 +247,8 @@ export const messages = {
 				'保存する形式。markdown / links など複数選択できます（1つ以上必須）。',
 			only_main_content: '広告やナビを除き、記事本文だけを抽出します。',
 			include_tags:
-				'抽出対象の HTML タグ。Enter またはカンマで追加。空なら自動判定。',
-			exclude_tags: '除外する HTML タグ。Enter またはカンマで追加。',
+				'抽出対象の HTML タグ。',
+			exclude_tags: '除外する HTML タグ。',
 			selector: '本文を取る CSS セレクタ。空ならページ全体から推定。',
 			extract_links: 'ページ内のリンク一覧を別形式で保存します。',
 			extract_metadata: 'タイトル・description などのメタ情報を保存します。',
@@ -260,8 +260,8 @@ export const messages = {
 			max_depth: '起点から何階層まで辿るか（0=起点のみ）。',
 			max_pages: 'ワークスペース全体で訪問する最大ページ数。',
 			include_paths:
-				'辿る URL パス（Enter またはカンマで追加。例: /docs）。空=制限なし。',
-			exclude_paths: '辿らない URL パス。Enter またはカンマで追加。',
+				'辿る URL パス。正規表現可。（例: .*/docs）',
+			exclude_paths: '辿らない URL パス。正規表現可。',
 			allow_external_links: '別ドメインへのリンクも辿るか。',
 			allow_subdomains: 'サブドメイン（例: blog.example.com）も辿るか。',
 			request_delay: 'リクエスト間隔。サーバー負荷軽減用。',
