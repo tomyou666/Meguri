@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-04
+
+### 追加
+
+- ワークスペース新規作成で、アプリ設定をコピーするように変更
+- robots.txtの取得失敗時は手動で取得できるように変更
+
 ## [0.5.0] - 2026-07-02
 
 ### 修正

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { scraperPort } from '@/adapters';
+import { sanitizeConfigForLayer } from '@/components/settings/configFormUtils';
 import { messages } from '@/i18n/messages';
 import { validatePartialConfig } from '@/lib/configValidation';
 import {
@@ -96,14 +97,26 @@ function patchWorkspaces(
 	});
 }
 
-function emptyWorkspace(name: string, seedUrl: string): Workspace {
+/** 作成時点の app 設定を WS 層用にスナップショットする（output 除外・formats strip）。 */
+function workspaceSettingsFromAppDefaults(
+	appDefaults: PartialConfig,
+): PartialConfig {
+	const { output: _output, ...rest } = structuredClone(appDefaults);
+	return sanitizeConfigForLayer(rest, 'workspace');
+}
+
+function emptyWorkspace(
+	name: string,
+	seedUrl: string,
+	appDefaults: PartialConfig,
+): Workspace {
 	const normalized = normalizeUrl(seedUrl);
 	const rootId = uid();
 	return {
 		id: uid(),
 		name,
 		seedUrl: normalized,
-		settings: { crawl: { enabled: true } },
+		settings: workspaceSettingsFromAppDefaults(appDefaults),
 		exclude_urls: [],
 		nodes: [
 			{
@@ -416,7 +429,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 	createWorkspace: (name, seedUrl) => {
 		try {
-			const ws = emptyWorkspace(name, seedUrl);
+			const ws = emptyWorkspace(name, seedUrl, get().appDefaults);
 			set((s) => {
 				const workspaces = [...s.workspaces, ws];
 				syncHistory(workspaces, ws.id);
