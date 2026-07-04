@@ -6,8 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-05
+
 ### 追加
 
+- ワークスペース新規作成で、アプリ設定をコピーするように変更
+- robots.txtの取得失敗時は手動で取得できるように変更
 - ノード結果パネルの URL 横にコピーアイコンを追加
 - アプリ終了時に active crawl を停止し chromium 共有プールを強制クローズする ServiceShutdown を追加
 
@@ -18,13 +22,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 - chromium PDF 取得で HTTP 403 等の非 PDF 応答をパースしようとする問題を修正
   - 取得段階で HTTP ステータスと content-type を含むエラーを返すように変更
 - front の golangci-lint が node_modules 内の Go コードを走査して失敗する問題を修正
-
-## [0.6.0] - 2026-07-04
-
-### 追加
-
-- ワークスペース新規作成で、アプリ設定をコピーするように変更
-- robots.txtの取得失敗時は手動で取得できるように変更
 
 ## [0.5.0] - 2026-07-02
 
