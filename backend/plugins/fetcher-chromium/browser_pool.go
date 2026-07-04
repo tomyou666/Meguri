@@ -97,6 +97,23 @@ func (c *client) joinPool(ctx context.Context, ua string) error {
 	return nil
 }
 
+// CloseAllBrowserSessions は全共有ブラウザセッションを強制終了しプールを空にする。
+func CloseAllBrowserSessions() {
+	defaultBrowserPool.closeAll()
+}
+
+// closeAll は entries 内の全セッションを refcount に関係なく終了する。
+func (p *browserPool) closeAll() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for key, ent := range p.entries {
+		if ent != nil {
+			ent.close()
+		}
+		delete(p.entries, key)
+	}
+}
+
 // leavePool は client を defaultBrowserPool から離脱させる。
 func (c *client) leavePool() {
 	c.poolMu.Lock()

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 ### 追加
 
 - ノード結果パネルの URL 横にコピーアイコンを追加
+- アプリ終了時に active crawl を停止し chromium 共有プールを強制クローズする ServiceShutdown を追加
 
 ### 修正
 

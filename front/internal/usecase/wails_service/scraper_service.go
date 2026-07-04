@@ -27,6 +27,8 @@ const (
 	topicCrawlError     = "scraper:crawl:error"
 )
 
+const crawlShutdownTimeout = 5 * time.Second
+
 // ScraperService は backend crawler を駆動し Wails Event で進捗を配信する。
 type ScraperService struct {
 	app     *application.App
@@ -41,6 +43,8 @@ type activeCrawlJob struct {
 	cache  *runner.RunnerCache
 	opts   *runner.RunOptions
 	cancel context.CancelFunc
+	// done はクロール goroutine 終了を通知する（close でシグナル）。
+	done chan struct{}
 }
 
 // NewScraperService は ScraperService を構築する。
@@ -51,6 +55,29 @@ func NewScraperService(persist *domain.CrawlPersistService) *ScraperService {
 // SetApp は Wails App を後から注入する（Event 発火用）。
 func (s *ScraperService) SetApp(app *application.App) {
 	s.app = app
+}
+
+// ServiceShutdown は Wails アプリ終了時に active crawl を止め chromium プールを閉じる。
+func (s *ScraperService) ServiceShutdown() error {
+	s.mu.Lock()
+	var done <-chan struct{}
+	if s.job != nil {
+		done = s.job.done
+		s.job.cancel()
+	}
+	s.mu.Unlock()
+
+	if done != nil {
+		select {
+		case <-done:
+		case <-time.After(crawlShutdownTimeout):
+			slog.Warn("scraper crawl shutdown timed out")
+			s.releaseActiveJobResources()
+		}
+	}
+
+	runner.CloseChromiumBrowsers()
+	return nil
 }
 
 // StartCrawl はクロールを非同期で開始し runId を返す。
@@ -86,12 +113,14 @@ func (s *ScraperService) StartCrawl(req model.StartCrawlRequest) (string, error)
 	ctx, cancel := context.WithCancel(context.Background())
 	pause := runner.NewPauseController()
 	cache := runner.NewRunnerCache()
+	done := make(chan struct{})
 	s.job = &activeCrawlJob{
 		runID:  runID,
 		pause:  pause,
 		cache:  cache,
 		opts:   &runner.RunOptions{Pause: pause, Cache: cache},
 		cancel: cancel,
+		done:   done,
 	}
 	s.mu.Unlock()
 
@@ -101,18 +130,9 @@ func (s *ScraperService) StartCrawl(req model.StartCrawlRequest) (string, error)
 	})
 
 	go func() {
+		defer close(done)
 		defer func() {
-			s.mu.Lock()
-			if s.job != nil {
-				if s.job.cache != nil {
-					s.job.cache.CloseAll()
-				}
-				if s.job.opts != nil && s.job.opts.FetchLimiter != nil {
-					s.job.opts.FetchLimiter.Close()
-				}
-			}
-			s.job = nil
-			s.mu.Unlock()
+			s.releaseActiveJobResources()
 		}()
 		if err := s.runCrawl(ctx, req); err != nil {
 			s.finishCrawlRun(ctx, req, "error", nil, err.Error())
@@ -157,6 +177,22 @@ func (s *ScraperService) StopCrawl(runID string) error {
 	}
 	s.job.cancel()
 	return nil
+}
+
+// releaseActiveJobResources は active job の RunnerCache と FetchLimiter を解放する。
+func (s *ScraperService) releaseActiveJobResources() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.job == nil {
+		return
+	}
+	if s.job.cache != nil {
+		s.job.cache.CloseAll()
+	}
+	if s.job.opts != nil && s.job.opts.FetchLimiter != nil {
+		s.job.opts.FetchLimiter.Close()
+	}
+	s.job = nil
 }
 
 func (s *ScraperService) runOptions() *runner.RunOptions {
