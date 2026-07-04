@@ -36,7 +36,13 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             pkg-config \
             libgtk-4-dev \
-            libwebkitgtk-6.0-dev
+            libwebkitgtk-6.0-dev \
+            chromium
+          if command -v chromium >/dev/null; then
+            echo "MEGURI_CHROMIUM_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
+          elif command -v chromium-browser >/dev/null; then
+            echo "MEGURI_CHROMIUM_PATH=$(command -v chromium-browser)" >> "$GITHUB_ENV"
+          fi
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
