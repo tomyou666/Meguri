@@ -1,4 +1,4 @@
-import { PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Copy, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { useMemo } from 'react';
 import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
 import { NodeResultPanel } from '@/components/layout/node-result/NodeResultPanel';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { messages } from '@/i18n/messages';
+import { notifyError, notifySuccess } from '@/lib/notify';
 import {
 	bodySnippetForFormat,
 	getPreviewTabs,
@@ -135,15 +136,39 @@ export function RightSidebarContent() {
 	}
 
 	if (node) {
+		const copyNodeUrl = async () => {
+			try {
+				await navigator.clipboard.writeText(node.urlNormalized);
+				notifySuccess(messages.right.copied);
+			} catch (err) {
+				notifyError(messages.right.copyFailed, {
+					description: err instanceof Error ? err.message : String(err),
+				});
+			}
+		};
+
 		return (
 			<aside className={shellClass}>
 				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
-					<div className='min-w-0'>
+					<div className='min-w-0 flex-1'>
 						<p className='text-xs font-semibold'>{messages.right.nodeResult}</p>
-						<ExternalLink
-							href={node.urlNormalized}
-							className='block truncate text-xs text-muted-foreground'
-						/>
+						<div className='flex min-w-0 items-center gap-0.5'>
+							<ExternalLink
+								href={node.urlNormalized}
+								className='min-w-0 flex-1 truncate text-xs text-muted-foreground'
+							/>
+							<ActionTooltip label={messages.right.copy}>
+								<Button
+									variant='ghost'
+									size='icon-xs'
+									className='shrink-0'
+									aria-label={messages.right.copy}
+									onClick={() => void copyNodeUrl()}
+								>
+									<Copy className='size-3.5' />
+								</Button>
+							</ActionTooltip>
+						</div>
 						<Badge variant='outline' className='mt-1 text-[10px] font-normal'>
 							{messages.right.transformerBadge(transformerFormat)}
 						</Badge>
@@ -159,7 +184,10 @@ export function RightSidebarContent() {
 					<CloseRightSidebarButton onClick={toggleRightSidebar} />
 				</div>
 				{node.status === 'error' && node.lastError && (
-					<Alert variant='destructive' className='m-2 text-xs'>
+					<Alert
+						variant='destructive'
+						className='m-2 min-w-0 overflow-hidden break-all text-xs'
+					>
 						{messages.error.nodeFailed}: {node.lastError}
 					</Alert>
 				)}

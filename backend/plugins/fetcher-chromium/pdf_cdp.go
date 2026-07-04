@@ -1,6 +1,7 @@
 package chromiumfetch
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -12,6 +13,8 @@ import (
 
 	"meguri/internal/domain/model"
 )
+
+const pdfMagic = "%PDF-"
 
 // fetchPDFViaCDP は CDP Fetch ドメインで Response 段階をインターセプトし PDF バイナリを取得する。
 func (c *client) fetchPDFViaCDP(ctx context.Context, u *url.URL, headers map[string]string, ua string) (*model.Response, error) {
@@ -43,6 +46,7 @@ func (c *client) fetchPDFViaCDP(ctx context.Context, u *url.URL, headers map[str
 			}
 
 			go func(ev *fetch.EventRequestPaused) {
+				final := false
 				err := chromedp.Run(tabCtx, chromedp.ActionFunc(func(ctx context.Context) error {
 					b, err := fetch.GetResponseBody(ev.RequestID).Do(ctx)
 					if err != nil {
@@ -56,12 +60,30 @@ func (c *client) fetchPDFViaCDP(ctx context.Context, u *url.URL, headers map[str
 							break
 						}
 					}
-					body = b
-					contentType = mime
-					statusCode = ev.ResponseStatusCode
+					hasMagic := bytes.HasPrefix(b, []byte(pdfMagic))
+					// PDF 本体、または 4xx の確定失敗のみ完了とする。
+					// WAF challenge (202 等) はブラウザ側の再取得を待つ。
+					if hasMagic || ev.ResponseStatusCode >= 400 {
+						body = b
+						contentType = mime
+						statusCode = ev.ResponseStatusCode
+						final = true
+					}
 					return fetch.ContinueRequest(ev.RequestID).Do(ctx)
 				}))
-				ready <- err
+				if err != nil {
+					select {
+					case ready <- err:
+					default:
+					}
+					return
+				}
+				if final {
+					select {
+					case ready <- nil:
+					default:
+					}
+				}
 			}(e)
 		})
 
@@ -87,7 +109,7 @@ func (c *client) fetchPDFViaCDP(ctx context.Context, u *url.URL, headers map[str
 		return nil, err
 	}
 	if len(body) == 0 {
-		return nil, fmt.Errorf("pdf fetch: no body captured")
+		return nil, fmt.Errorf("pdf取得失敗: 本文を取得できませんでした")
 	}
 
 	ct := contentType
@@ -97,6 +119,12 @@ func (c *client) fetchPDFViaCDP(ctx context.Context, u *url.URL, headers map[str
 	sc := int(statusCode)
 	if sc == 0 {
 		sc = 200
+	}
+	if sc < 200 || sc >= 300 {
+		return nil, fmt.Errorf("pdf取得失敗: HTTP %d (content-type=%s)", sc, ct)
+	}
+	if !bytes.HasPrefix(body, []byte(pdfMagic)) {
+		return nil, fmt.Errorf("pdf取得失敗: PDFではない応答 (HTTP %d, content-type=%s)", sc, ct)
 	}
 
 	return &model.Response{

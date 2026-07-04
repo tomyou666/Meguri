@@ -1,5 +1,6 @@
-.PHONY: help all check fmt lint vuln upgrade-patch upgrade-minor \
+.PHONY: help all check fmt lint tidy vuln upgrade-patch upgrade-minor \
 	$(addprefix fmt-,$(MODULES)) $(addprefix lint-,$(MODULES)) \
+	$(addprefix tidy-,$(MODULES)) \
 	$(addprefix gvuln-,$(MODULES)) \
 	$(addprefix gupgrade-patch-,$(MODULES)) \
 	$(addprefix gupgrade-minor-,$(MODULES))
@@ -19,6 +20,7 @@ help:
 	@echo "  check         Run fmt and lint on all tool modules"
 	@echo "  fmt           Run go fmt on all tool modules"
 	@echo "  lint          Run golangci-lint on all tool modules"
+	@echo "  tidy          Run go mod tidy on all tool modules"
 	@echo "  vuln          Run govulncheck on all tool modules"
 	@echo "  upgrade-patch Upgrade patch versions for all tool modules"
 	@echo "  upgrade-minor Upgrade minor versions for all tool modules"
@@ -38,6 +40,12 @@ lint: $(addprefix lint-,$(MODULES))
 lint-%:
 	@echo "==> $*: golangci-lint"
 	cd $* && $(GOLANGCI_LINT) run ./...
+
+tidy: $(addprefix tidy-,$(MODULES))
+
+tidy-%:
+	@echo "==> $*: go mod tidy"
+	$(GO) -C $* mod tidy
 
 gvuln: $(addprefix gvuln-,$(MODULES))
 

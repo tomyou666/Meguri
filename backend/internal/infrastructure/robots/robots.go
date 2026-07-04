@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/temoto/robotstxt"
@@ -32,19 +33,22 @@ func NewCache(fetcher plugin.Fetcher) *Cache {
 
 // Allowed は与えられた URL と User-Agent に対する許可判定。
 // 取得失敗・パース失敗は保守的に「許可」として扱う（設計書 05 章方針）。
+// ua は robots.txt 取得時の User-Agent ヘッダにも使う（ページ取得と揃える）。
 func (c *Cache) Allowed(ctx context.Context, u *url.URL, ua string) bool {
-	if ua == "" {
-		ua = "*"
+	agent := ua
+	if agent == "" {
+		agent = "*"
 	}
-	data := c.get(ctx, u)
+	data := c.get(ctx, u, ua)
 	if data == nil {
 		return true
 	}
-	return data.TestAgent(u.Path, ua)
+	return data.TestAgent(u.Path, agent)
 }
 
 // get はホスト単位で robots.txt を取得・キャッシュし、パース結果を返す。
-func (c *Cache) get(ctx context.Context, u *url.URL) *robotstxt.RobotsData {
+// requestUA が空でない場合は User-Agent ヘッダとして付与する。
+func (c *Cache) get(ctx context.Context, u *url.URL, requestUA string) *robotstxt.RobotsData {
 	host := u.Scheme + "://" + u.Host
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -57,7 +61,11 @@ func (c *Cache) get(ctx context.Context, u *url.URL) *robotstxt.RobotsData {
 		c.hosts[host] = nil
 		return nil
 	}
-	res, err := c.fetcher.Get(ctx, robotsURL, nil)
+	var headers map[string]string
+	if ua := strings.TrimSpace(requestUA); ua != "" {
+		headers = map[string]string{"User-Agent": ua}
+	}
+	res, err := c.fetcher.Get(ctx, robotsURL, headers)
 	if err != nil {
 		slog.Warn("robots.txt fetch failed (treat as allow)", "host", host, "err", err.Error())
 		c.hosts[host] = nil

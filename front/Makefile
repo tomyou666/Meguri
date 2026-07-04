@@ -1,4 +1,4 @@
-.PHONY: help setup dev run build clean check test lint fmt lintfix \
+.PHONY: help setup dev run build clean check test lint fmt tidy lintfix \
 	gtest gbuild gtidy gfmt gvet glint gvuln gupgrade-patch gupgrade-minor \
 	finstall fdev fbuild fpreview ftest flint ftypecheck ffmt flintfix \
 	faudit fupgrade-patch fupgrade-minor vuln upgrade-patch upgrade-minor \
@@ -47,6 +47,7 @@ help:
 	@echo "  check     lint + test"
 	@echo "  lint      Run golangci-lint + frontend lint + typecheck"
 	@echo "  fmt       Run go fmt + frontend lint auto-fix"
+	@echo "  tidy      Run go mod tidy"
 	@echo "  test      Run Go + frontend tests"
 	@echo "  gfmt      Run go fmt on Go packages"
 	@echo "  glint     Run golangci-lint on Go packages"
@@ -140,6 +141,8 @@ gtest:
 
 gbuild:
 	$(GO) build ./...
+
+tidy: gtidy
 
 gtidy:
 	$(GO) mod tidy

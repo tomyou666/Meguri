@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+### 追加
+
+- ノード結果パネルの URL 横にコピーアイコンを追加
+
+### 修正
+
+- ノード結果パネルのエラー表示が枠をはみ出す問題を修正
+- chromium クロール中の robots.txt 取得で User-Agent ヘッダが付与されず `inconsistent chromium user-agent` になる問題を修正
+- chromium PDF 取得で HTTP 403 等の非 PDF 応答をパースしようとする問題を修正
+  - 取得段階で HTTP ステータスと content-type を含むエラーを返すように変更
+- front の golangci-lint が node_modules 内の Go コードを走査して失敗する問題を修正
+
 ## [0.6.0] - 2026-07-04
 
 ### 追加
