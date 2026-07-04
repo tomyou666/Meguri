@@ -1,6 +1,23 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+	Bot,
+	BotOff,
+	ChevronDown,
+	ChevronRight,
+	CircleAlert,
+	Loader2,
+	RefreshCw,
+} from 'lucide-react';
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { messages } from '@/i18n/messages';
 import {
 	countNodesByStatus,
@@ -25,6 +42,21 @@ type RobotsInfo = {
 	error?: string;
 };
 
+/** host 単位のセッションキャッシュ。WS 切替・パネル unmount でも保持する。 */
+let robotsSessionCache: Record<string, RobotsInfo> = {};
+const robotsFetchGenByHost: Record<string, number> = {};
+
+function readRobotsSessionCache(): Record<string, RobotsInfo> {
+	return robotsSessionCache;
+}
+
+function writeRobotsSessionCache(
+	updater: (prev: Record<string, RobotsInfo>) => Record<string, RobotsInfo>,
+): Record<string, RobotsInfo> {
+	robotsSessionCache = updater(robotsSessionCache);
+	return robotsSessionCache;
+}
+
 type DomainStatusPanelProps = {
 	nodes: GraphNode[];
 	appDefaults: PartialConfig;
@@ -41,6 +73,10 @@ const STATUS_BADGE: Record<
 	running: 'outline',
 	idle: 'outline',
 };
+
+function isRobotsLoading(robots?: RobotsInfo): boolean {
+	return !robots || robots.status === 'loading';
+}
 
 /** key が変わったときだけ value スナップショットを更新する。 */
 function useSnapshotWhenKeyChanges<T>(value: T, key: string): T {
@@ -77,86 +113,111 @@ export function DomainStatusPanel({
 	);
 
 	const [expandedHost, setExpandedHost] = useState<string | null>(null);
-	const [robotsByHost, setRobotsByHost] = useState<Record<string, RobotsInfo>>(
-		{},
-	);
+	const [robotsByHost, setRobotsByHost] = useState(readRobotsSessionCache);
 	const robotsByHostRef = useRef(robotsByHost);
 	robotsByHostRef.current = robotsByHost;
-	const fetchGenRef = useRef(0);
 
-	useEffect(() => {
-		const fetchGen = ++fetchGenRef.current;
+	const commitRobotsCache = useCallback(
+		(
+			updater: (prev: Record<string, RobotsInfo>) => Record<string, RobotsInfo>,
+		) => {
+			const next = writeRobotsSessionCache(updater);
+			robotsByHostRef.current = next;
+			setRobotsByHost(next);
+		},
+		[],
+	);
 
-		if (fetchTargets.size === 0) {
-			setRobotsByHost({});
-			return;
-		}
+	const fetchTargetsRef = useRef(fetchTargets);
+	fetchTargetsRef.current = fetchTargets;
+	const configRef = useRef({ appDefaults, wsSettings });
+	configRef.current = { appDefaults, wsSettings };
 
-		const hostsToFetch = [...fetchTargets.keys()].filter(
-			(host) => !isRobotsCacheHit(robotsByHostRef.current[host]),
-		);
+	const fetchRobotsForHosts = useCallback(
+		(hostsToFetch: string[]) => {
+			if (hostsToFetch.length === 0) return;
 
-		setRobotsByHost((prev) => {
-			const next: Record<string, RobotsInfo> = {};
-			for (const host of fetchTargets.keys()) {
-				if (isRobotsCacheHit(prev[host])) {
-					next[host] = prev[host];
-				} else {
-					next[host] = { status: 'loading' };
-				}
+			const targets = fetchTargetsRef.current;
+			const gens: Record<string, number> = {};
+			for (const host of hostsToFetch) {
+				const nextGen = (robotsFetchGenByHost[host] ?? 0) + 1;
+				robotsFetchGenByHost[host] = nextGen;
+				gens[host] = nextGen;
 			}
-			return next;
-		});
 
-		if (hostsToFetch.length === 0) {
-			return;
-		}
-
-		const targetsSnapshot = fetchTargets;
-
-		void Promise.allSettled(
-			hostsToFetch.map(async (host) => {
-				const baseURL = targetsSnapshot.get(host)!;
-				const info = await ScraperService.FetchRobotsTxt(
-					host,
-					baseURL,
-					appDefaults,
-					wsSettings,
-				);
-				return { host, info };
-			}),
-		).then((results) => {
-			if (fetchGen !== fetchGenRef.current) return;
-			setRobotsByHost((prev) => {
+			commitRobotsCache((prev) => {
 				const next = { ...prev };
-				for (let i = 0; i < results.length; i++) {
-					const result = results[i];
-					const host = hostsToFetch[i]!;
-					if (!targetsSnapshot.has(host)) continue;
-					if (result.status === 'fulfilled') {
-						const { info } = result.value;
-						next[host] = {
-							status: info.status as RobotsStatus,
-							statusCode: info.statusCode,
-							body: info.body,
-							error: info.error,
-						};
-					} else {
-						next[host] = {
-							status: 'error',
-							error: String(result.reason),
-						};
-					}
-				}
-				for (const host of Object.keys(next)) {
-					if (!targetsSnapshot.has(host)) {
-						delete next[host];
-					}
+				for (const host of hostsToFetch) {
+					next[host] = { status: 'loading' };
 				}
 				return next;
 			});
-		});
-	}, [fetchTargets, appDefaults, wsSettings]);
+
+			const { appDefaults: defaults, wsSettings: settings } = configRef.current;
+
+			void Promise.allSettled(
+				hostsToFetch.map(async (host) => {
+					const baseURL = targets.get(host);
+					if (!baseURL) {
+						return { host, info: null as RobotsInfo | null };
+					}
+					try {
+						const info = await ScraperService.FetchRobotsTxt(
+							host,
+							baseURL,
+							defaults,
+							settings,
+						);
+						return {
+							host,
+							info: {
+								status: info.status as RobotsStatus,
+								statusCode: info.statusCode,
+								body: info.body,
+								error: info.error,
+							} satisfies RobotsInfo,
+						};
+					} catch (err) {
+						return {
+							host,
+							info: {
+								status: 'error' as const,
+								error: String(err),
+							} satisfies RobotsInfo,
+						};
+					}
+				}),
+			).then((results) => {
+				commitRobotsCache((prev) => {
+					const next = { ...prev };
+					let changed = false;
+					for (const result of results) {
+						if (result.status !== 'fulfilled') continue;
+						const { host, info } = result.value;
+						if (gens[host] !== robotsFetchGenByHost[host]) continue;
+						if (!info) continue;
+						next[host] = info;
+						changed = true;
+					}
+					return changed ? next : prev;
+				});
+			});
+		},
+		[commitRobotsCache],
+	);
+
+	useEffect(() => {
+		// セッションキャッシュを表示に同期（unmount 後の再 mount 含む）
+		setRobotsByHost(readRobotsSessionCache());
+		robotsByHostRef.current = readRobotsSessionCache();
+
+		if (fetchTargets.size === 0) return;
+
+		const hostsToFetch = [...fetchTargets.keys()].filter(
+			(host) => !isRobotsCacheHit(readRobotsSessionCache()[host]),
+		);
+		fetchRobotsForHosts(hostsToFetch);
+	}, [fetchTargets, fetchRobotsForHosts]);
 
 	if (hosts.length === 0) {
 		return (
@@ -173,33 +234,53 @@ export function DomainStatusPanel({
 				const counts = countNodesByStatus(hostNodeList);
 				const robots = robotsByHost[host];
 				const expanded = expandedHost === host;
+				const loading = isRobotsLoading(robots);
 
 				return (
 					<div key={host} className='rounded-md'>
-						<button
-							type='button'
+						<div
 							className={cn(
-								'flex w-full items-start gap-1 rounded-md px-2 py-1.5 text-left text-xs hover:bg-sidebar-accent',
+								'flex w-full items-start gap-0.5 rounded-md px-1 py-0.5',
 								expanded && 'bg-sidebar-accent',
 							)}
-							onClick={() =>
-								setExpandedHost((cur) => (cur === host ? null : host))
-							}
-							aria-expanded={expanded}
 						>
-							{expanded ? (
-								<ChevronDown className='mt-0.5 size-3 shrink-0 text-muted-foreground' />
-							) : (
-								<ChevronRight className='mt-0.5 size-3 shrink-0 text-muted-foreground' />
-							)}
-							<span className='min-w-0 flex-1'>
-								<span className='block truncate font-medium'>{host}</span>
-								<span className='mt-0.5 block truncate text-[10px] text-muted-foreground'>
-									{messages.domainStatus.statusSummary(counts)}
+							<button
+								type='button'
+								className='flex min-w-0 flex-1 items-start gap-1 rounded-md px-1 py-1 text-left text-xs hover:bg-sidebar-accent'
+								onClick={() =>
+									setExpandedHost((cur) => (cur === host ? null : host))
+								}
+								aria-expanded={expanded}
+							>
+								{expanded ? (
+									<ChevronDown className='mt-0.5 size-3 shrink-0 text-muted-foreground' />
+								) : (
+									<ChevronRight className='mt-0.5 size-3 shrink-0 text-muted-foreground' />
+								)}
+								<span className='min-w-0 flex-1'>
+									<span className='block truncate font-medium'>{host}</span>
+									<span className='mt-0.5 block truncate text-[10px] text-muted-foreground'>
+										{messages.domainStatus.statusSummary(counts)}
+									</span>
 								</span>
-							</span>
-							<RobotsBadge robots={robots} />
-						</button>
+								<RobotsStatusIcon robots={robots} />
+							</button>
+							<ActionTooltip label={messages.domainStatus.robotsRefresh}>
+								<span className='mt-0.5 inline-flex shrink-0'>
+									<Button
+										variant='ghost'
+										size='icon-xs'
+										disabled={loading}
+										aria-label={messages.domainStatus.robotsRefresh}
+										onClick={() => fetchRobotsForHosts([host])}
+									>
+										<RefreshCw
+											className={cn('size-3', loading && 'animate-spin')}
+										/>
+									</Button>
+								</span>
+							</ActionTooltip>
+						</div>
 						{expanded && (
 							<div className='space-y-2 px-2 pb-2 pt-1'>
 								<div className='flex flex-wrap gap-1'>
@@ -226,32 +307,34 @@ export function DomainStatusPanel({
 	);
 }
 
-function RobotsBadge({ robots }: { robots?: RobotsInfo }) {
+function RobotsStatusIcon({ robots }: { robots?: RobotsInfo }) {
+	let label: string;
+	let icon: ReactNode;
+
 	if (!robots || robots.status === 'loading') {
-		return (
-			<Badge variant='outline' className='shrink-0 text-[10px]'>
-				{messages.domainStatus.robotsLoading}
-			</Badge>
-		);
+		label = messages.domainStatus.robotsLoading;
+		icon = <Loader2 className='size-3.5 animate-spin text-muted-foreground' />;
+	} else if (robots.status === 'found') {
+		label = messages.domainStatus.robotsFound;
+		icon = <Bot className='size-3.5 text-foreground' />;
+	} else if (robots.status === 'not_found') {
+		label = messages.domainStatus.robotsNotFound;
+		icon = <BotOff className='size-3.5 text-muted-foreground' />;
+	} else {
+		label = messages.domainStatus.robotsError;
+		icon = <CircleAlert className='size-3.5 text-destructive' />;
 	}
-	if (robots.status === 'found') {
-		return (
-			<Badge variant='default' className='shrink-0 text-[10px]'>
-				{messages.domainStatus.robotsFound}
-			</Badge>
-		);
-	}
-	if (robots.status === 'not_found') {
-		return (
-			<Badge variant='secondary' className='shrink-0 text-[10px]'>
-				{messages.domainStatus.robotsNotFound}
-			</Badge>
-		);
-	}
+
 	return (
-		<Badge variant='destructive' className='shrink-0 text-[10px]'>
-			{messages.domainStatus.robotsError}
-		</Badge>
+		<ActionTooltip label={label}>
+			<span
+				className='mt-0.5 inline-flex shrink-0'
+				aria-label={label}
+				role='img'
+			>
+				{icon}
+			</span>
+		</ActionTooltip>
 	);
 }
 
@@ -263,6 +346,7 @@ function RobotsDetail({ robots }: { robots?: RobotsInfo }) {
 			</p>
 		);
 	}
+
 	if (robots.status === 'found') {
 		return (
 			<pre className='max-h-40 overflow-auto rounded border border-border bg-muted/30 p-2 text-[10px] whitespace-pre-wrap break-all'>
@@ -270,6 +354,7 @@ function RobotsDetail({ robots }: { robots?: RobotsInfo }) {
 			</pre>
 		);
 	}
+
 	if (robots.status === 'not_found') {
 		return (
 			<p className='text-[10px] text-muted-foreground'>
@@ -277,6 +362,7 @@ function RobotsDetail({ robots }: { robots?: RobotsInfo }) {
 			</p>
 		);
 	}
+
 	return (
 		<p className='text-[10px] text-destructive'>
 			{messages.domainStatus.robotsErrorDetail(robots.error, robots.statusCode)}

@@ -134,8 +134,9 @@ export const messages = {
 		robotsLoading: 'robots 取得中…',
 		robotsFound: 'robots あり',
 		robotsNotFound: 'robots なし',
-		robotsError: '取得失敗',
-		robotsEmpty: '（空）',
+		robotsError: 'robots 取得失敗',
+		robotsRefresh: 'robots 再取得',
+		robotsEmpty: 'robots 空',
 		robotsNotFoundDetail: (code?: number) =>
 			code
 				? `robots.txt は見つかりませんでした（HTTP ${code}）`
@@ -246,8 +247,7 @@ export const messages = {
 			formats:
 				'保存する形式。markdown / links など複数選択できます（1つ以上必須）。',
 			only_main_content: '広告やナビを除き、記事本文だけを抽出します。',
-			include_tags:
-				'抽出対象の HTML タグ。',
+			include_tags: '抽出対象の HTML タグ。',
 			exclude_tags: '除外する HTML タグ。',
 			selector: '本文を取る CSS セレクタ。空ならページ全体から推定。',
 			extract_links: 'ページ内のリンク一覧を別形式で保存します。',
@@ -259,8 +259,7 @@ export const messages = {
 			crawl_enabled: 'この設定層でリンクを辿って巡回するか。',
 			max_depth: '起点から何階層まで辿るか（0=起点のみ）。',
 			max_pages: 'ワークスペース全体で訪問する最大ページ数。',
-			include_paths:
-				'辿る URL パス。正規表現可。（例: .*/docs）',
+			include_paths: '辿る URL パス。正規表現可。（例: .*/docs）',
 			exclude_paths: '辿らない URL パス。正規表現可。',
 			allow_external_links: '別ドメインへのリンクも辿るか。',
 			allow_subdomains: 'サブドメイン（例: blog.example.com）も辿るか。',
