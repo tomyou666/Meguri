@@ -22,6 +22,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "skipLibCheck": true
   },
   "include": [
     "src",
