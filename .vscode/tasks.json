@@ -93,7 +93,7 @@
                 "background": {
                     "activeOnStart": true,
                     "beginsPattern": ".",
-                    "endsPattern": "API server listening at:"
+                    "endsPattern": "(API server listening at:|DAP server listening at:)"
                 }
             },
             "presentation": {

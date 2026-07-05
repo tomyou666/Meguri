@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Waits for meguri (wails3 dev) and starts legacy RPC headless delve for VS Code.
- * Use launch.json: "debugAdapter": "legacy", "apiVersion": 2, "mode": "remote"
+ * Waits for meguri (wails3 dev) and starts headless delve (DAP) for VS Code.
+ * Use launch.json: "mode": "remote" (default dlv-dap adapter)
  */
 const { spawn, execSync } = require('node:child_process');
 const { existsSync } = require('node:fs');
@@ -61,6 +61,18 @@ function getDlvPath() {
 	);
 }
 
+function killStaleDlv() {
+	try {
+		if (process.platform === 'win32') {
+			execSync('taskkill /F /IM dlv.exe', { stdio: 'ignore' });
+		} else {
+			execSync('pkill -x dlv', { stdio: 'ignore' });
+		}
+	} catch {
+		// no running dlv — ok
+	}
+}
+
 function findPid() {
 	if (process.platform === 'win32') {
 		try {
@@ -112,10 +124,12 @@ async function waitForPid() {
 }
 
 async function main() {
+	killStaleDlv();
+
 	const pid = await waitForPid();
 	const dlv = getDlvPath();
 	console.log(
-		`Attaching to ${PROCESS_NAME} (PID ${pid}) on 127.0.0.1:${PORT} (legacy RPC headless)...`,
+		`Attaching to ${PROCESS_NAME} (PID ${pid}) on 127.0.0.1:${PORT} (DAP headless)...`,
 	);
 
 	const child = spawn(
@@ -126,8 +140,6 @@ async function main() {
 			'--headless',
 			'--listen',
 			`127.0.0.1:${PORT}`,
-			'--api-version',
-			'2',
 			'--accept-multiclient',
 			'--continue',
 		],
