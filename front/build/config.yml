@@ -33,19 +33,22 @@ info:
 # Dev mode configuration
 # root_path: .. でリポジトリルートを監視し、replace 先の backend/ 変更でも再ビルドする。
 # executes の dir: front で Taskfile がある front/ からビルド・実行する。
+# debounce / ignore は起動時ウォッチャーイベントの誤 rebuild 抑制用（backend hot reload は維持）。
 dev_mode:
   root_path: ..
-  log_level: warn
-  debounce: 1000
+  log_level: info
+  debounce: 4000
   ignore:
     dir:
       - .git
-      - front/node_modules
-      - front/frontend
-      - front/bin
-      - backend/bin
-      - backend/out
-      - backend/doc
+      - .vscode
+      - node_modules
+      - frontend
+      - bin
+      - logs
+      - out
+      - doc
+      - testdata
     file:
       - .DS_Store
       - .gitignore

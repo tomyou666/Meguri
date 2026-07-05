@@ -59,6 +59,20 @@
             "postDebugTask": "dlv: kill"
         },
         {
+            "name": "Wails3: Dev",
+            "type": "node",
+            "request": "launch",
+            "runtimeArgs": [
+                "-e",
+                "setInterval(() => {}, 2147483647)"
+            ],
+            "preLaunchTask": "wails3: dev stack",
+            "presentation": {
+                "order": 0,
+                "group": "Wails3"
+            }
+        },
+        {
             "name": "Wails3: Debug Frontend TSX (Chrome, Vite only)",
             "type": "chrome",
             "request": "launch",
@@ -84,17 +98,19 @@
             ],
             "preLaunchTask": "wails3: dev stack",
             "presentation": {
-                "order": 1
+                "order": 2,
+                "group": "Wails3"
             }
         },
         {
-            "name": "Wails3: Dev + TSX + Attach Go",
+            "name": "Wails3: Attach Go (already running)",
             "configurations": [
                 "Wails3: Attach Go (meguri, remote)"
             ],
-            "preLaunchTask": "wails3: dev stack",
             "presentation": {
-                "order": 1
+                "order": 1,
+                "group": "Wails3",
+                "hidden": false
             },
             "stopAll": true
         }

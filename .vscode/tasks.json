@@ -43,6 +43,7 @@
         },
         {
             "label": "wails3: dev",
+            "detail": "Step 1: Go attach 前に手動実行。2回目の Connected まで待つ。",
             "type": "shell",
             "command": "wails3 dev -config ./build/config.yml -port 9245",
             "options": {
