@@ -1,4 +1,4 @@
-.PHONY: fmt vet lint test build all check tidy wire \
+.PHONY: fmt vet lint test build all check tidy wire generate \
 	gvuln gupgrade-patch gupgrade-minor vuln upgrade-patch upgrade-minor
 
 GO ?= go
@@ -37,6 +37,8 @@ tidy:
 
 wire:
 	cd internal/app && $(GO) run github.com/google/wire/cmd/wire
+
+generate: wire
 
 gvuln:
 	$(GOVULNCHECK) ./...

@@ -1,7 +1,7 @@
-.PHONY: help all check fmt vet lint test build tidy wire tools \
+.PHONY: help all check fmt vet lint test build tidy wire generate tools \
 	vuln upgrade-patch upgrade-minor \
-	bcheck bbuild btidy bwire blint bfmt bvuln bupgrade-patch bupgrade-minor \
-	fdev fbuild frun ftest flint ffmt fcheck fsetup ftools ftidy fvuln fupgrade-patch fupgrade-minor \
+	bcheck bbuild btidy bwire bgenerate blint bfmt bvuln bupgrade-patch bupgrade-minor \
+	fdev fbuild frun ftest flint ffmt fcheck fsetup ftools ftidy fwire fgenerate fvuln fupgrade-patch fupgrade-minor \
 	tlint tfmt ttidy tvuln tupgrade-patch tupgrade-minor
 
 BACKEND_DIR ?= backend
@@ -20,17 +20,18 @@ help:
 	@echo "  lint          Run backend, front, and tools lint"
 	@echo "  fmt           Run backend, front, and tools fmt"
 	@echo "  tidy          Run go mod tidy on backend, front, and tools"
-	@echo "  wire          Regenerate backend wire_gen.go"
+	@echo "  wire          Regenerate backend and front wire_gen.go"
+	@echo "  generate      Regenerate all codegen (backend wire + front migrate/gen/wire/bindings)"
 	@echo "  tools         Download front Go tool dependencies (dlv, migrate, wails3)"
 	@echo "  vuln          Run govulncheck (all Go modules) + npm audit"
 	@echo "  upgrade-patch Upgrade patch versions (Go + npm)"
 	@echo "  upgrade-minor Upgrade minor versions (Go + npm)"
 	@echo ""
 	@echo "Backend shortcuts:"
-	@echo "  bcheck bbuild btidy bwire blint bfmt"
+	@echo "  bcheck bbuild btidy bwire bgenerate blint bfmt"
 	@echo ""
 	@echo "Front shortcuts:"
-	@echo "  fsetup fdev fbuild frun ftidy"
+	@echo "  fsetup fdev fbuild frun ftidy fwire fgenerate"
 	@echo "  ftest flint ffmt fcheck"
 	@echo ""
 	@echo "Tools shortcuts:"
@@ -56,7 +57,9 @@ fmt:
 
 tidy: btidy ftidy ttidy
 
-wire: bwire
+wire: bwire fwire
+
+generate: bgenerate fgenerate
 
 tools: ftools
 
@@ -80,6 +83,9 @@ btidy:
 
 bwire:
 	$(MAKE) -C $(BACKEND_DIR) wire
+
+bgenerate:
+	$(MAKE) -C $(BACKEND_DIR) generate
 
 blint:
 	$(MAKE) -C $(BACKEND_DIR) lint
@@ -122,6 +128,12 @@ fcheck:
 
 ftidy:
 	$(MAKE) -C $(FRONT_DIR) tidy
+
+fwire:
+	$(MAKE) -C $(FRONT_DIR) wire
+
+fgenerate:
+	$(MAKE) -C $(FRONT_DIR) generate
 
 fvuln:
 	$(MAKE) -C $(FRONT_DIR) vuln

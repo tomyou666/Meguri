@@ -41,7 +41,7 @@ help:
 	@echo "  gen             GORM Gen (requires migrate-up first)"
 	@echo "  wire            Regenerate internal/app/wire_gen.go"
 	@echo "  bindings        Regenerate frontend/bindings (TypeScript)"
-	@echo "  generate        Alias for bindings"
+	@echo "  generate        migrate-up + gen + wire + bindings"
 	@echo ""
 	@echo "Quality targets:"
 	@echo "  check     lint + test"
@@ -100,7 +100,7 @@ wire:
 bindings:
 	$(WAILS) generate bindings -ts
 
-generate: bindings
+generate: migrate-up gen wire bindings
 
 finstall:
 	$(NPM) --prefix $(FRONTEND_DIR) install

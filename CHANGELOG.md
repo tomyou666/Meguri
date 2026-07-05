@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+### 追加
+
+- ルート・backend・front の Makefile に `make generate` を追加（codegen 一括実行）
+
 ### 修正
 
 - SQLite 接続に WAL・synchronous(NORMAL)・busy_timeout(5000) を適用し、crawl 中の UI 読み取りと書き込み競合を緩和
