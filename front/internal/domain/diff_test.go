@@ -12,9 +12,9 @@ import (
 	"gorm.io/gorm"
 
 	"meguri-app/internal/domain"
-	"meguri-app/internal/sqlitedsn"
 	"meguri-app/internal/infrastructure/persistence"
 	"meguri-app/internal/model"
+	"meguri-app/internal/sqlitedsn"
 )
 
 func applyDiffTestSchema(db *gorm.DB) error {

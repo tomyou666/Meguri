@@ -1,4 +1,4 @@
-package runner_test
+package usecase_test
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"meguri/pkg/runner"
+	"meguri/internal/usecase"
 )
 
 // TestMergeUIConfigLayers は UI 設定レイヤーのマージと JSON 文字列の展開を検証する。
@@ -17,7 +17,7 @@ func TestMergeUIConfigLayers(t *testing.T) {
 		wrapped, err := json.Marshal(inner)
 		require.NoError(t, err)
 
-		merged, err := runner.MergeUIConfigLayers(wrapped, json.RawMessage(`{"content":{"formats":["markdown"]}}`))
+		merged, err := usecase.MergeUIConfigLayers(wrapped, json.RawMessage(`{"content":{"formats":["markdown"]}}`))
 		require.NoError(t, err)
 
 		var out map[string]json.RawMessage
@@ -30,10 +30,10 @@ func TestMergeUIConfigLayers(t *testing.T) {
 		app := json.RawMessage(`{"crawl":{"max_pages":50},"request":{"retry_count":1}}`)
 		ws := json.RawMessage(`{"crawl":{"max_depth":5}}`)
 
-		merged, err := runner.MergeUIConfigLayers(app, ws)
+		merged, err := usecase.MergeUIConfigLayers(app, ws)
 		require.NoError(t, err)
 
-		cfg, err := runner.ParseUIConfig(merged)
+		cfg, err := usecase.ParseUIConfig(merged)
 		require.NoError(t, err)
 		assert.Equal(t, 5, cfg.Crawl.MaxDepth)
 		assert.Equal(t, 50, cfg.Crawl.MaxPages)
@@ -42,7 +42,7 @@ func TestMergeUIConfigLayers(t *testing.T) {
 
 	t.Run("正常系: fetch_limits をマージ結果に反映する", func(t *testing.T) {
 		raw := json.RawMessage(`{"crawl":{"fetch_limits":{"http_max_inflight":8,"chromium_max_inflight":3,"auto_calibrate":false}}}`)
-		cfg, err := runner.ParseUIConfig(raw)
+		cfg, err := usecase.ParseUIConfig(raw)
 		require.NoError(t, err)
 		assert.Equal(t, 8, cfg.Crawl.FetchLimits.HTTPMaxInflight)
 		assert.Equal(t, 3, cfg.Crawl.FetchLimits.ChromiumMaxInflight)

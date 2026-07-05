@@ -21,10 +21,8 @@ func Initialize(ctx context.Context, cfg *model.Config) (*Application, func(), e
 		ProvideHost,
 		ProvideKernel,
 		ProvideFileWriter,
-		ProvideRobotsCache,
 		ProvidePipeline,
 		ProvideScrape,
-		ProvideCrawlerFactory,
 		ProvideCrawl,
 		wire.Struct(new(FileResultSink), "*"),
 	)

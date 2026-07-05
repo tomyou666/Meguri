@@ -1,4 +1,4 @@
-package runner_test
+package usecase_test
 
 import (
 	"context"
@@ -8,7 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"meguri/internal/domain/model"
-	"meguri/pkg/runner"
+	"meguri/internal/usecase"
+
+	_ "meguri/plugins/fetcher-chromium"
+	_ "meguri/plugins/fetcher-http"
+	_ "meguri/plugins/filter-maincontent"
+	_ "meguri/plugins/filter-selector"
+	_ "meguri/plugins/linkextractor-default"
+	_ "meguri/plugins/parser-html"
+	_ "meguri/plugins/parser-pdf"
+	_ "meguri/plugins/preprocessor-header"
+	_ "meguri/plugins/transformer-html"
+	_ "meguri/plugins/transformer-markdown"
+	_ "meguri/plugins/transformer-raw-html"
 )
 
 func testScrapeCfg() *model.Config {
@@ -35,8 +47,8 @@ func testScrapeCfg() *model.Config {
 	}
 }
 
-// TestRunnerCache は RunnerCache のキー生成・再利用・LRU 退避を検証する。
-func TestRunnerCache(t *testing.T) {
+// TestScrapeCache は ScrapeCache のキー生成・再利用・LRU 退避を検証する。
+func TestScrapeCache(t *testing.T) {
 	t.Run("正常系: targets と exclude_urls はキャッシュキーに含めない", func(t *testing.T) {
 		a := testScrapeCfg()
 		b := testScrapeCfg()
@@ -45,16 +57,16 @@ func TestRunnerCache(t *testing.T) {
 		a.Crawl.ExcludeURLs = []string{"https://skip.example"}
 		b.Crawl.ExcludeURLs = nil
 
-		ha, err := runner.CfgHashForTest(a)
+		ha, err := usecase.CfgHashForTest(a)
 		require.NoError(t, err)
-		hb, err := runner.CfgHashForTest(b)
+		hb, err := usecase.CfgHashForTest(b)
 		require.NoError(t, err)
 		assert.Equal(t, ha, hb)
 	})
 
 	t.Run("正常系: 同一設定ではカーネルを再利用する", func(t *testing.T) {
 		cfg := testScrapeCfg()
-		cache := runner.NewRunnerCache()
+		cache := usecase.NewScrapeCache()
 		defer cache.CloseAll()
 
 		ctx := context.Background()
@@ -74,7 +86,7 @@ func TestRunnerCache(t *testing.T) {
 	})
 
 	t.Run("正常系: maxEntries 超過で LRU 退避する", func(t *testing.T) {
-		cache := runner.NewRunnerCacheWithMaxForTest(2)
+		cache := usecase.NewScrapeCacheWithMaxForTest(2)
 		defer cache.CloseAll()
 
 		ctx := context.Background()
@@ -96,7 +108,7 @@ func TestRunnerCache(t *testing.T) {
 
 	t.Run("正常系: CloseAll で全エントリを破棄する", func(t *testing.T) {
 		cfg := testScrapeCfg()
-		cache := runner.NewRunnerCache()
+		cache := usecase.NewScrapeCache()
 
 		ctx := context.Background()
 		_, err := cache.ScrapeWithConfig(ctx, "https://example.com", cfg, nil, nil)

@@ -1,24 +1,14 @@
 package runner
 
-import (
-	"meguri/internal/core"
-	"meguri/internal/core/fetchlimit"
-)
+import "meguri/internal/usecase"
 
-// PauseController はクロール一時停止制御（core.PauseController のエイリアス）。
-type PauseController = core.PauseController
+// RunOptions は CrawlWithProgress / ScrapeWithConfig の実行オプション（usecase.RunOptions のエイリアス）。
+type RunOptions = usecase.RunOptions
+
+// PauseController はクロール一時停止制御（usecase.PauseController のエイリアス）。
+type PauseController = usecase.PauseController
 
 // NewPauseController は PauseController を構築する。
 func NewPauseController() *PauseController {
-	return core.NewPauseController()
-}
-
-// RunOptions は CrawlWithProgress / ScrapeWithConfig の実行オプション。
-type RunOptions struct {
-	// Pause は一時停止制御。nil の場合は pause なし。
-	Pause *PauseController
-	// Cache は ScrapeWithConfig 用 Kernel キャッシュ。nil の場合は毎回 Init。
-	Cache *RunnerCache
-	// FetchLimiter は取得並列上限。nil の場合は PrepareFetchLimiter が生成する。
-	FetchLimiter *fetchlimit.FetchLimiter
+	return usecase.NewPauseController()
 }

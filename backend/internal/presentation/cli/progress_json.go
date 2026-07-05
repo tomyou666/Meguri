@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"meguri/pkg/runner"
+	"meguri/internal/core"
 )
 
 // progressJSONLine は NDJSON 1 行分の進捗イベント。
@@ -18,9 +18,9 @@ type progressJSONLine struct {
 }
 
 // newProgressJSONSink は stderr 等へ Progress を NDJSON 出力する Sink を返す。
-func newProgressJSONSink(w io.Writer) runner.ProgressSink {
+func newProgressJSONSink(w io.Writer) core.ProgressSink {
 	enc := json.NewEncoder(w)
-	return func(ev runner.ProgressEvent) {
+	return func(ev core.ProgressEvent) {
 		_ = enc.Encode(progressJSONLine{
 			Kind:       string(ev.Kind),
 			URL:        ev.URL,

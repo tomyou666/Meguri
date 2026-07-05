@@ -11,10 +11,11 @@ import (
 	"syscall"
 
 	"meguri/internal/app"
+	"meguri/internal/core"
 	"meguri/internal/domain/model"
 	"meguri/internal/infrastructure/configloader"
+	"meguri/internal/usecase"
 	"meguri/pkg/logger"
-	"meguri/pkg/runner"
 )
 
 // App は CLI 実行に必要な I/O 依存をまとめる。テスト時はここを差し替える。
@@ -97,13 +98,13 @@ func (a *App) runSingle(ctx context.Context, cfg *model.Config, application *app
 	return 0
 }
 
-// runCrawl は pkg/runner 経由で BFS クロールを実行する。
+// runCrawl は usecase 経由で BFS クロールを実行する。
 func (a *App) runCrawl(ctx context.Context, cfg *model.Config, flags *Flags) int {
-	var progress runner.ProgressSink
+	var progress core.ProgressSink
 	if flags.ProgressJSON {
 		progress = newProgressJSONSink(a.Stderr)
 	}
-	stats, err := runner.CrawlWithProgress(ctx, cfg, cfg.Targets, progress, nil)
+	stats, err := usecase.NewCrawl(nil).RunWithConfig(ctx, cfg, cfg.Targets, progress, nil)
 	if err != nil {
 		slog.Error("クロール失敗", "err", err)
 		return 1

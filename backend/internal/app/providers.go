@@ -8,7 +8,6 @@ import (
 	"meguri/internal/core"
 	"meguri/internal/domain/model"
 	"meguri/internal/domain/plugin"
-	"meguri/internal/infrastructure/robots"
 	"meguri/internal/infrastructure/storage"
 	"meguri/internal/usecase"
 )
@@ -45,11 +44,6 @@ func ProvideFileWriter(cfg *model.Config) *storage.FileWriter {
 	return storage.NewFileWriter(cfg.Output, cfg.Content.Formats)
 }
 
-// ProvideRobotsCache は Kernel の Fetcher から robots キャッシュを構築する。
-func ProvideRobotsCache(k *core.Kernel) *robots.Cache {
-	return robots.NewCache(k.Fetcher())
-}
-
 // ProvidePipeline はカーネルから 1 URL 処理用パイプラインを構築する。
 func ProvidePipeline(k *core.Kernel) *core.Pipeline {
 	return core.NewPipeline(k)
@@ -73,14 +67,7 @@ func (s *FileResultSink) Handle(r *model.Result) {
 	}
 }
 
-// ProvideCrawlerFactory は Kernel・Pipeline・robots キャッシュから Crawler 生成関数を返す。
-func ProvideCrawlerFactory(k *core.Kernel, pipeline *core.Pipeline, robotsCache *robots.Cache) usecase.CrawlerFactory {
-	return func(sink core.ResultSink, progress core.ProgressSink) *core.Crawler {
-		return core.NewCrawler(k, pipeline, robotsCache, sink, progress)
-	}
-}
-
 // ProvideCrawl はクロール用ユースケースを構築する。
-func ProvideCrawl(factory usecase.CrawlerFactory, sink *FileResultSink) *usecase.Crawl {
-	return usecase.NewCrawl(factory, sink.Handle)
+func ProvideCrawl(sink *FileResultSink) *usecase.Crawl {
+	return usecase.NewCrawl(sink.Handle)
 }

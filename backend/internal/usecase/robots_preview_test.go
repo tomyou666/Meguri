@@ -1,4 +1,4 @@
-package runner_test
+package usecase_test
 
 import (
 	"context"
@@ -8,7 +8,9 @@ import (
 	"net/url"
 	"testing"
 
-	"meguri/pkg/runner"
+	"meguri/internal/usecase"
+
+	_ "meguri/plugins/fetcher-http"
 )
 
 // testRobotsConfigLayer は httptest 向けの最小 HTTP fetcher 設定を返す。
@@ -32,7 +34,7 @@ func TestFetchRobotsTxt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res, err := runner.FetchRobotsTxt(context.Background(), u.Host, srv.URL+"/seed", cfgLayer)
+		res, err := usecase.FetchRobotsTxt(context.Background(), u.Host, srv.URL+"/seed", cfgLayer)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -54,7 +56,7 @@ func TestFetchRobotsTxt(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res, err := runner.FetchRobotsTxt(context.Background(), u.Host, srv.URL+"/seed", cfgLayer)
+		res, err := usecase.FetchRobotsTxt(context.Background(), u.Host, srv.URL+"/seed", cfgLayer)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -64,7 +66,7 @@ func TestFetchRobotsTxt(t *testing.T) {
 	})
 
 	t.Run("異常系: host 未指定は Go error", func(t *testing.T) {
-		_, err := runner.FetchRobotsTxt(context.Background(), "", "https://example.com/seed", cfgLayer)
+		_, err := usecase.FetchRobotsTxt(context.Background(), "", "https://example.com/seed", cfgLayer)
 		if err == nil {
 			t.Fatal("expected error")
 		}

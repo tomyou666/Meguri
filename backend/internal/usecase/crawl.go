@@ -7,60 +7,77 @@ import (
 
 	"meguri/internal/core"
 	"meguri/internal/domain/model"
+	"meguri/internal/infrastructure/robots"
 )
-
-// CrawlerFactory は実行時の ResultSink と ProgressSink を受け取り Crawler を生成する。
-type CrawlerFactory func(sink core.ResultSink, progress core.ProgressSink) *core.Crawler
 
 // Crawl はクローリングシナリオを束ねるユースケース。
 type Crawl struct {
-	// Factory は実行時 sink 付きの Crawler を生成する。
-	Factory CrawlerFactory
 	// Sink は各ページの Result 受け取り先（nil 可）。
 	Sink core.ResultSink
-	// Progress は URL 単位の進捗通知先（nil 可）。
-	Progress core.ProgressSink
 }
 
 // NewCrawl はクロール用ユースケースを構築する。
 //
 // sink は nil の場合、収集した Result は戻り値のスライスにのみ格納される。
-func NewCrawl(factory CrawlerFactory, sink core.ResultSink) *Crawl {
-	return &Crawl{Factory: factory, Sink: sink}
+func NewCrawl(sink core.ResultSink) *Crawl {
+	return &Crawl{Sink: sink}
 }
 
-// Run はシード URL 一覧からクロールを実行し、統計と収集結果を返す。
-func (c *Crawl) Run(ctx context.Context, targets []string) (*core.CrawlStats, []*model.Result, error) {
-	return c.RunWithProgress(ctx, targets, c.Progress)
-}
-
-// RunWithProgress は ProgressSink を指定してクロールを実行する。
-func (c *Crawl) RunWithProgress(ctx context.Context, targets []string, progress core.ProgressSink) (*core.CrawlStats, []*model.Result, error) {
-	if len(targets) == 0 {
-		return nil, nil, fmt.Errorf("no target URLs")
+// RunWithConfig はマージ済み Config とシード URL から BFS クロールを実行する。
+//
+// opts が nil の場合は pause なしで実行する。
+func (c *Crawl) RunWithConfig(
+	ctx context.Context,
+	cfg *model.Config,
+	seeds []string,
+	progress core.ProgressSink,
+	opts *RunOptions,
+) (*core.CrawlStats, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config is nil")
 	}
-	seeds := make([]*url.URL, 0, len(targets))
-	for _, t := range targets {
-		u, err := url.Parse(t)
+	if len(seeds) == 0 {
+		return nil, fmt.Errorf("no seed URLs")
+	}
+
+	parsed := make([]*url.URL, 0, len(seeds))
+	for _, s := range seeds {
+		u, err := url.Parse(s)
 		if err != nil {
-			return nil, nil, fmt.Errorf("invalid seed url %q: %w", t, err)
+			return nil, fmt.Errorf("invalid seed url %q: %w", s, err)
 		}
-		seeds = append(seeds, u)
+		parsed = append(parsed, u)
 	}
 
-	var collected []*model.Result
-	sink := c.Sink
-	if sink == nil {
-		sink = func(r *model.Result) { collected = append(collected, r) }
-	} else {
-		original := sink
-		sink = func(r *model.Result) {
-			collected = append(collected, r)
-			original(r)
-		}
+	lim := PrepareFetchLimiter(ctx, cfg, opts)
+
+	host := core.NewHost(cfg)
+	k := core.NewKernel(cfg, host, core.Default())
+	if lim != nil {
+		k.SetFetchLimiter(lim)
+	}
+	if err := k.Init(ctx); err != nil {
+		return nil, fmt.Errorf("kernel init: %w", err)
+	}
+	defer func() { _ = k.Close(ctx) }()
+
+	pipeline := core.NewPipeline(k)
+	var robotsChecker core.RobotsChecker
+	if cfg.Crawl.RespectRobotsTxt {
+		robotsChecker = robots.NewCache(k.Fetcher())
 	}
 
-	crawler := c.Factory(sink, progress)
-	stats, err := crawler.Run(ctx, seeds)
-	return stats, collected, err
+	crawler := core.NewCrawler(k, pipeline, robotsChecker, c.Sink, progress)
+	if opts != nil && opts.Pause != nil {
+		crawler.SetPauseController(opts.Pause)
+	}
+	stats, err := crawler.Run(ctx, parsed)
+	if err != nil {
+		core.EmitProgress(progress, core.ProgressEvent{
+			Kind:  core.ProgressError,
+			Error: err.Error(),
+		})
+		return stats, err
+	}
+	return stats, nil
 }

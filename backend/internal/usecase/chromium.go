@@ -1,8 +1,8 @@
-package runner
+package usecase
 
-import "meguri/internal/usecase"
+import chromiumfetch "meguri/plugins/fetcher-chromium"
 
 // CloseChromiumBrowsers は chromium 共有プールの全ブラウザセッションを終了する。
 func CloseChromiumBrowsers() {
-	usecase.CloseChromiumBrowsers()
+	chromiumfetch.CloseAllBrowserSessions()
 }
