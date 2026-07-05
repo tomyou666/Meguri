@@ -1,0 +1,51 @@
+import (
+	"context"
+	"log/slog"
+)
+
+{{ $decorator := (or .Vars.DecoratorName (printf "%sWithDebugLog" .Interface.Name)) }}
+
+// {{$decorator}} は {{.Interface.Type}} に debug ログを付与するデコレータ。
+type {{$decorator}} struct {
+	_base {{.Interface.Type}}
+}
+
+// New{{$decorator}} は base を debug ログ付きでラップする。
+func New{{$decorator}}(base {{.Interface.Type}}) {{$decorator}} {
+	return {{$decorator}}{_base: base}
+}
+
+{{range $method := .Interface.Methods}}
+// {{$method.Name}} は {{$.Interface.Type}} を実装する。
+func (_d {{$decorator}}) {{$method.Declaration}} {
+	{{- if $method.AcceptsContext}}
+	{{- if $method.HasParams}}
+	slog.DebugContext(ctx, "runner: {{$.Interface.Name}}.{{$method.Name}} call", slog.Any("params", debugLogMap({{$method.ParamsMap}})))
+	{{- else}}
+	slog.DebugContext(ctx, "runner: {{$.Interface.Name}}.{{$method.Name}} call")
+	{{- end}}
+	{{- else}}
+	{{- if $method.HasParams}}
+	slog.Debug("runner: {{$.Interface.Name}}.{{$method.Name}} call", slog.Any("params", debugLogMap({{$method.ParamsMap}})))
+	{{- else}}
+	slog.Debug("runner: {{$.Interface.Name}}.{{$method.Name}} call")
+	{{- end}}
+	{{- end}}
+	defer func() {
+		{{- if $method.HasResults}}
+		{{- if $method.AcceptsContext}}
+		slog.DebugContext(ctx, "runner: {{$.Interface.Name}}.{{$method.Name}} return", slog.Any("results", debugLogMap({{$method.ResultsMap}})))
+		{{- else}}
+		slog.Debug("runner: {{$.Interface.Name}}.{{$method.Name}} return", slog.Any("results", debugLogMap({{$method.ResultsMap}})))
+		{{- end}}
+		{{- else}}
+		{{- if $method.AcceptsContext}}
+		slog.DebugContext(ctx, "runner: {{$.Interface.Name}}.{{$method.Name}} finished")
+		{{- else}}
+		slog.Debug("runner: {{$.Interface.Name}}.{{$method.Name}} finished")
+		{{- end}}
+		{{- end}}
+	}()
+	{{ $method.Pass "_d._base." }}
+}
+{{end}}

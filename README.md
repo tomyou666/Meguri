@@ -18,25 +18,25 @@
 
 ### 開発ツール
 
-#### Go CLI（`front/go.mod` の `tool` ディレクティブで管理）
+#### Go CLI（`backend/go.mod` / `front/go.mod` の `tool` ディレクティブで管理）
 
-バージョンは `go.mod` / `go.sum` に固定されます。PATH への `go install` は不要です。
+バージョンは各 `go.mod` / `go.sum` に固定されます。PATH への `go install` は不要です。
 
-| ツール | 用途 | 実行例 |
-| --- | --- | --- |
-| `dlv` | Go デバッガ（VS Code の Attach 構成） | `go tool dlv version` |
-| `migrate` | DB マイグレーション | `make -C front migrate-up` |
-| `wails3` | Wails 開発・ビルド | `make -C front dev` |
+| ツール | モジュール | 用途 | 実行例 |
+| --- | --- | --- | --- |
+| `gowrap` | backend | runner の debug ログデコレータ生成 | `make -C backend gowrap` |
+| `dlv` | front | Go デバッガ（VS Code の Attach 構成） | `go tool dlv version` |
+| `migrate` | front | DB マイグレーション | `make -C front migrate-up` |
+| `wails3` | front | Wails 開発・ビルド | `make -C front dev` |
 
 初回または `go.mod` 更新後:
 
 ```powershell
 make tools
-# または
-cd front && go mod download
+# backend: gowrap / front: dlv, migrate, wails3
 ```
 
-`wire` と GORM Gen は `go run` で実行するため、`tool` への登録はしていません（`make -C front wire` / `make -C front gen`）。
+`wire` と GORM Gen は `go run` で実行するため、`tool` への登録はしていません（`make -C backend wire` / `make -C front wire` / `make -C front gen`）。
 
 #### Go 管理外
 
@@ -48,7 +48,7 @@ cd front && go mod download
 | [gopls](https://pkg.go.dev/golang.org/x/tools/gopls) | Go 言語サーバー（補完・定義ジャンプ・エディタ診断） | VS Code の [Go 拡張](https://marketplace.visualstudio.com/items?itemName=golang.go) が初回に自動導入。手動なら `go install golang.org/x/tools/gopls@latest`（Dev Container では [`.devcontainer/DockerFile`](.devcontainer/DockerFile) で同梱） |
 | VS Code 拡張 | エディタ支援 | [`.vscode/extensions.json`](.vscode/extensions.json) の Recommendations |
 
-`golangci-lint` と `govulncheck` はリポジトリ横断の品質チェック用で、PATH 上のバイナリとして使います。`front/go.mod` の `tool` には入れていません（`dlv` / `migrate` / `wails3` は front 専用の開発 CLI）。`gopls` も同様に `tool` 外です。ビルド・`make lint` には不要で、エディタ向けのためです。いずれもバージョン固定はしていません。
+`golangci-lint` と `govulncheck` はリポジトリ横断の品質チェック用で、PATH 上のバイナリとして使います。`backend/go.mod` / `front/go.mod` の `tool` には `gowrap`（backend）と `dlv` / `migrate` / `wails3`（front）を入れています。`gopls` も同様に `tool` 外です。ビルド・`make lint` には不要で、エディタ向けのためです。いずれもバージョン固定はしていません。
 
 フロント初回セットアップ（npm install、マイグレーション、コード生成）は [front/README.md](front/README.md) を参照してください。
 

@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 ### 追加
 
 - ルート・backend・front の Makefile に `make generate` を追加（codegen 一括実行）
+- `pkg/runner` を interface 化し gowrap で debug ログデコレータを生成（`make gowrap`）
+- クロール時の URL 正規化を `internal/core/crawler.go` で info ログ出力（raw / normalized）
 
 ### 修正
 

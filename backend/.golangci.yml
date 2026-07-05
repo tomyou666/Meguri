@@ -14,6 +14,7 @@ linters:
       - examples$
       - '\.gen\.go$'
       - wire_gen\.go$
+      - _with_debug_log\.go$
 formatters:
   exclusions:
     generated: lax
@@ -23,3 +24,4 @@ formatters:
       - examples$
       - '\.gen\.go$'
       - wire_gen\.go$
+      - _with_debug_log\.go$

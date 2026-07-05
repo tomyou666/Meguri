@@ -143,7 +143,14 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		if err := c.waitIfPaused(ctx); err != nil {
 			return stats, err
 		}
-		if c.runOne(ctx, job{url: seeds[0], depth: 0}, nil) {
+		seed := normalizeURL(seeds[0])
+		slog.Info("crawl url normalized",
+			"raw", seeds[0].String(),
+			"normalized", seed.String(),
+			"depth", 0,
+			"parent", "",
+		)
+		if c.runOne(ctx, job{url: seed, depth: 0}, nil) {
 			stats.Succeeded++
 		} else {
 			stats.Failed++
@@ -234,6 +241,12 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 
 	enqueue := func(u *url.URL, depth int, parentURL string) bool {
 		normalized := normalizeURL(u)
+		slog.Info("crawl url normalized",
+			"raw", u.String(),
+			"normalized", normalized.String(),
+			"depth", depth,
+			"parent", parentURL,
+		)
 		key := normalized.String()
 
 		stateMu.Lock()
@@ -342,8 +355,15 @@ func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int,
 	if enqueue != nil {
 		parent := urlStr
 		for _, link := range out.Links {
+			normalizedLink := normalizeURL(link)
+			slog.Info("crawl link discovered",
+				"raw", link.String(),
+				"normalized", normalizedLink.String(),
+				"depth", j.depth+1,
+				"parent", parent,
+			)
 			if enqueue(link, j.depth+1, parent) {
-				child := normalizeURL(link).String()
+				child := normalizedLink.String()
 				emitProgress(c.progress, ProgressEvent{
 					Kind:      ProgressLinkDiscovered,
 					URL:       child,

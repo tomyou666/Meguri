@@ -1,6 +1,6 @@
 .PHONY: help all check fmt vet lint test build tidy wire generate tools \
 	vuln upgrade-patch upgrade-minor \
-	bcheck bbuild btidy bwire bgenerate blint bfmt bvuln bupgrade-patch bupgrade-minor \
+	bcheck bbuild btidy btools bwire bgenerate blint bfmt bvuln bupgrade-patch bupgrade-minor \
 	fdev fbuild frun ftest flint ffmt fcheck fsetup ftools ftidy fwire fgenerate fvuln fupgrade-patch fupgrade-minor \
 	tlint tfmt ttidy tvuln tupgrade-patch tupgrade-minor
 
@@ -21,14 +21,14 @@ help:
 	@echo "  fmt           Run backend, front, and tools fmt"
 	@echo "  tidy          Run go mod tidy on backend, front, and tools"
 	@echo "  wire          Regenerate backend and front wire_gen.go"
-	@echo "  generate      Regenerate all codegen (backend wire + front migrate/gen/wire/bindings)"
-	@echo "  tools         Download front Go tool dependencies (dlv, migrate, wails3)"
+	@echo "  generate      Regenerate all codegen (backend wire + gowrap + front migrate/gen/wire/bindings)"
+	@echo "  tools         Download backend and front Go tool dependencies (gowrap, dlv, migrate, wails3)"
 	@echo "  vuln          Run govulncheck (all Go modules) + npm audit"
 	@echo "  upgrade-patch Upgrade patch versions (Go + npm)"
 	@echo "  upgrade-minor Upgrade minor versions (Go + npm)"
 	@echo ""
 	@echo "Backend shortcuts:"
-	@echo "  bcheck bbuild btidy bwire bgenerate blint bfmt"
+	@echo "  bcheck bbuild btidy btools bwire bgenerate blint bfmt"
 	@echo ""
 	@echo "Front shortcuts:"
 	@echo "  fsetup fdev fbuild frun ftidy fwire fgenerate"
@@ -61,13 +61,16 @@ wire: bwire fwire
 
 generate: bgenerate fgenerate
 
-tools: ftools
+tools: btools ftools
 
 vuln: bvuln fvuln tvuln
 
 upgrade-patch: bupgrade-patch fupgrade-patch tupgrade-patch
 
 upgrade-minor: bupgrade-minor fupgrade-minor tupgrade-minor
+
+btools:
+	$(MAKE) -C $(BACKEND_DIR) tools
 
 ftools:
 	$(MAKE) -C $(FRONT_DIR) tools

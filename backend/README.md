@@ -355,13 +355,28 @@ make lint     # golangci-lint run
 make test     # go test -race
 make tidy     # go mod tidy
 make wire     # internal/app/wire_gen.go を再生成
+make gowrap   # pkg/runner/*_with_debug_log.go を再生成
+make generate # wire + gowrap を一括実行
 ```
 
 リポジトリルートから実行する場合は `make -C backend <target>` を使います。
 
 `internal/app/providers.go` または `wire.go` を変更した場合は **`make wire` を実行** して `wire_gen.go` を再生成してください。通常の clone / build では `wire_gen.go` がコミット済みのため **`make wire` は不要** です。
 
+[`pkg/runner/`](pkg/runner/) の interface を変更した場合は **`make gowrap` を実行** して `*_with_debug_log.go` を再生成してください。`make generate` でも同様に実行されます。生成物はコミット対象です。
+
 テストは `httptest` でテスト用 Web サーバーを起動し、[`testdata/html/`](testdata/html/) の HTML を返して検証しています。
+
+## ログ
+
+[`pkg/logger/`](pkg/logger/) が `log/slog` を初期化する。[`pkg/runner/`](pkg/runner/) の公開 API は gowrap で引数・返り値を **debug** 出力し、クロール URL の正規化は [`internal/core/crawler.go`](internal/core/crawler.go) で **info**（`raw` / `normalized`）を出力する。
+
+**新しい runner API に debug ログを足す手順:**
+
+1. 対象 `.go` に **interface** と非公開 **xxxImpl** を定義し、既存の package 関数を facade にする
+2. [`templates/slog_debug.gotmpl`](pkg/runner/templates/slog_debug.gotmpl) を使う `//go:generate go tool gowrap ...` と [`Makefile`](Makefile) の `gowrap` ターゲットに 1 行追加
+3. `make gowrap` を実行し、生成された `*_with_debug_log.go` をコミット
+4. [`defaults.go`](pkg/runner/defaults.go) に `defaultXxx` 変数を追加
 
 ## ディレクトリ構成
 
@@ -375,6 +390,9 @@ internal/
   infrastructure/        # HTTP・chromedp・設定読込・出力・robots.txt
   presentation/cli/      # CLI
 plugins/                 # 具体プラグイン実装
+pkg/
+  logger/                # slog 標準ロガー初期化
+  runner/                # Wails 等向け公開 API（gowrap debug ログ付き）
 configs/                 # 設定ファイル例
 testdata/html/           # 統合テスト用 HTML
 doc/                     # 設計書
