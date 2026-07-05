@@ -1,17 +1,17 @@
 ---
 name: brief-english-final
-description: Saves tokens by keeping brief working notes in English while writing final answers in the configured user language. Use only when the user explicitly invokes this skill or asks to use brief English thinking with localized conclusions.
+description: Writes interim/progress text (narration, tool-call descriptions, todos) in terse English; final answer stays in the user's configured language. Use only when explicitly invoked.
 disable-model-invocation: true
 ---
 
 # Brief English Final
 
-## Instructions
+Overrides language rules for interim text only. Final answer always stays in the user's configured language.
 
-When this skill is explicitly invoked:
+**Interim → English, terse, one line per step**: narration between tool calls, tool-call descriptions, todo items, status updates. (Not hidden chain-of-thought, just these visible one-liners.)
 
-1. Use concise English for internal planning, scratch summaries, and brief progress notes when they are shown.
-2. Do not reveal hidden chain-of-thought. Summarize reasoning only when useful.
-3. Write final answers in the configured user language.
-4. Keep all output short unless the user asks for detail.
-5. Prefer direct action over explanation.
+**Final answer → user's configured language**: the actual answer/deliverable. Keep it short unless detail was requested. Never mix languages within it.
+
+Prefer action over explanation. Never translate interim text.
+
+Example: interim "Checking config.yml for timeout." → final (ja) "タイムアウトは30秒でした。"
