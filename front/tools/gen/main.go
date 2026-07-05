@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"meguri-app/internal/sqlitedsn"
+
 	"github.com/libtnb/sqlite"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
@@ -23,7 +25,7 @@ func main() {
 	if dbPath == "" {
 		dbPath = "data/meguri.db"
 	}
-	db, err := gorm.Open(sqlite.Open(dbPath+"?_pragma=foreign_keys(1)"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(sqlitedsn.DSN(dbPath)), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
