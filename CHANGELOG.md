@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
+- chromium フェッチャーに `wait_until`（`none` / `load` / `network_idle` / `selector`）によるページ読み込み待機を追加。`wait_timeout` を待機フェーズに配線
+- UI 設定の `fetcher_config`（待機設定含む）を backend に正しく反映
 - ルート・backend・front の Makefile に `make generate` を追加（codegen 一括実行）
 - `pkg/runner` を interface 化し gowrap で debug ログデコレータを生成（`make gowrap`）
 - クロール時の URL 正規化を `internal/core/crawler.go` で info ログ出力（raw / normalized）

@@ -202,11 +202,20 @@ plugins:
     user_agent: ""
     # headless: ヘッドレス実行（既定: true）
     headless: true
-    # wait_visible_selector: 取得前に可視になるまで待つ CSS セレクタ（空 = 待機なし）
-    wait_visible_selector: ""
-    # wait_timeout: セレクタ待機の上限（既定: 5s、範囲: 0s ～ 120s）
+    # wait_until: Navigate 後のページ読み込み待機モード（chromium 時）
+    # 選択肢:
+    #   - none          … 追加待機なし（Navigate 直後に HTML 取得）
+    #   - load          … body の load 相当まで待つ（既定）
+    #   - network_idle  … アクティブなネットワーク接続が一定時間ゼロになるまで待つ
+    #   - selector      … wait_visible_selector の要素が可視になるまで待つ
+    wait_until: load
+    # wait_timeout: wait_until 待機フェーズ全体の上限（既定: 5s、範囲: 0s ～ 120s）
+    # 0 のときは request.timeout を使う
     wait_timeout: 5s
-
+    # wait_visible_selector: wait_until=selector のとき必須の CSS セレクタ
+    wait_visible_selector: ""
+    # network_idle_duration: wait_until=network_idle のとき、接続ゼロが続く時間（既定: 500ms）
+    network_idle_duration: 500ms
   # preprocessors (P2): リクエスト前処理（複数可、指定順に実行）
   # 選択肢: header … request.headers をリクエストへ転写
   preprocessors: [header]

@@ -54,4 +54,19 @@ describe('validatePartialConfig', () => {
 		});
 		expect(errors['crawl.request_delay']).toContain('0秒以上60秒以下');
 	});
+
+	it('wait_until=selector でセレクタ未指定ならエラー', () => {
+		const errors = getConfigFieldErrors({
+			plugins: {
+				fetcher: 'chromium',
+				fetcher_config: {
+					wait_until: 'selector',
+					wait_visible_selector: '',
+				},
+			},
+		});
+		expect(errors['plugins.fetcher_config.wait_visible_selector']).toContain(
+			'wait_until=selector',
+		);
+	});
 });

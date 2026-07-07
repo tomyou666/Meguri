@@ -98,3 +98,31 @@ func (f FetcherKind) Valid() bool {
 	}
 	return false
 }
+
+// WaitUntil は chromium 取得前のページ読み込み待機モードを表す。
+//
+// "none": Navigate 直後に HTML を取得する。
+// "load": DOM load 相当まで待つ（既定）。
+// "network_idle": アクティブなネットワーク接続が一定時間ゼロになるまで待つ。
+// "selector": wait_visible_selector で指定した要素が可視になるまで待つ。
+type WaitUntil string
+
+const (
+	// WaitUntilNone は追加の読み込み待機を行わない。
+	WaitUntilNone WaitUntil = "none"
+	// WaitUntilLoad は body の load 相当まで待つ。
+	WaitUntilLoad WaitUntil = "load"
+	// WaitUntilNetworkIdle はネットワーク静止まで待つ。
+	WaitUntilNetworkIdle WaitUntil = "network_idle"
+	// WaitUntilSelector は CSS セレクタの要素が可視になるまで待つ。
+	WaitUntilSelector WaitUntil = "selector"
+)
+
+// Valid は定義済みの WaitUntil かどうかを返す。
+func (w WaitUntil) Valid() bool {
+	switch w {
+	case WaitUntilNone, WaitUntilLoad, WaitUntilNetworkIdle, WaitUntilSelector:
+		return true
+	}
+	return false
+}

@@ -139,8 +139,10 @@ plugins:
     browser_path: ""
     user_agent: ""
     headless: true
-    wait_visible_selector: ""
+    wait_until: load
     wait_timeout: 5s
+    wait_visible_selector: ""
+    network_idle_duration: 500ms
   preprocessors: [header]
   parsers: [html, pdf]
   transformer: markdown

@@ -23,6 +23,11 @@ const FIELD_LABELS: Record<string, string> = {
 	'plugins.fetcher': '取得方式 (fetcher)',
 	'plugins.transformer': 'transformer',
 	'plugins.fetcher_config.browser_path': 'ブラウザパス',
+	'plugins.fetcher_config.wait_until': 'ページ読み込み待機',
+	'plugins.fetcher_config.wait_timeout': '待機タイムアウト',
+	'plugins.fetcher_config.wait_visible_selector': '待機セレクタ',
+	'plugins.fetcher_config.network_idle_duration': 'ネットワーク静止時間',
+	'plugins.fetcher_config.user_agent': 'User-Agent',
 	'output.dir': '出力フォルダ',
 	'output.file_pattern': 'ファイル名パターン',
 };

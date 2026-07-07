@@ -226,6 +226,10 @@ export const messages = {
 			timeoutRange: '1秒以上300秒以下で入力してください',
 			retryIntervalRange: '100ミリ秒以上60秒以下で入力してください',
 			requestDelayRange: '0秒以上60秒以下で入力してください',
+			waitTimeoutRange: '0秒以上120秒以下で入力してください',
+			networkIdleDurationRange: '100ミリ秒以上30秒以下で入力してください',
+			waitVisibleSelectorRequired:
+				'wait_until=selector のとき wait_visible_selector は必須です',
 		},
 		tagList: {
 			placeholder: '追加…',
@@ -282,6 +286,15 @@ export const messages = {
 				'本文の変換方式。markdown / html / raw_html / json から選択。プレビューとファイル出力の主形式になります。',
 			browser_path: 'Chromium 実行ファイルのパス。空なら自動検出。',
 			headless: '画面を表示せずバックグラウンドでブラウザを動かす。',
+			wait_until:
+				'chromium 取得前のページ読み込み待機。load=DOM 読み込み完了 / network_idle=通信静止 / selector=要素出現まで。',
+			wait_timeout:
+				'wait_until 待機の上限時間。0 なら request.timeout を使います。',
+			wait_visible_selector:
+				'wait_until=selector のとき、可視になるまで待つ CSS セレクタ。',
+			network_idle_duration:
+				'wait_until=network_idle のとき、アクティブな接続がゼロの状態が続く時間。',
+			user_agent: 'chromium 時の User-Agent。空なら HTTP ヘッダまたは既定値。',
 			ws_name: '一覧に表示するワークスペース名。',
 			seed_url: 'グラフの起点となる URL。新規 WS 作成時に使います。',
 		},

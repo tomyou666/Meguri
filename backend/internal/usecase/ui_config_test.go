@@ -3,10 +3,12 @@ package usecase_test
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"meguri/internal/domain/model"
 	"meguri/internal/usecase"
 )
 
@@ -47,5 +49,19 @@ func TestMergeUIConfigLayers(t *testing.T) {
 		assert.Equal(t, 8, cfg.Crawl.FetchLimits.HTTPMaxInflight)
 		assert.Equal(t, 3, cfg.Crawl.FetchLimits.ChromiumMaxInflight)
 		assert.False(t, cfg.Crawl.FetchLimits.AutoCalibrate)
+	})
+
+	t.Run("正常系: fetcher_config をマージ結果に反映する", func(t *testing.T) {
+		raw := json.RawMessage(`{"plugins":{"fetcher":"chromium","fetcher_config":{"browser_path":"/bin/chromium","user_agent":"Test/1","headless":false,"wait_until":"selector","wait_visible_selector":"h1","wait_timeout":"10s","network_idle_duration":"750ms"}}}`)
+		cfg, err := usecase.ParseUIConfig(raw)
+		require.NoError(t, err)
+		assert.Equal(t, model.FetcherChromium, cfg.Plugins.Fetcher)
+		assert.Equal(t, "/bin/chromium", cfg.Plugins.FetcherConfig.BrowserPath)
+		assert.Equal(t, "Test/1", cfg.Plugins.FetcherConfig.UserAgent)
+		assert.False(t, cfg.Plugins.FetcherConfig.Headless)
+		assert.Equal(t, model.WaitUntilSelector, cfg.Plugins.FetcherConfig.WaitUntil)
+		assert.Equal(t, "h1", cfg.Plugins.FetcherConfig.WaitVisibleSelector)
+		assert.Equal(t, 10*time.Second, cfg.Plugins.FetcherConfig.WaitTimeout)
+		assert.Equal(t, 750*time.Millisecond, cfg.Plugins.FetcherConfig.NetworkIdleDuration)
 	})
 }

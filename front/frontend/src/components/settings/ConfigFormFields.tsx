@@ -503,6 +503,15 @@ export function PluginsConfigFields({
 }: FieldsProps<PartialConfig['plugins']>) {
 	const v = value ?? {};
 	const fc = v.fetcher_config ?? {};
+	const waitUntil = (fc.wait_until as string | undefined) ?? 'load';
+	const showChromiumWait = (v.fetcher ?? 'http') === 'chromium';
+
+	const patchFetcherConfig = (patch: Record<string, unknown>) =>
+		onChange({
+			...v,
+			fetcher_config: { ...fc, ...patch },
+		});
+
 	return (
 		<div className='space-y-3 text-xs'>
 			<ConfigField
@@ -565,26 +574,117 @@ export function PluginsConfigFields({
 						'mt-1 h-8',
 					)}
 					value={(fc.browser_path as string) ?? ''}
-					onChange={(e) =>
-						onChange({
-							...v,
-							fetcher_config: { ...fc, browser_path: e.target.value },
-						})
-					}
+					onChange={(e) => patchFetcherConfig({ browser_path: e.target.value })}
 				/>
 			</ConfigField>
 			<ConfigCheckboxRow
 				inputId={configCheckboxId('plugins.fetcher_config.headless')}
 				checked={(fc.headless as boolean) ?? true}
-				onCheckedChange={(c) =>
-					onChange({
-						...v,
-						fetcher_config: { ...fc, headless: !!c },
-					})
-				}
+				onCheckedChange={(c) => patchFetcherConfig({ headless: !!c })}
 			>
 				<FieldLabel label='headless' help={h.headless} />
 			</ConfigCheckboxRow>
+			{showChromiumWait ? (
+				<>
+					<ConfigField
+						path='plugins.fetcher_config.user_agent'
+						errors={fieldErrors}
+						label='user_agent'
+						help={h.user_agent}
+					>
+						<Input
+							className={inputClassName(
+								fieldInvalid(fieldErrors, 'plugins.fetcher_config.user_agent'),
+								'mt-1 h-8',
+							)}
+							value={(fc.user_agent as string) ?? ''}
+							onChange={(e) =>
+								patchFetcherConfig({ user_agent: e.target.value })
+							}
+						/>
+					</ConfigField>
+					<ConfigField
+						path='plugins.fetcher_config.wait_until'
+						errors={fieldErrors}
+						label='wait_until'
+						help={h.wait_until}
+					>
+						<select
+							className={selectClassName(
+								fieldInvalid(fieldErrors, 'plugins.fetcher_config.wait_until'),
+								'mt-1 h-8 w-full rounded-lg border border-input bg-background px-2',
+							)}
+							value={waitUntil}
+							onChange={(e) =>
+								patchFetcherConfig({ wait_until: e.target.value })
+							}
+						>
+							<option value='none'>none</option>
+							<option value='load'>load</option>
+							<option value='network_idle'>network_idle</option>
+							<option value='selector'>selector</option>
+						</select>
+					</ConfigField>
+					<ConfigField
+						path='plugins.fetcher_config.wait_timeout'
+						errors={fieldErrors}
+						label='wait_timeout'
+						help={h.wait_timeout}
+					>
+						<DurationInput
+							invalid={fieldInvalid(
+								fieldErrors,
+								'plugins.fetcher_config.wait_timeout',
+							)}
+							value={fc.wait_timeout as string | undefined}
+							onChange={(wait_timeout) => patchFetcherConfig({ wait_timeout })}
+						/>
+					</ConfigField>
+					{waitUntil === 'selector' ? (
+						<ConfigField
+							path='plugins.fetcher_config.wait_visible_selector'
+							errors={fieldErrors}
+							label='wait_visible_selector'
+							help={h.wait_visible_selector}
+						>
+							<Input
+								className={inputClassName(
+									fieldInvalid(
+										fieldErrors,
+										'plugins.fetcher_config.wait_visible_selector',
+									),
+									'mt-1 h-8',
+								)}
+								value={(fc.wait_visible_selector as string) ?? ''}
+								onChange={(e) =>
+									patchFetcherConfig({
+										wait_visible_selector: e.target.value,
+									})
+								}
+							/>
+						</ConfigField>
+					) : null}
+					{waitUntil === 'network_idle' ? (
+						<ConfigField
+							path='plugins.fetcher_config.network_idle_duration'
+							errors={fieldErrors}
+							label='network_idle_duration'
+							help={h.network_idle_duration}
+						>
+							<DurationInput
+								invalid={fieldInvalid(
+									fieldErrors,
+									'plugins.fetcher_config.network_idle_duration',
+								)}
+								value={fc.network_idle_duration as string | undefined}
+								onChange={(network_idle_duration) =>
+									patchFetcherConfig({ network_idle_duration })
+								}
+							/>
+						</ConfigField>
+					) : null}
+				</>
+			) : null}
 		</div>
 	);
 }

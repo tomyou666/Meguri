@@ -151,6 +151,28 @@ func TestConfig_Validate(t *testing.T) {
 		assert.Contains(t, err.Error(), "wait_timeout")
 	})
 
+	t.Run("異常系: wait_until=selector でセレクタ未指定だとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Plugins.FetcherConfig.WaitUntil = WaitUntilSelector
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "wait_visible_selector")
+	})
+
+	t.Run("異常系: plugins.fetcher_config.wait_until が列挙外だとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Plugins.FetcherConfig.WaitUntil = "sleep"
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "wait_until")
+	})
+
 	t.Run("異常系: fetch_limits の watermark が不正だとエラー", func(t *testing.T) {
 		c := Default()
 		c.Targets = []string{"https://example.com/"}
@@ -184,7 +206,9 @@ func TestConfig_Validate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, FetcherHTTP, c.Plugins.Fetcher)
 		assert.True(t, c.Plugins.FetcherConfig.Headless)
+		assert.Equal(t, WaitUntilLoad, c.Plugins.FetcherConfig.EffectiveWaitUntil())
 		assert.Equal(t, 5*time.Second, c.Plugins.FetcherConfig.WaitTimeout)
+		assert.Equal(t, DefaultNetworkIdleDuration, c.Plugins.FetcherConfig.EffectiveNetworkIdleDuration())
 	})
 
 	t.Run("異常系: output.file_pattern に未知のプレースホルダがあるとエラー", func(t *testing.T) {

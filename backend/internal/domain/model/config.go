@@ -19,6 +19,8 @@ const (
 	DefaultChromiumMaxInflight = 2
 	// MaxChromiumMaxInflight は Chromium 同時実行上限の絶対最大値。
 	MaxChromiumMaxInflight = 8
+	// DefaultNetworkIdleDuration は network_idle 待機の既定静止時間。
+	DefaultNetworkIdleDuration = 500 * time.Millisecond
 )
 
 // Config は meguri 全体の実行設定を表すルート構造体。
@@ -172,10 +174,30 @@ type FetcherConfig struct {
 	UserAgent string `yaml:"user_agent"`
 	// Headless はヘッドレス実行を有効にするか。
 	Headless bool `yaml:"headless"`
-	// WaitVisibleSelector は取得前に可視になるまで待機する CSS セレクタ（空なら待機しない）。
-	WaitVisibleSelector string `yaml:"wait_visible_selector"`
-	// WaitTimeout は WaitVisibleSelector の待機上限。
+	// WaitUntil は Navigate 後のページ読み込み待機モード（空なら load）。
+	WaitUntil WaitUntil `yaml:"wait_until"`
+	// WaitTimeout は wait_until 待機フェーズ全体の上限（0 なら request.timeout を使用）。
 	WaitTimeout time.Duration `yaml:"wait_timeout"`
+	// WaitVisibleSelector は wait_until=selector のときに可視になるまで待つ CSS セレクタ。
+	WaitVisibleSelector string `yaml:"wait_visible_selector"`
+	// NetworkIdleDuration は wait_until=network_idle のとき、接続ゼロが続く必要がある時間。
+	NetworkIdleDuration time.Duration `yaml:"network_idle_duration"`
+}
+
+// EffectiveWaitUntil は未設定時 load を返す実効 wait_until を返す。
+func (fc FetcherConfig) EffectiveWaitUntil() WaitUntil {
+	if fc.WaitUntil == "" {
+		return WaitUntilLoad
+	}
+	return fc.WaitUntil
+}
+
+// EffectiveNetworkIdleDuration は未設定時の既定 network_idle_duration を返す。
+func (fc FetcherConfig) EffectiveNetworkIdleDuration() time.Duration {
+	if fc.NetworkIdleDuration <= 0 {
+		return DefaultNetworkIdleDuration
+	}
+	return fc.NetworkIdleDuration
 }
 
 // PluginSelection はパイプライン各段で使うプラグイン名を保持する。
@@ -251,8 +273,10 @@ func Default() Config {
 		Plugins: PluginSelection{
 			Fetcher: FetcherHTTP,
 			FetcherConfig: FetcherConfig{
-				Headless:    true,
-				WaitTimeout: 5 * time.Second,
+				Headless:            true,
+				WaitUntil:           WaitUntilLoad,
+				WaitTimeout:         5 * time.Second,
+				NetworkIdleDuration: DefaultNetworkIdleDuration,
 			},
 			PreProcessors: nil,
 			Parsers:       []string{"html", "pdf"},
@@ -468,8 +492,21 @@ func (c *Config) validatePlugins() []error {
 	if !fetcher.Valid() {
 		errs = append(errs, fmt.Errorf("plugins.fetcher: 不正な値 %q (http / chromium)", fetcher))
 	}
+	waitUntil := c.Plugins.FetcherConfig.EffectiveWaitUntil()
+	if c.Plugins.FetcherConfig.WaitUntil != "" && !c.Plugins.FetcherConfig.WaitUntil.Valid() {
+		errs = append(errs, fmt.Errorf("plugins.fetcher_config.wait_until: 不正な値 %q (none / load / network_idle / selector)", c.Plugins.FetcherConfig.WaitUntil))
+	}
+	if waitUntil == WaitUntilSelector && strings.TrimSpace(c.Plugins.FetcherConfig.WaitVisibleSelector) == "" {
+		errs = append(errs, errors.New("plugins.fetcher_config.wait_visible_selector: wait_until=selector のとき必須"))
+	}
 	if c.Plugins.FetcherConfig.WaitTimeout < 0 || c.Plugins.FetcherConfig.WaitTimeout > 120*time.Second {
 		errs = append(errs, fmt.Errorf("plugins.fetcher_config.wait_timeout: 0s 以上 120s 以下 (現在: %s)", c.Plugins.FetcherConfig.WaitTimeout))
+	}
+	idle := c.Plugins.FetcherConfig.NetworkIdleDuration
+	if idle < 0 || idle > 30*time.Second {
+		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_duration: 0s 以上 30s 以下 (現在: %s)", idle))
+	} else if idle > 0 && idle < 100*time.Millisecond {
+		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_duration: 100ms 以上 30s 以下 (現在: %s)", idle))
 	}
 	if strings.TrimSpace(c.Plugins.FetcherConfig.UserAgent) != "" &&
 		strings.ContainsAny(c.Plugins.FetcherConfig.UserAgent, "\r\n") {

@@ -283,6 +283,9 @@ func applyUIConfig(cfg *model.Config, ui uiConfigJSON) {
 		if ui.Plugins.LinkExtractor != "" {
 			cfg.Plugins.LinkExtractor = ui.Plugins.LinkExtractor
 		}
+		if ui.Plugins.FetcherConfig != nil {
+			applyFetcherConfig(&cfg.Plugins.FetcherConfig, ui.Plugins.FetcherConfig)
+		}
 	}
 	if ui.Output != nil {
 		if ui.Output.Dir != "" {
@@ -299,6 +302,37 @@ func parseDuration(s string) (time.Duration, error) {
 		return 0, nil
 	}
 	return time.ParseDuration(s)
+}
+
+func applyFetcherConfig(fc *model.FetcherConfig, raw map[string]interface{}) {
+	if fc == nil || raw == nil {
+		return
+	}
+	if v, ok := raw["browser_path"].(string); ok {
+		fc.BrowserPath = v
+	}
+	if v, ok := raw["user_agent"].(string); ok {
+		fc.UserAgent = v
+	}
+	if v, ok := raw["headless"].(bool); ok {
+		fc.Headless = v
+	}
+	if v, ok := raw["wait_until"].(string); ok && v != "" {
+		fc.WaitUntil = model.WaitUntil(v)
+	}
+	if v, ok := raw["wait_visible_selector"].(string); ok {
+		fc.WaitVisibleSelector = v
+	}
+	if v, ok := raw["wait_timeout"].(string); ok {
+		if d, err := parseDuration(v); err == nil {
+			fc.WaitTimeout = d
+		}
+	}
+	if v, ok := raw["network_idle_duration"].(string); ok {
+		if d, err := parseDuration(v); err == nil {
+			fc.NetworkIdleDuration = d
+		}
+	}
 }
 
 // DeriveContentFormats は transformer と extract フラグから content.formats を導出する。

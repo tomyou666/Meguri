@@ -24,7 +24,13 @@ const requestDelaySchema = durationStringSchema
 	.optional()
 	.superRefine(createDurationRangeRefine('request_delay'));
 
-const durationSchema = durationStringSchema;
+const waitTimeoutSchema = durationStringSchema
+	.optional()
+	.superRefine(createDurationRangeRefine('wait_timeout'));
+
+const networkIdleDurationSchema = durationStringSchema
+	.optional()
+	.superRefine(createDurationRangeRefine('network_idle_duration'));
 
 const contentFormatSchema = z.enum([
 	'markdown',
@@ -90,13 +96,25 @@ export const crawlConfigSchema = z.object({
 	fetch_limits: fetchLimitsConfigSchema.optional(),
 });
 
-export const fetcherConfigSchema = z.object({
-	browser_path: z.string().optional(),
-	user_agent: z.string().optional(),
-	headless: z.boolean().optional(),
-	wait_visible_selector: z.string().optional(),
-	wait_timeout: durationSchema.optional(),
-});
+export const fetcherConfigSchema = z
+	.object({
+		browser_path: z.string().optional(),
+		user_agent: z.string().optional(),
+		headless: z.boolean().optional(),
+		wait_until: z.enum(['none', 'load', 'network_idle', 'selector']).optional(),
+		wait_visible_selector: z.string().optional(),
+		wait_timeout: waitTimeoutSchema,
+		network_idle_duration: networkIdleDurationSchema,
+	})
+	.superRefine((val, ctx) => {
+		if (val.wait_until === 'selector' && !val.wait_visible_selector?.trim()) {
+			ctx.addIssue({
+				code: 'custom',
+				message: messages.settings.validation.waitVisibleSelectorRequired,
+				path: ['wait_visible_selector'],
+			});
+		}
+	});
 
 export const pluginsConfigSchema = z.object({
 	fetcher: z.enum(['http', 'chromium']).optional(),

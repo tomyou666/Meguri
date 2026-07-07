@@ -56,15 +56,8 @@ func (c *client) fetchOnce(ctx context.Context, u *url.URL, headers map[string]s
 	}
 
 	var html string
-	err := c.runWithTab(ctx, ua, func(tabCtx context.Context) error {
-		tasks := []chromedp.Action{
-			chromedp.Navigate(u.String()),
-		}
-		if sel := strings.TrimSpace(c.fetcherCfg.WaitVisibleSelector); sel != "" {
-			tasks = append(tasks, chromedp.WaitVisible(sel, chromedp.ByQuery))
-		}
-		tasks = append(tasks, chromedp.OuterHTML("html", &html, chromedp.ByQuery))
-		return chromedp.Run(tabCtx, tasks...)
+	err := c.runWithWait(ctx, ua, func(tabCtx context.Context) []chromedp.Action {
+		return c.buildHTMLFetchTasks(u.String(), &html)
 	})
 	if err != nil {
 		return nil, err

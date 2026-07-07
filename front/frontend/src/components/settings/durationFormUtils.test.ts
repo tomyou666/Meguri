@@ -42,5 +42,8 @@ describe('durationFormUtils', () => {
 		expect(durationInRange('timeout', 500)).toBe(false);
 		expect(durationInRange('request_delay', 0)).toBe(true);
 		expect(durationInRange('retry_interval', 50)).toBe(false);
+		expect(durationInRange('wait_timeout', 0)).toBe(true);
+		expect(durationInRange('network_idle_duration', 500)).toBe(true);
+		expect(durationInRange('network_idle_duration', 50)).toBe(false);
 	});
 });

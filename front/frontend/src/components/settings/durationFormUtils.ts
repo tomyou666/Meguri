@@ -3,7 +3,12 @@ import { messages } from '@/i18n/messages';
 
 export type DurationUnit = 's' | 'ms';
 
-export type DurationFieldKey = 'timeout' | 'retry_interval' | 'request_delay';
+export type DurationFieldKey =
+	| 'timeout'
+	| 'retry_interval'
+	| 'request_delay'
+	| 'wait_timeout'
+	| 'network_idle_duration';
 
 export type DurationFormValue = {
 	amount: number | undefined;
@@ -29,12 +34,16 @@ export const DURATION_LIMITS: Record<
 	timeout: { minMs: 1_000, maxMs: 300_000 },
 	retry_interval: { minMs: 100, maxMs: 60_000 },
 	request_delay: { minMs: 0, maxMs: 60_000 },
+	wait_timeout: { minMs: 0, maxMs: 120_000 },
+	network_idle_duration: { minMs: 100, maxMs: 30_000 },
 };
 
 const DURATION_RANGE_MESSAGES: Record<DurationFieldKey, string> = {
 	timeout: messages.settings.validation.timeoutRange,
 	retry_interval: messages.settings.validation.retryIntervalRange,
 	request_delay: messages.settings.validation.requestDelayRange,
+	wait_timeout: messages.settings.validation.waitTimeoutRange,
+	network_idle_duration: messages.settings.validation.networkIdleDurationRange,
 };
 
 /** Go time.ParseDuration 互換の文字列をミリ秒に変換する */
