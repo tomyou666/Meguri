@@ -14,7 +14,7 @@
 
 ## 開発環境（Go）
 
-このリポジトリの Go バージョンは [`.prototools`](.prototools) で管理しています（現在 `1.26.4`）。[proto](https://moonrepo.dev/proto) を使ってインストールしてください。
+このリポジトリの Go バージョンは [`.prototools`](.prototools) で管理しています（現在 `1.26.5`）。[proto](https://moonrepo.dev/proto) を使ってインストールしてください。
 
 ### 開発ツール
 
@@ -57,7 +57,7 @@ make tools
 Windows に別バージョンの Go を手動インストールしていると、`go` コマンドと `compile` などのビルドツールのバージョンが食い違うことがあります。典型的には次の状態です。
 
 - システムの `GOROOT` が古い Go（例: `C:\go1.26.2`）を指している
-- `go.mod` / proto は新しい Go（例: `1.26.4`）を使おうとする
+- `go.mod` / proto は新しい Go（例: `1.26.5`）を使おうとする
 
 **対処:**
 
