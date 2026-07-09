@@ -173,6 +173,17 @@ func TestConfig_Validate(t *testing.T) {
 		assert.Contains(t, err.Error(), "wait_until")
 	})
 
+	t.Run("異常系: network_idle_request_max_age が範囲外だとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Plugins.FetcherConfig.NetworkIdleRequestMaxAge = 500 * time.Millisecond
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "network_idle_request_max_age")
+	})
+
 	t.Run("異常系: fetch_limits の watermark が不正だとエラー", func(t *testing.T) {
 		c := Default()
 		c.Targets = []string{"https://example.com/"}
@@ -210,6 +221,7 @@ func TestConfig_Validate(t *testing.T) {
 		assert.Equal(t, WaitUntilLoad, c.Plugins.FetcherConfig.EffectiveWaitUntil())
 		assert.Equal(t, 5*time.Second, c.Plugins.FetcherConfig.WaitTimeout)
 		assert.Equal(t, DefaultNetworkIdleDuration, c.Plugins.FetcherConfig.EffectiveNetworkIdleDuration())
+		assert.Equal(t, DefaultNetworkIdleRequestMaxAge, c.Plugins.FetcherConfig.EffectiveNetworkIdleRequestMaxAge())
 	})
 
 	t.Run("異常系: stealth.http.user_agent に改行があるとエラー", func(t *testing.T) {

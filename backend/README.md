@@ -143,6 +143,7 @@ plugins:
     wait_timeout: 5s
     wait_visible_selector: ""
     network_idle_duration: 500ms
+    network_idle_request_max_age: 10s
   preprocessors: [header]
   parsers: [html, pdf]
   transformer: markdown

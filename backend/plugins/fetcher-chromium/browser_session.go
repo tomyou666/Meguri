@@ -32,18 +32,40 @@ type browserSession struct {
 }
 
 // newBrowserSession は Chromium を起動し、共有用の browserSession を返す。
+//
+// ブラウザ寿命は parent のキャンセルから切り離す（共有プールが最初のリクエスト終了で死なないようにする）。
+// 起動自体は parent のキャンセルで中断する。
 func newBrowserSession(parent context.Context, key sessionKey, opts []chromedp.ExecAllocatorOption) (*browserSession, error) {
+	if err := parent.Err(); err != nil {
+		return nil, fmt.Errorf("start chromium browser: %w", err)
+	}
+
 	job, jobOpt := newBrowserJob()
 	opts = append(opts, jobOpt)
 
-	allocCtx, allocCancel := chromedp.NewExecAllocator(parent, opts...)
+	// 共有セッションはリクエスト context に紐づけない。
+	allocCtx, allocCancel := chromedp.NewExecAllocator(context.WithoutCancel(parent), opts...)
 	rootCtx, rootCancel := chromedp.NewContext(allocCtx)
 
-	if err := chromedp.Run(rootCtx); err != nil {
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- chromedp.Run(rootCtx)
+	}()
+
+	var runErr error
+	select {
+	case runErr = <-errCh:
+	case <-parent.Done():
 		rootCancel()
 		allocCancel()
 		job.Close()
-		return nil, fmt.Errorf("start chromium browser: %w", err)
+		return nil, fmt.Errorf("start chromium browser: %w", parent.Err())
+	}
+	if runErr != nil {
+		rootCancel()
+		allocCancel()
+		job.Close()
+		return nil, fmt.Errorf("start chromium browser: %w", runErr)
 	}
 
 	return &browserSession{
@@ -58,14 +80,25 @@ func newBrowserSession(parent context.Context, key sessionKey, opts []chromedp.E
 }
 
 // openTab はルートコンテキスト上に新しいタブコンテキストを作る。
+//
+// ctx がキャンセルされたらタブだけを閉じる（共有ブラウザは維持する）。
 func (s *browserSession) openTab(ctx context.Context) (context.Context, context.CancelFunc, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.rootCtx == nil {
 		return nil, nil, fmt.Errorf("chromium browser session closed")
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+
 	tabCtx, tabCancel := chromedp.NewContext(s.rootCtx)
-	return tabCtx, tabCancel, nil
+	stop := context.AfterFunc(ctx, tabCancel)
+	cancel := func() {
+		stop()
+		tabCancel()
+	}
+	return tabCtx, cancel, nil
 }
 
 // close はブラウザプロセスと関連コンテキストを解放する。

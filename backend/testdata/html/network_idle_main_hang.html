@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>network idle main hang</title>
+</head>
+<body>
+  <h1 id="done">done</h1>
+  <script>
+    fetch('/hang').catch(function () {});
+  </script>
+</body>
+</html>

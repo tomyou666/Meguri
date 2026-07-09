@@ -354,6 +354,11 @@ func applyFetcherConfig(fc *model.FetcherConfig, raw map[string]interface{}) {
 			fc.NetworkIdleDuration = d
 		}
 	}
+	if v, ok := raw["network_idle_request_max_age"].(string); ok {
+		if d, err := parseDuration(v); err == nil {
+			fc.NetworkIdleRequestMaxAge = d
+		}
+	}
 }
 
 func applyStealthConfig(sc *model.StealthConfig, ui *uiStealthJSON) {

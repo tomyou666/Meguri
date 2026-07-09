@@ -212,6 +212,8 @@ plugins:
     wait_visible_selector: ""
     # network_idle_duration: wait_until=network_idle のとき、接続ゼロが続く時間（既定: 500ms）
     network_idle_duration: 500ms
+    # network_idle_request_max_age: 終わらない 1 通信を諦める上限（既定: 10s、範囲: 1s ～ 60s）
+    network_idle_request_max_age: 10s
 
   # stealth: ボット検知回避（fetcher 種別ごとに http / chromium）
   stealth:

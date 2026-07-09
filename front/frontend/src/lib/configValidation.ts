@@ -27,6 +27,7 @@ const FIELD_LABELS: Record<string, string> = {
 	'plugins.fetcher_config.wait_timeout': '待機タイムアウト',
 	'plugins.fetcher_config.wait_visible_selector': '待機セレクタ',
 	'plugins.fetcher_config.network_idle_duration': 'ネットワーク静止時間',
+	'plugins.fetcher_config.network_idle_request_max_age': '通信の打ち切り時間',
 	'plugins.stealth.http.user_agent': 'User-Agent (http)',
 	'plugins.stealth.http.accept_language': 'Accept-Language (http)',
 	'plugins.stealth.http.cookie': 'Cookie (http)',

@@ -21,6 +21,8 @@ const (
 	MaxChromiumMaxInflight = 8
 	// DefaultNetworkIdleDuration は network_idle 待機の既定静止時間。
 	DefaultNetworkIdleDuration = 500 * time.Millisecond
+	// DefaultNetworkIdleRequestMaxAge は network_idle 待機で 1 リクエストを追跡し続ける既定上限。
+	DefaultNetworkIdleRequestMaxAge = 10 * time.Second
 	// DefaultHTTPUserAgent は http フェッチの既定 User-Agent。
 	DefaultHTTPUserAgent = "meguri/0.1"
 	// MinStealthWindowSize はステルス用ウィンドウサイズの最小値。
@@ -257,6 +259,8 @@ type FetcherConfig struct {
 	WaitVisibleSelector string `yaml:"wait_visible_selector"`
 	// NetworkIdleDuration は wait_until=network_idle のとき、接続ゼロが続く必要がある時間。
 	NetworkIdleDuration time.Duration `yaml:"network_idle_duration"`
+	// NetworkIdleRequestMaxAge は wait_until=network_idle のとき、終わらない 1 リクエストを追跡し続ける上限。
+	NetworkIdleRequestMaxAge time.Duration `yaml:"network_idle_request_max_age"`
 }
 
 // EffectiveWaitUntil は未設定時 load を返す実効 wait_until を返す。
@@ -273,6 +277,14 @@ func (fc FetcherConfig) EffectiveNetworkIdleDuration() time.Duration {
 		return DefaultNetworkIdleDuration
 	}
 	return fc.NetworkIdleDuration
+}
+
+// EffectiveNetworkIdleRequestMaxAge は未設定時の既定 network_idle_request_max_age を返す。
+func (fc FetcherConfig) EffectiveNetworkIdleRequestMaxAge() time.Duration {
+	if fc.NetworkIdleRequestMaxAge <= 0 {
+		return DefaultNetworkIdleRequestMaxAge
+	}
+	return fc.NetworkIdleRequestMaxAge
 }
 
 // PluginSelection はパイプライン各段で使うプラグイン名を保持する。
@@ -350,9 +362,10 @@ func Default() Config {
 		Plugins: PluginSelection{
 			Fetcher: FetcherHTTP,
 			FetcherConfig: FetcherConfig{
-				WaitUntil:           WaitUntilLoad,
-				WaitTimeout:         5 * time.Second,
-				NetworkIdleDuration: DefaultNetworkIdleDuration,
+				WaitUntil:                WaitUntilLoad,
+				WaitTimeout:              5 * time.Second,
+				NetworkIdleDuration:      DefaultNetworkIdleDuration,
+				NetworkIdleRequestMaxAge: DefaultNetworkIdleRequestMaxAge,
 			},
 			Stealth: StealthConfig{
 				Chromium: ChromiumStealthConfig{
@@ -593,6 +606,12 @@ func (c *Config) validatePlugins() []error {
 		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_duration: 0s 以上 30s 以下 (現在: %s)", idle))
 	} else if idle > 0 && idle < 100*time.Millisecond {
 		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_duration: 100ms 以上 30s 以下 (現在: %s)", idle))
+	}
+	maxAge := c.Plugins.FetcherConfig.NetworkIdleRequestMaxAge
+	if maxAge < 0 || maxAge > 60*time.Second {
+		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_request_max_age: 0s 以上 60s 以下 (現在: %s)", maxAge))
+	} else if maxAge > 0 && maxAge < time.Second {
+		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_request_max_age: 1s 以上 60s 以下 (現在: %s)", maxAge))
 	}
 	errs = append(errs, c.validateStealth()...)
 	return errs

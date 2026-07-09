@@ -648,23 +648,42 @@ export function PluginsConfigFields({
 						</ConfigField>
 					) : null}
 					{waitUntil === 'network_idle' ? (
-						<ConfigField
-							path='plugins.fetcher_config.network_idle_duration'
-							errors={fieldErrors}
-							label='network_idle_duration'
-							help={h.network_idle_duration}
-						>
-							<DurationInput
-								invalid={fieldInvalid(
-									fieldErrors,
-									'plugins.fetcher_config.network_idle_duration',
-								)}
-								value={fc.network_idle_duration as string | undefined}
-								onChange={(network_idle_duration) =>
-									patchFetcherConfig({ network_idle_duration })
-								}
-							/>
-						</ConfigField>
+						<>
+							<ConfigField
+								path='plugins.fetcher_config.network_idle_duration'
+								errors={fieldErrors}
+								label='network_idle_duration'
+								help={h.network_idle_duration}
+							>
+								<DurationInput
+									invalid={fieldInvalid(
+										fieldErrors,
+										'plugins.fetcher_config.network_idle_duration',
+									)}
+									value={fc.network_idle_duration as string | undefined}
+									onChange={(network_idle_duration) =>
+										patchFetcherConfig({ network_idle_duration })
+									}
+								/>
+							</ConfigField>
+							<ConfigField
+								path='plugins.fetcher_config.network_idle_request_max_age'
+								errors={fieldErrors}
+								label='network_idle_request_max_age'
+								help={h.network_idle_request_max_age}
+							>
+								<DurationInput
+									invalid={fieldInvalid(
+										fieldErrors,
+										'plugins.fetcher_config.network_idle_request_max_age',
+									)}
+									value={fc.network_idle_request_max_age as string | undefined}
+									onChange={(network_idle_request_max_age) =>
+										patchFetcherConfig({ network_idle_request_max_age })
+									}
+								/>
+							</ConfigField>
+						</>
 					) : null}
 				</>
 			) : null}

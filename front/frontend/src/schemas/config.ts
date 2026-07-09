@@ -32,6 +32,10 @@ const networkIdleDurationSchema = durationStringSchema
 	.optional()
 	.superRefine(createDurationRangeRefine('network_idle_duration'));
 
+const networkIdleRequestMaxAgeSchema = durationStringSchema
+	.optional()
+	.superRefine(createDurationRangeRefine('network_idle_request_max_age'));
+
 const contentFormatSchema = z.enum([
 	'markdown',
 	'html',
@@ -103,6 +107,7 @@ export const fetcherConfigSchema = z
 		wait_visible_selector: z.string().optional(),
 		wait_timeout: waitTimeoutSchema,
 		network_idle_duration: networkIdleDurationSchema,
+		network_idle_request_max_age: networkIdleRequestMaxAgeSchema,
 	})
 	.superRefine((val, ctx) => {
 		if (val.wait_until === 'selector' && !val.wait_visible_selector?.trim()) {

@@ -46,6 +46,7 @@ func TestClient_Get_PDF(t *testing.T) {
 	host := core.NewHost(&cfg)
 	c := &client{}
 	require.NoError(t, c.Init(context.Background(), host))
+	t.Cleanup(func() { _ = c.Close(context.Background()) })
 
 	u, err := url.Parse(srv.URL + "/files/report.pdf")
 	require.NoError(t, err)

@@ -45,5 +45,7 @@ describe('durationFormUtils', () => {
 		expect(durationInRange('wait_timeout', 0)).toBe(true);
 		expect(durationInRange('network_idle_duration', 500)).toBe(true);
 		expect(durationInRange('network_idle_duration', 50)).toBe(false);
+		expect(durationInRange('network_idle_request_max_age', 10_000)).toBe(true);
+		expect(durationInRange('network_idle_request_max_age', 500)).toBe(false);
 	});
 });

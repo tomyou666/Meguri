@@ -8,7 +8,8 @@ export type DurationFieldKey =
 	| 'retry_interval'
 	| 'request_delay'
 	| 'wait_timeout'
-	| 'network_idle_duration';
+	| 'network_idle_duration'
+	| 'network_idle_request_max_age';
 
 export type DurationFormValue = {
 	amount: number | undefined;
@@ -36,6 +37,7 @@ export const DURATION_LIMITS: Record<
 	request_delay: { minMs: 0, maxMs: 60_000 },
 	wait_timeout: { minMs: 0, maxMs: 120_000 },
 	network_idle_duration: { minMs: 100, maxMs: 30_000 },
+	network_idle_request_max_age: { minMs: 1_000, maxMs: 60_000 },
 };
 
 const DURATION_RANGE_MESSAGES: Record<DurationFieldKey, string> = {
@@ -44,6 +46,8 @@ const DURATION_RANGE_MESSAGES: Record<DurationFieldKey, string> = {
 	request_delay: messages.settings.validation.requestDelayRange,
 	wait_timeout: messages.settings.validation.waitTimeoutRange,
 	network_idle_duration: messages.settings.validation.networkIdleDurationRange,
+	network_idle_request_max_age:
+		messages.settings.validation.networkIdleRequestMaxAgeRange,
 };
 
 /** Go time.ParseDuration 互換の文字列をミリ秒に変換する */

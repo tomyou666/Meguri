@@ -27,7 +27,10 @@ func (c *client) buildHTMLFetchTasks(u string, html *string) []chromedp.Action {
 	tasks := []chromedp.Action{}
 
 	if c.fetcherCfg.EffectiveWaitUntil() == model.WaitUntilNetworkIdle {
-		idleWatch = newNetworkIdleWatch(c.fetcherCfg.EffectiveNetworkIdleDuration())
+		idleWatch = newNetworkIdleWatch(
+			c.fetcherCfg.EffectiveNetworkIdleDuration(),
+			c.fetcherCfg.EffectiveNetworkIdleRequestMaxAge(),
+		)
 		tasks = append(tasks, idleWatch.begin())
 	}
 

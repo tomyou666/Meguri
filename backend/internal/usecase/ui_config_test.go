@@ -52,7 +52,7 @@ func TestMergeUIConfigLayers(t *testing.T) {
 	})
 
 	t.Run("正常系: fetcher_config をマージ結果に反映する", func(t *testing.T) {
-		raw := json.RawMessage(`{"plugins":{"fetcher":"chromium","fetcher_config":{"browser_path":"/bin/chromium","wait_until":"selector","wait_visible_selector":"h1","wait_timeout":"10s","network_idle_duration":"750ms"},"stealth":{"chromium":{"user_agent":"Test/1","headless":false,"hide_automation":true}}}}`)
+		raw := json.RawMessage(`{"plugins":{"fetcher":"chromium","fetcher_config":{"browser_path":"/bin/chromium","wait_until":"selector","wait_visible_selector":"h1","wait_timeout":"10s","network_idle_duration":"750ms","network_idle_request_max_age":"15s"},"stealth":{"chromium":{"user_agent":"Test/1","headless":false,"hide_automation":true}}}}`)
 		cfg, err := usecase.ParseUIConfig(raw)
 		require.NoError(t, err)
 		assert.Equal(t, model.FetcherChromium, cfg.Plugins.Fetcher)
@@ -64,6 +64,7 @@ func TestMergeUIConfigLayers(t *testing.T) {
 		assert.Equal(t, "h1", cfg.Plugins.FetcherConfig.WaitVisibleSelector)
 		assert.Equal(t, 10*time.Second, cfg.Plugins.FetcherConfig.WaitTimeout)
 		assert.Equal(t, 750*time.Millisecond, cfg.Plugins.FetcherConfig.NetworkIdleDuration)
+		assert.Equal(t, 15*time.Second, cfg.Plugins.FetcherConfig.NetworkIdleRequestMaxAge)
 	})
 
 	t.Run("正常系: stealth.http をマージ結果に反映する", func(t *testing.T) {
