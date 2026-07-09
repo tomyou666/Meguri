@@ -422,7 +422,7 @@ func (c *Crawler) skipReason(ctx context.Context, u *url.URL, depth int, base *u
 		}
 	}
 	if c.cfg.Crawl.RespectRobotsTxt && c.robots != nil {
-		ua := c.cfg.Request.Headers["User-Agent"]
+		ua := c.cfg.Plugins.Stealth.HTTP.EffectiveUserAgent()
 		if !c.robots.Allowed(ctx, u, ua) {
 			return "robots"
 		}

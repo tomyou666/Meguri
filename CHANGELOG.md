@@ -8,15 +8,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
+- ステルス設定の `lang` / `accept_language` を主な国のプリセットからセレクト選択可能に（カスタム自由入力あり）
+- `plugins.stealth` ステルス設定（`http` / `chromium`）。取得方法タブにステルス対策グループを追加
 - chromium フェッチャーに `wait_until`（`none` / `load` / `network_idle` / `selector`）によるページ読み込み待機を追加。`wait_timeout` を待機フェーズに配線
 - UI 設定の `fetcher_config`（待機設定含む）を backend に正しく反映
 - ルート・backend・front の Makefile に `make generate` を追加（codegen 一括実行）
 - `pkg/runner` を interface 化し gowrap で debug ログデコレータを生成（`make gowrap`）
 - クロール時の URL 正規化を `internal/core/crawler.go` で info ログ出力（raw / normalized）
 
+### 変更
+
+- UA / headless を `fetcher_config` / `request.headers` から `plugins.stealth` へ移動（**互換破壊**）
+
+### 削除
+
+- CLI `--fetcher-user-agent` / `--fetcher-headless`
+- `plugins.stealth.chromium.disable_infobars`（Chromium から `--disable-infobars` が削除済みのため。情報バー非表示は `hide_automation` で対応）
+
 ### 修正
 
 - SQLite 接続に WAL・synchronous(NORMAL)・busy_timeout(5000) を適用し、crawl 中の UI 読み取りと書き込み競合を緩和
+- chromium `hide_automation` が `--enable-automation` を外すよう修正（`excludeSwitches` は CLI 非対応のため）
+- Windows 等で不要な `--no-sandbox` 付与をやめ、サポート外フラグの infobar 表示を抑制
 
 ## [0.6.0] - 2026-07-05
 

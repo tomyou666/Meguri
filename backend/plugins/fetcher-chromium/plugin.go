@@ -23,6 +23,8 @@ type client struct {
 	reqCfg model.RequestConfig
 	// fetcherCfg はブラウザ実行・待機に関する設定。
 	fetcherCfg model.FetcherConfig
+	// stealthCfg は chromium ステルス設定。
+	stealthCfg model.ChromiumStealthConfig
 	// browserPath は解決済みブラウザ実行ファイルパス。
 	browserPath string
 	// pdfCfg は IsPDFTarget 判定用の PDF 設定スナップショット。
@@ -49,6 +51,7 @@ func (c *client) Metadata() plugin.Metadata {
 func (c *client) Init(_ context.Context, host plugin.Host) error {
 	c.reqCfg = host.RequestConfig()
 	c.fetcherCfg = host.FetcherConfig()
+	c.stealthCfg = host.StealthConfig().Chromium
 	path, err := resolveBrowserPath(c.fetcherCfg.BrowserPath)
 	if err != nil {
 		return err

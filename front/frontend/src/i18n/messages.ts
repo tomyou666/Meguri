@@ -235,6 +235,22 @@ export const messages = {
 			placeholder: '追加…',
 			remove: (value: string) => `${value} を削除`,
 		},
+		localePresets: {
+			unset: '未設定',
+			custom: 'カスタム',
+			countries: {
+				'ja-JP': '日本 (ja-JP)',
+				'en-US': 'アメリカ (en-US)',
+				'en-GB': 'イギリス (en-GB)',
+				'de-DE': 'ドイツ (de-DE)',
+				'fr-FR': 'フランス (fr-FR)',
+				'ko-KR': '韓国 (ko-KR)',
+				'zh-CN': '中国 (zh-CN)',
+				'zh-TW': '台湾 (zh-TW)',
+				'es-ES': 'スペイン (es-ES)',
+				'pt-BR': 'ブラジル (pt-BR)',
+			},
+		},
 		tabs: {
 			general: '基本',
 			request: 'HTTP',
@@ -247,7 +263,27 @@ export const messages = {
 			timeout: '1ページ取得の最大待ち時間。長すぎると全体が遅くなります。',
 			retry_count: '失敗時に再試行する回数（0〜10）。',
 			retry_interval: '再試行までの待ち時間。',
-			userAgent: 'サーバーに送るブラウザ名。ブロック対策や識別に使います。',
+			stealth_group:
+				'ボット検知回避のためのリクエスト・ブラウザ設定。fetcher に応じて http / chromium の項目が切り替わります。',
+			stealth_http_user_agent: 'http 取得時の User-Agent。空なら meguri/0.1。',
+			stealth_http_accept_language: 'http 取得時の Accept-Language ヘッダ。',
+			stealth_http_cookie:
+				'http 取得時の Cookie ヘッダ（WAF 通過済みセッション等）。',
+			stealth_chromium_user_agent:
+				'chromium 取得時の User-Agent。空なら既定の Chromium UA。',
+			stealth_chromium_headless:
+				'画面を表示せずバックグラウンドでブラウザを動かす。',
+			stealth_chromium_hide_automation:
+				'--enable-automation を外し navigator.webdriver 検知を抑止する。自動テスト情報バー（「Chrome は自動テストソフトによって…」）の非表示も含む。',
+			stealth_chromium_disable_gpu:
+				'Chromium 起動時に --disable-gpu を付与する。',
+			stealth_chromium_user_data_dir:
+				'永続プロファイル用ディレクトリ。空なら毎回クリーンなセッション。',
+			stealth_chromium_lang: 'ブラウザの --lang フラグ（例: ja-JP）。',
+			stealth_chromium_window_width: 'ブラウザウィンドウ幅（ピクセル）。',
+			stealth_chromium_window_height: 'ブラウザウィンドウ高さ（ピクセル）。',
+			stealth_chromium_accept_language:
+				'chromium 取得時の Accept-Language（CDP extra HTTP ヘッダ）。',
 			formats:
 				'保存する形式。markdown / links など複数選択できます（1つ以上必須）。',
 			only_main_content: '広告やナビを除き、記事本文だけを抽出します。',
@@ -285,7 +321,6 @@ export const messages = {
 			transformer:
 				'本文の変換方式。markdown / html / raw_html / json から選択。プレビューとファイル出力の主形式になります。',
 			browser_path: 'Chromium 実行ファイルのパス。空なら自動検出。',
-			headless: '画面を表示せずバックグラウンドでブラウザを動かす。',
 			wait_until:
 				'chromium 取得前のページ読み込み待機。load=DOM 読み込み完了 / network_idle=通信静止 / selector=要素出現まで。',
 			wait_timeout:
@@ -294,7 +329,6 @@ export const messages = {
 				'wait_until=selector のとき、可視になるまで待つ CSS セレクタ。',
 			network_idle_duration:
 				'wait_until=network_idle のとき、アクティブな接続がゼロの状態が続く時間。',
-			user_agent: 'chromium 時の User-Agent。空なら HTTP ヘッダまたは既定値。',
 			ws_name: '一覧に表示するワークスペース名。',
 			seed_url: 'グラフの起点となる URL。新規 WS 作成時に使います。',
 		},

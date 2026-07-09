@@ -16,7 +16,7 @@ import (
 
 // get はリトライ付きで URL を取得する。
 func (c *client) get(ctx context.Context, u *url.URL, headers map[string]string) (*model.Response, error) {
-	ua := resolveUserAgent(c.fetcherCfg, headers)
+	ua := resolveUserAgent(c.stealthCfg)
 	if err := c.joinPool(ctx, ua); err != nil {
 		return nil, err
 	}
@@ -78,10 +78,9 @@ func (c *client) chromedpAllocatorOptions(ua string) []chromedp.ExecAllocatorOpt
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.ExecPath(c.browserPath),
 		chromedp.UserAgent(ua),
-		chromedp.Flag("disable-gpu", true),
-		chromedp.Flag("no-sandbox", true),
 	)
-	if c.fetcherCfg.Headless {
+	opts = appendChromiumStealthFlags(opts, c.stealthCfg)
+	if c.stealthCfg.Headless {
 		opts = append(opts, chromedp.Flag("headless", true))
 	} else {
 		opts = append(opts, chromedp.Flag("headless", false))

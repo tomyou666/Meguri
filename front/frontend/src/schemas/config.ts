@@ -99,8 +99,6 @@ export const crawlConfigSchema = z.object({
 export const fetcherConfigSchema = z
 	.object({
 		browser_path: z.string().optional(),
-		user_agent: z.string().optional(),
-		headless: z.boolean().optional(),
 		wait_until: z.enum(['none', 'load', 'network_idle', 'selector']).optional(),
 		wait_visible_selector: z.string().optional(),
 		wait_timeout: waitTimeoutSchema,
@@ -116,9 +114,33 @@ export const fetcherConfigSchema = z
 		}
 	});
 
+export const httpStealthConfigSchema = z.object({
+	user_agent: z.string().optional(),
+	accept_language: z.string().optional(),
+	cookie: z.string().optional(),
+});
+
+export const chromiumStealthConfigSchema = z.object({
+	user_agent: z.string().optional(),
+	headless: z.boolean().optional(),
+	hide_automation: z.boolean().optional(),
+	disable_gpu: z.boolean().optional(),
+	user_data_dir: z.string().optional(),
+	lang: z.string().optional(),
+	window_width: optionalInt(0, 7680),
+	window_height: optionalInt(0, 7680),
+	accept_language: z.string().optional(),
+});
+
+export const stealthConfigSchema = z.object({
+	http: httpStealthConfigSchema.optional(),
+	chromium: chromiumStealthConfigSchema.optional(),
+});
+
 export const pluginsConfigSchema = z.object({
 	fetcher: z.enum(['http', 'chromium']).optional(),
 	fetcher_config: fetcherConfigSchema.optional(),
+	stealth: stealthConfigSchema.optional(),
 	preprocessors: z.array(z.string()).optional(),
 	parsers: z.array(z.string()).optional(),
 	transformer: z.enum(['markdown', 'html', 'raw_html', 'json']).optional(),

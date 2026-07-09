@@ -82,7 +82,6 @@ func measureChromiumRSS(ctx context.Context, browserPath string) (uint64, error)
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.ExecPath(browserPath),
 		chromedp.Flag("disable-gpu", true),
-		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("headless", true),
 	)
 	allocCtx, allocCancel := chromedp.NewExecAllocator(probeCtx, opts...)

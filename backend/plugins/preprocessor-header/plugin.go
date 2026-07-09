@@ -1,8 +1,9 @@
-// Package header は設定の request.headers をリクエストへ転写する P2 PreProcessor を提供する。
+// Package header は plugins.stealth.http の値を http リクエストへ転写する P2 PreProcessor を提供する。
 package header
 
 import (
 	"context"
+	"strings"
 
 	"meguri/internal/core"
 	"meguri/internal/domain/model"
@@ -25,7 +26,7 @@ func (p *pp) Metadata() plugin.Metadata {
 		Name:        "header",
 		Version:     "0.1.0",
 		Kind:        plugin.KindPreProcessor,
-		Description: "request.headers の値をリクエストに転写する",
+		Description: "plugins.stealth.http の値を HTTP リクエストに転写する",
 	}
 }
 
@@ -38,13 +39,24 @@ func (p *pp) Init(_ context.Context, host plugin.Host) error {
 // Close は plugin.Plugin.Close の実装。
 func (p *pp) Close(_ context.Context) error { return nil }
 
-// PreProcess は設定の User-Agent 等を req.Headers に転写する。
+// PreProcess は stealth.http の User-Agent 等を req.Headers に転写する。
 func (p *pp) PreProcess(_ context.Context, req *model.Request) error {
-	if v, ok := p.host.Config("request.headers.User-Agent"); ok && v != "" {
+	if p.host == nil || p.host.FetcherKind() != model.FetcherHTTP {
+		return nil
+	}
+	s := p.host.StealthConfig().HTTP
+	setHeader := func(name, value string) {
+		v := strings.TrimSpace(value)
+		if v == "" {
+			return
+		}
 		if req.Headers == nil {
 			req.Headers = map[string]string{}
 		}
-		req.Headers["User-Agent"] = v
+		req.Headers[name] = v
 	}
+	setHeader("User-Agent", s.EffectiveUserAgent())
+	setHeader("Accept-Language", s.AcceptLanguage)
+	setHeader("Cookie", s.Cookie)
 	return nil
 }

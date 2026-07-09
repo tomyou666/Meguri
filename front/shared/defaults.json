@@ -1,6 +1,6 @@
 {
   "request": {
-    "headers": { "User-Agent": "meguri/0.1" },
+    "headers": {},
     "timeout": "60s",
     "retry_count": 2,
     "retry_interval": "1s"
@@ -43,10 +43,20 @@
   "plugins": {
     "fetcher": "http",
     "fetcher_config": {
-      "headless": true,
       "wait_until": "load",
       "wait_timeout": "5s",
       "network_idle_duration": "500ms"
+    },
+    "stealth": {
+      "http": {},
+      "chromium": {
+        "headless": true,
+        "hide_automation": true,
+        "disable_gpu": true,
+        "lang": "ja-JP",
+        "window_width": 1920,
+        "window_height": 1080
+      }
     },
     "preprocessors": ["header"],
     "parsers": ["html", "pdf"],

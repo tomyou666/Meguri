@@ -48,4 +48,6 @@ type Host interface {
 	Config(key string) (string, bool)
 	RequestConfig() model.RequestConfig
 	FetcherConfig() model.FetcherConfig
+	StealthConfig() model.StealthConfig
+	FetcherKind() model.FetcherKind
 }

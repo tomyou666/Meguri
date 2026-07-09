@@ -31,6 +31,7 @@ func (c *client) buildHTMLFetchTasks(u string, html *string) []chromedp.Action {
 		tasks = append(tasks, idleWatch.begin())
 	}
 
+	tasks = append(tasks, chromiumSetExtraHeadersAction(chromiumExtraHTTPHeaders(c.stealthCfg)))
 	tasks = append(tasks, chromedp.Navigate(u))
 	c.appendPostNavigateWait(&tasks, idleWatch)
 	tasks = append(tasks, chromedp.OuterHTML("html", html, chromedp.ByQuery))

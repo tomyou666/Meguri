@@ -8,6 +8,7 @@ import {
 } from '@/components/settings/configFormUtils';
 import { DurationInput } from '@/components/settings/DurationInput';
 import { FieldLabel } from '@/components/settings/FieldLabel';
+import { LocalePresetSelect } from '@/components/settings/LocalePresetSelect';
 import { OptionalNumberInput } from '@/components/settings/OptionalNumberInput';
 import { TagListInput } from '@/components/settings/TagListInput';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -134,25 +135,6 @@ export function RequestConfigFields({
 					invalid={fieldInvalid(fieldErrors, 'request.retry_interval')}
 					value={v.retry_interval}
 					onChange={(retry_interval) => onChange({ ...v, retry_interval })}
-				/>
-			</ConfigField>
-			<ConfigField
-				path='request.headers'
-				errors={fieldErrors}
-				label='User-Agent'
-				help={h.userAgent}
-			>
-				<Input
-					className={inputClassName(
-						fieldInvalid(fieldErrors, 'request.headers'),
-					)}
-					value={v.headers?.['User-Agent'] ?? ''}
-					onChange={(e) =>
-						onChange({
-							...v,
-							headers: { ...v.headers, 'User-Agent': e.target.value },
-						})
-					}
 				/>
 			</ConfigField>
 		</div>
@@ -503,13 +485,34 @@ export function PluginsConfigFields({
 }: FieldsProps<PartialConfig['plugins']>) {
 	const v = value ?? {};
 	const fc = v.fetcher_config ?? {};
+	const stealth = v.stealth ?? {};
+	const httpStealth = stealth.http ?? {};
+	const chromiumStealth = stealth.chromium ?? {};
 	const waitUntil = (fc.wait_until as string | undefined) ?? 'load';
-	const showChromiumWait = (v.fetcher ?? 'http') === 'chromium';
+	const isChromium = (v.fetcher ?? 'http') === 'chromium';
 
 	const patchFetcherConfig = (patch: Record<string, unknown>) =>
 		onChange({
 			...v,
 			fetcher_config: { ...fc, ...patch },
+		});
+
+	const patchHTTPStealth = (patch: Record<string, unknown>) =>
+		onChange({
+			...v,
+			stealth: {
+				...stealth,
+				http: { ...httpStealth, ...patch },
+			},
+		});
+
+	const patchChromiumStealth = (patch: Record<string, unknown>) =>
+		onChange({
+			...v,
+			stealth: {
+				...stealth,
+				chromium: { ...chromiumStealth, ...patch },
+			},
 		});
 
 	return (
@@ -562,47 +565,27 @@ export function PluginsConfigFields({
 					<option value='chromium'>chromium</option>
 				</select>
 			</ConfigField>
-			<ConfigField
-				path='plugins.fetcher_config.browser_path'
-				errors={fieldErrors}
-				label='browser_path'
-				help={h.browser_path}
-			>
-				<Input
-					className={inputClassName(
-						fieldInvalid(fieldErrors, 'plugins.fetcher_config.browser_path'),
-						'mt-1 h-8',
-					)}
-					value={(fc.browser_path as string) ?? ''}
-					onChange={(e) => patchFetcherConfig({ browser_path: e.target.value })}
-				/>
-			</ConfigField>
-			<ConfigCheckboxRow
-				inputId={configCheckboxId('plugins.fetcher_config.headless')}
-				checked={(fc.headless as boolean) ?? true}
-				onCheckedChange={(c) => patchFetcherConfig({ headless: !!c })}
-			>
-				<FieldLabel label='headless' help={h.headless} />
-			</ConfigCheckboxRow>
-			{showChromiumWait ? (
+			{isChromium ? (
+				<ConfigField
+					path='plugins.fetcher_config.browser_path'
+					errors={fieldErrors}
+					label='browser_path'
+					help={h.browser_path}
+				>
+					<Input
+						className={inputClassName(
+							fieldInvalid(fieldErrors, 'plugins.fetcher_config.browser_path'),
+							'mt-1 h-8',
+						)}
+						value={(fc.browser_path as string) ?? ''}
+						onChange={(e) =>
+							patchFetcherConfig({ browser_path: e.target.value })
+						}
+					/>
+				</ConfigField>
+			) : null}
+			{isChromium ? (
 				<>
-					<ConfigField
-						path='plugins.fetcher_config.user_agent'
-						errors={fieldErrors}
-						label='user_agent'
-						help={h.user_agent}
-					>
-						<Input
-							className={inputClassName(
-								fieldInvalid(fieldErrors, 'plugins.fetcher_config.user_agent'),
-								'mt-1 h-8',
-							)}
-							value={(fc.user_agent as string) ?? ''}
-							onChange={(e) =>
-								patchFetcherConfig({ user_agent: e.target.value })
-							}
-						/>
-					</ConfigField>
 					<ConfigField
 						path='plugins.fetcher_config.wait_until'
 						errors={fieldErrors}
@@ -685,6 +668,214 @@ export function PluginsConfigFields({
 					) : null}
 				</>
 			) : null}
+			<div className='space-y-3 rounded-lg border border-border/60 p-3'>
+				<p className='text-xs font-medium text-muted-foreground'>
+					ステルス対策
+				</p>
+				<p className='text-xs text-muted-foreground'>{h.stealth_group}</p>
+				{isChromium ? (
+					<>
+						<ConfigField
+							path='plugins.stealth.chromium.user_agent'
+							errors={fieldErrors}
+							label='user_agent'
+							help={h.stealth_chromium_user_agent}
+						>
+							<Input
+								className={inputClassName(
+									fieldInvalid(
+										fieldErrors,
+										'plugins.stealth.chromium.user_agent',
+									),
+									'mt-1 h-8',
+								)}
+								value={chromiumStealth.user_agent ?? ''}
+								onChange={(e) =>
+									patchChromiumStealth({ user_agent: e.target.value })
+								}
+							/>
+						</ConfigField>
+						<ConfigCheckboxRow
+							inputId={configCheckboxId('plugins.stealth.chromium.headless')}
+							checked={chromiumStealth.headless ?? true}
+							onCheckedChange={(c) => patchChromiumStealth({ headless: !!c })}
+						>
+							<FieldLabel label='headless' help={h.stealth_chromium_headless} />
+						</ConfigCheckboxRow>
+						<ConfigCheckboxRow
+							inputId={configCheckboxId(
+								'plugins.stealth.chromium.hide_automation',
+							)}
+							checked={chromiumStealth.hide_automation ?? true}
+							onCheckedChange={(c) =>
+								patchChromiumStealth({ hide_automation: !!c })
+							}
+						>
+							<FieldLabel
+								label='hide_automation'
+								help={h.stealth_chromium_hide_automation}
+							/>
+						</ConfigCheckboxRow>
+						<ConfigCheckboxRow
+							inputId={configCheckboxId('plugins.stealth.chromium.disable_gpu')}
+							checked={chromiumStealth.disable_gpu ?? true}
+							onCheckedChange={(c) =>
+								patchChromiumStealth({ disable_gpu: !!c })
+							}
+						>
+							<FieldLabel
+								label='disable_gpu'
+								help={h.stealth_chromium_disable_gpu}
+							/>
+						</ConfigCheckboxRow>
+						<ConfigField
+							path='plugins.stealth.chromium.user_data_dir'
+							errors={fieldErrors}
+							label='user_data_dir'
+							help={h.stealth_chromium_user_data_dir}
+						>
+							<Input
+								className={inputClassName(
+									fieldInvalid(
+										fieldErrors,
+										'plugins.stealth.chromium.user_data_dir',
+									),
+									'mt-1 h-8',
+								)}
+								value={chromiumStealth.user_data_dir ?? ''}
+								onChange={(e) =>
+									patchChromiumStealth({ user_data_dir: e.target.value })
+								}
+							/>
+						</ConfigField>
+						<ConfigField
+							path='plugins.stealth.chromium.lang'
+							errors={fieldErrors}
+							label='lang'
+							help={h.stealth_chromium_lang}
+						>
+							<LocalePresetSelect
+								field='lang'
+								value={chromiumStealth.lang}
+								onChange={(lang) => patchChromiumStealth({ lang })}
+								invalid={fieldInvalid(
+									fieldErrors,
+									'plugins.stealth.chromium.lang',
+								)}
+							/>
+						</ConfigField>
+						<ConfigField
+							path='plugins.stealth.chromium.window_width'
+							errors={fieldErrors}
+							label='window_width'
+							help={h.stealth_chromium_window_width}
+						>
+							<OptionalNumberInput
+								className={inputClassName(
+									fieldInvalid(
+										fieldErrors,
+										'plugins.stealth.chromium.window_width',
+									),
+								)}
+								value={chromiumStealth.window_width}
+								onChange={(window_width) =>
+									patchChromiumStealth({ window_width })
+								}
+							/>
+						</ConfigField>
+						<ConfigField
+							path='plugins.stealth.chromium.window_height'
+							errors={fieldErrors}
+							label='window_height'
+							help={h.stealth_chromium_window_height}
+						>
+							<OptionalNumberInput
+								className={inputClassName(
+									fieldInvalid(
+										fieldErrors,
+										'plugins.stealth.chromium.window_height',
+									),
+								)}
+								value={chromiumStealth.window_height}
+								onChange={(window_height) =>
+									patchChromiumStealth({ window_height })
+								}
+							/>
+						</ConfigField>
+						<ConfigField
+							path='plugins.stealth.chromium.accept_language'
+							errors={fieldErrors}
+							label='accept_language'
+							help={h.stealth_chromium_accept_language}
+						>
+							<LocalePresetSelect
+								field='accept_language'
+								value={chromiumStealth.accept_language}
+								onChange={(accept_language) =>
+									patchChromiumStealth({ accept_language })
+								}
+								invalid={fieldInvalid(
+									fieldErrors,
+									'plugins.stealth.chromium.accept_language',
+								)}
+							/>
+						</ConfigField>
+					</>
+				) : (
+					<>
+						<ConfigField
+							path='plugins.stealth.http.user_agent'
+							errors={fieldErrors}
+							label='user_agent'
+							help={h.stealth_http_user_agent}
+						>
+							<Input
+								className={inputClassName(
+									fieldInvalid(fieldErrors, 'plugins.stealth.http.user_agent'),
+									'mt-1 h-8',
+								)}
+								value={httpStealth.user_agent ?? ''}
+								onChange={(e) =>
+									patchHTTPStealth({ user_agent: e.target.value })
+								}
+							/>
+						</ConfigField>
+						<ConfigField
+							path='plugins.stealth.http.accept_language'
+							errors={fieldErrors}
+							label='accept_language'
+							help={h.stealth_http_accept_language}
+						>
+							<LocalePresetSelect
+								field='accept_language'
+								value={httpStealth.accept_language}
+								onChange={(accept_language) =>
+									patchHTTPStealth({ accept_language })
+								}
+								invalid={fieldInvalid(
+									fieldErrors,
+									'plugins.stealth.http.accept_language',
+								)}
+							/>
+						</ConfigField>
+						<ConfigField
+							path='plugins.stealth.http.cookie'
+							errors={fieldErrors}
+							label='cookie'
+							help={h.stealth_http_cookie}
+						>
+							<Input
+								className={inputClassName(
+									fieldInvalid(fieldErrors, 'plugins.stealth.http.cookie'),
+									'mt-1 h-8',
+								)}
+								value={httpStealth.cookie ?? ''}
+								onChange={(e) => patchHTTPStealth({ cookie: e.target.value })}
+							/>
+						</ConfigField>
+					</>
+				)}
+			</div>
 		</div>
 	);
 }

@@ -23,6 +23,10 @@ func (h configHost) RequestConfig() model.RequestConfig { return model.RequestCo
 
 func (h configHost) FetcherConfig() model.FetcherConfig { return model.FetcherConfig{} }
 
+func (h configHost) StealthConfig() model.StealthConfig { return model.StealthConfig{} }
+
+func (h configHost) FetcherKind() model.FetcherKind { return model.FetcherHTTP }
+
 func (h configHost) Config(key string) (string, bool) {
 	v, ok := h.values[key]
 	return v, ok

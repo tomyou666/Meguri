@@ -21,6 +21,12 @@ const (
 	MaxChromiumMaxInflight = 8
 	// DefaultNetworkIdleDuration は network_idle 待機の既定静止時間。
 	DefaultNetworkIdleDuration = 500 * time.Millisecond
+	// DefaultHTTPUserAgent は http フェッチの既定 User-Agent。
+	DefaultHTTPUserAgent = "meguri/0.1"
+	// MinStealthWindowSize はステルス用ウィンドウサイズの最小値。
+	MinStealthWindowSize = 320
+	// MaxStealthWindowSize はステルス用ウィンドウサイズの最大値。
+	MaxStealthWindowSize = 7680
 )
 
 // Config は meguri 全体の実行設定を表すルート構造体。
@@ -166,14 +172,83 @@ func (f FetchLimitsConfig) EffectiveMemoryLowWatermark() float64 {
 	return f.MemoryLowWatermark
 }
 
+// HTTPStealthConfig は http フェッチャ向けのステルス（リクエスト偽装）設定を保持する。
+type HTTPStealthConfig struct {
+	// UserAgent は HTTP 取得時の User-Agent（空なら DefaultHTTPUserAgent）。
+	UserAgent string `yaml:"user_agent"`
+	// AcceptLanguage は Accept-Language ヘッダ値。
+	AcceptLanguage string `yaml:"accept_language"`
+	// Cookie は Cookie ヘッダ値。
+	Cookie string `yaml:"cookie"`
+}
+
+// ChromiumStealthConfig は chromium フェッチャ向けのステルス設定を保持する。
+type ChromiumStealthConfig struct {
+	// UserAgent は chromium 取得時の User-Agent（空なら既定 Chromium UA）。
+	UserAgent string `yaml:"user_agent"`
+	// Headless はヘッドレス実行を有効にするか。
+	Headless bool `yaml:"headless"`
+	// HideAutomation は --enable-automation を外し disable-blink-features=AutomationControlled を付与する。
+	// 自動テスト情報バー非表示と navigator.webdriver 検知回避に使う。
+	HideAutomation bool `yaml:"hide_automation"`
+	// DisableGPU は GPU 無効化フラグを付与するか。
+	DisableGPU bool `yaml:"disable_gpu"`
+	// UserDataDir は永続プロファイル用ディレクトリ（空なら ephemeral）。
+	UserDataDir string `yaml:"user_data_dir"`
+	// Lang はブラウザの言語設定（--lang）。
+	Lang string `yaml:"lang"`
+	// WindowWidth はウィンドウ幅（0 なら既定 1920）。
+	WindowWidth int `yaml:"window_width"`
+	// WindowHeight はウィンドウ高さ（0 なら既定 1080）。
+	WindowHeight int `yaml:"window_height"`
+	// AcceptLanguage は CDP extra HTTP ヘッダの Accept-Language。
+	AcceptLanguage string `yaml:"accept_language"`
+}
+
+// StealthConfig はフェッチャ種別ごとのステルス設定を保持する。
+type StealthConfig struct {
+	// HTTP は http フェッチャ向け設定。
+	HTTP HTTPStealthConfig `yaml:"http"`
+	// Chromium は chromium フェッチャ向け設定。
+	Chromium ChromiumStealthConfig `yaml:"chromium"`
+}
+
+// EffectiveUserAgent は http フェッチ用の実効 User-Agent を返す。
+func (h HTTPStealthConfig) EffectiveUserAgent() string {
+	if ua := strings.TrimSpace(h.UserAgent); ua != "" {
+		return ua
+	}
+	return DefaultHTTPUserAgent
+}
+
+// EffectiveLang は chromium の実効 --lang を返す。
+func (c ChromiumStealthConfig) EffectiveLang() string {
+	if lang := strings.TrimSpace(c.Lang); lang != "" {
+		return lang
+	}
+	return "ja-JP"
+}
+
+// EffectiveWindowWidth は chromium の実効ウィンドウ幅を返す。
+func (c ChromiumStealthConfig) EffectiveWindowWidth() int {
+	if c.WindowWidth > 0 {
+		return c.WindowWidth
+	}
+	return 1920
+}
+
+// EffectiveWindowHeight は chromium の実効ウィンドウ高さを返す。
+func (c ChromiumStealthConfig) EffectiveWindowHeight() int {
+	if c.WindowHeight > 0 {
+		return c.WindowHeight
+	}
+	return 1080
+}
+
 // FetcherConfig は chromium フェッチャ専用の実行時設定を保持する。
 type FetcherConfig struct {
 	// BrowserPath は使用するブラウザ実行ファイルのパス（空なら自動検出）。
 	BrowserPath string `yaml:"browser_path"`
-	// UserAgent は chromium フェッチ時の User-Agent（空なら request.headers または既定値）。
-	UserAgent string `yaml:"user_agent"`
-	// Headless はヘッドレス実行を有効にするか。
-	Headless bool `yaml:"headless"`
 	// WaitUntil は Navigate 後のページ読み込み待機モード（空なら load）。
 	WaitUntil WaitUntil `yaml:"wait_until"`
 	// WaitTimeout は wait_until 待機フェーズ全体の上限（0 なら request.timeout を使用）。
@@ -206,6 +281,8 @@ type PluginSelection struct {
 	Fetcher FetcherKind `yaml:"fetcher"`
 	// FetcherConfig は Fetcher が chromium のときに使う実行時設定。
 	FetcherConfig FetcherConfig `yaml:"fetcher_config"`
+	// Stealth はフェッチャ種別ごとのステルス設定。
+	Stealth StealthConfig `yaml:"stealth"`
 	// PreProcessors は P2 で実行する PreProcessor 名の順序付き一覧。
 	PreProcessors []string `yaml:"preprocessors"`
 	// Parsers は P5 で登録される Parser 名の一覧。
@@ -273,10 +350,19 @@ func Default() Config {
 		Plugins: PluginSelection{
 			Fetcher: FetcherHTTP,
 			FetcherConfig: FetcherConfig{
-				Headless:            true,
 				WaitUntil:           WaitUntilLoad,
 				WaitTimeout:         5 * time.Second,
 				NetworkIdleDuration: DefaultNetworkIdleDuration,
+			},
+			Stealth: StealthConfig{
+				Chromium: ChromiumStealthConfig{
+					Headless:       true,
+					HideAutomation: true,
+					DisableGPU:     true,
+					Lang:           "ja-JP",
+					WindowWidth:    1920,
+					WindowHeight:   1080,
+				},
 			},
 			PreProcessors: nil,
 			Parsers:       []string{"html", "pdf"},
@@ -508,9 +594,35 @@ func (c *Config) validatePlugins() []error {
 	} else if idle > 0 && idle < 100*time.Millisecond {
 		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_duration: 100ms 以上 30s 以下 (現在: %s)", idle))
 	}
-	if strings.TrimSpace(c.Plugins.FetcherConfig.UserAgent) != "" &&
-		strings.ContainsAny(c.Plugins.FetcherConfig.UserAgent, "\r\n") {
-		errs = append(errs, errors.New("plugins.fetcher_config.user_agent: 改行を含む値は許可されません"))
+	errs = append(errs, c.validateStealth()...)
+	return errs
+}
+
+// validateStealth は plugins.stealth の文字列・ウィンドウサイズを検証する。
+func (c *Config) validateStealth() []error {
+	var errs []error
+	checkNoNewline := func(path, val string) {
+		if strings.TrimSpace(val) != "" && strings.ContainsAny(val, "\r\n") {
+			errs = append(errs, fmt.Errorf("%s: 改行を含む値は許可されません", path))
+		}
+	}
+	s := c.Plugins.Stealth
+	checkNoNewline("plugins.stealth.http.user_agent", s.HTTP.UserAgent)
+	checkNoNewline("plugins.stealth.http.accept_language", s.HTTP.AcceptLanguage)
+	checkNoNewline("plugins.stealth.http.cookie", s.HTTP.Cookie)
+	checkNoNewline("plugins.stealth.chromium.user_agent", s.Chromium.UserAgent)
+	checkNoNewline("plugins.stealth.chromium.accept_language", s.Chromium.AcceptLanguage)
+	for _, dim := range []struct {
+		path string
+		val  int
+	}{
+		{"plugins.stealth.chromium.window_width", s.Chromium.WindowWidth},
+		{"plugins.stealth.chromium.window_height", s.Chromium.WindowHeight},
+	} {
+		if dim.val != 0 && (dim.val < MinStealthWindowSize || dim.val > MaxStealthWindowSize) {
+			errs = append(errs, fmt.Errorf("%s: 0（既定）または %d 以上 %d 以下 (現在: %d)",
+				dim.path, MinStealthWindowSize, MaxStealthWindowSize, dim.val))
+		}
 	}
 	return errs
 }

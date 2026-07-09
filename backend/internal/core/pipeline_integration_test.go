@@ -154,7 +154,7 @@ func TestPipeline_SingleURL(t *testing.T) {
 
 	t.Run("正常系: PreProcessor 'header' が User-Agent をリクエストに付与する", func(t *testing.T) {
 		cfg := baseConfig()
-		cfg.Request.Headers = map[string]string{"User-Agent": "meguri-test/1.0"}
+		cfg.Plugins.Stealth.HTTP.UserAgent = "meguri-test/1.0"
 		cfg.Plugins.PreProcessors = []string{"header"}
 
 		k := setupKernel(t, cfg)

@@ -32,21 +32,21 @@ func TestClient_waitTimeout(t *testing.T) {
 
 // TestClient_buildHTMLFetchTasks は wait_until ごとのタスク数を検証する。
 func TestClient_buildHTMLFetchTasks(t *testing.T) {
-	t.Run("正常系: none は Navigate と OuterHTML のみ", func(t *testing.T) {
+	t.Run("正常系: none は extra headers・Navigate・OuterHTML", func(t *testing.T) {
 		c := &client{fetcherCfg: model.FetcherConfig{WaitUntil: model.WaitUntilNone}}
 		tasks := c.buildHTMLFetchTasks("https://example.com", new(string))
-		assert.Len(t, tasks, 2)
+		assert.Len(t, tasks, 3)
 	})
 
 	t.Run("正常系: load は待機アクションを挟む", func(t *testing.T) {
 		c := &client{fetcherCfg: model.FetcherConfig{WaitUntil: model.WaitUntilLoad}}
 		tasks := c.buildHTMLFetchTasks("https://example.com", new(string))
-		assert.Len(t, tasks, 3)
+		assert.Len(t, tasks, 4)
 	})
 
 	t.Run("正常系: network_idle は監視開始を Navigate 前に挟む", func(t *testing.T) {
 		c := &client{fetcherCfg: model.FetcherConfig{WaitUntil: model.WaitUntilNetworkIdle}}
 		tasks := c.buildHTMLFetchTasks("https://example.com", new(string))
-		assert.Len(t, tasks, 4)
+		assert.Len(t, tasks, 5)
 	})
 }

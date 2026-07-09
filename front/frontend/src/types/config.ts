@@ -53,9 +53,33 @@ export interface CrawlConfig {
 	fetch_limits?: FetchLimitsConfig;
 }
 
+export interface HTTPStealthConfig {
+	user_agent?: string;
+	accept_language?: string;
+	cookie?: string;
+}
+
+export interface ChromiumStealthConfig {
+	user_agent?: string;
+	headless?: boolean;
+	hide_automation?: boolean;
+	disable_gpu?: boolean;
+	user_data_dir?: string;
+	lang?: string;
+	window_width?: number;
+	window_height?: number;
+	accept_language?: string;
+}
+
+export interface StealthConfig {
+	http?: HTTPStealthConfig;
+	chromium?: ChromiumStealthConfig;
+}
+
 export interface PluginsConfig {
 	fetcher?: string;
 	fetcher_config?: Record<string, unknown>;
+	stealth?: StealthConfig;
 	preprocessors?: string[];
 	parsers?: string[];
 	transformer?: string;

@@ -205,10 +205,33 @@ func TestConfig_Validate(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, FetcherHTTP, c.Plugins.Fetcher)
-		assert.True(t, c.Plugins.FetcherConfig.Headless)
+		assert.True(t, c.Plugins.Stealth.Chromium.Headless)
+		assert.True(t, c.Plugins.Stealth.Chromium.HideAutomation)
 		assert.Equal(t, WaitUntilLoad, c.Plugins.FetcherConfig.EffectiveWaitUntil())
 		assert.Equal(t, 5*time.Second, c.Plugins.FetcherConfig.WaitTimeout)
 		assert.Equal(t, DefaultNetworkIdleDuration, c.Plugins.FetcherConfig.EffectiveNetworkIdleDuration())
+	})
+
+	t.Run("異常系: stealth.http.user_agent に改行があるとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Plugins.Stealth.HTTP.UserAgent = "bad\nagent"
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "plugins.stealth.http.user_agent")
+	})
+
+	t.Run("異常系: stealth.chromium.window_width が範囲外だとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Plugins.Stealth.Chromium.WindowWidth = 100
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "window_width")
 	})
 
 	t.Run("異常系: output.file_pattern に未知のプレースホルダがあるとエラー", func(t *testing.T) {

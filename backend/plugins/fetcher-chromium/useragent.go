@@ -12,17 +12,11 @@ const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 // resolveUserAgent は chromium フェッチで使う User-Agent を決定する。
 //
 // 優先順位:
-// 1) plugins.fetcher_config.user_agent
-// 2) request.headers["User-Agent"]
-// 3) DefaultUserAgent
-func resolveUserAgent(fc model.FetcherConfig, requestHeaders map[string]string) string {
-	if ua := strings.TrimSpace(fc.UserAgent); ua != "" {
+// 1) plugins.stealth.chromium.user_agent
+// 2) DefaultUserAgent
+func resolveUserAgent(s model.ChromiumStealthConfig) string {
+	if ua := strings.TrimSpace(s.UserAgent); ua != "" {
 		return ua
-	}
-	for k, v := range requestHeaders {
-		if strings.EqualFold(k, "User-Agent") && strings.TrimSpace(v) != "" {
-			return v
-		}
 	}
 	return DefaultUserAgent
 }

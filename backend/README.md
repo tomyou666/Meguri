@@ -239,14 +239,12 @@ output:
 | --- | --- | --- |
 | `--fetcher` | `plugins.fetcher` | `http` |
 | `--fetcher-browser-path` | `plugins.fetcher_config.browser_path` | 空（自動検出） |
-| `--fetcher-user-agent` | `plugins.fetcher_config.user_agent` | 空 |
-| `--fetcher-headless` | `plugins.fetcher_config.headless` | `true` |
 
 **Fetcher の選択肢**: `http`（標準 HTTP 取得）, `chromium`（chromedp によるヘッドレスブラウザ取得）
 
 chromium 使用時のブラウザ探索順: `fetcher_config.browser_path` → 環境変数 `MEGURI_CHROMIUM_PATH` → Chromium 系 → Edge 系
 
-User-Agent の優先順位（chromium 時）: `fetcher_config.user_agent` → `request.headers["User-Agent"]` → 既定の Chromium 系 UA
+ステルス設定（UA / Cookie / chromium 起動フラグ）は YAML の `plugins.stealth` で指定する（CLI フラグなし）。
 
 ### プラグイン（`plugins`）
 
@@ -297,27 +295,31 @@ User-Agent の優先順位（chromium 時）: `fetcher_config.user_agent` → `r
   --output-dir ./out
 ```
 
-### ヘッダを付与
+### ステルス設定（YAML）
 
-```bash
-./bin/meguri-cli \
-  --url https://example.com/ \
-  --header 'User-Agent=meguri/0.1' \
-  --preprocessor header \
-  --stdout
+```yaml
+plugins:
+  fetcher: http
+  preprocessors: [header]
+  stealth:
+    http:
+      user_agent: "meguri/0.1"
+      accept_language: "ja,en-US;q=0.9"
 ```
 
-`header` プリプロセッサは設定の `request.headers` をリクエストへ転写します。
+`header` プリプロセッサは `plugins.stealth.http` を HTTP リクエストへ転写します。
 
 ### JavaScript ページを chromedp で取得
 
 ```bash
 ./bin/meguri-cli \
+  --config my-config.yaml \
   --url https://example.com/ \
   --fetcher chromium \
-  --fetcher-headless \
   --stdout
 ```
+
+`my-config.yaml` の `plugins.stealth.chromium` で headless / hide_automation / user_data_dir 等を設定します。
 
 ブラウザパスを明示する例:
 
@@ -333,7 +335,7 @@ export MEGURI_CHROMIUM_PATH=/usr/bin/chromium
 | ------------- | ------------------ | --------------------------- |
 | `http`        | Fetcher            | net/http による URL 取得（既定）    |
 | `chromium`    | Fetcher            | chromedp によるヘッドレスブラウザ取得   |
-| `header`      | PreProcessor (P2)  | 共通 HTTP ヘッダの付与              |
+| `header`      | PreProcessor (P2)  | `plugins.stealth.http` を HTTP リクエストへ転写 |
 | `html`        | Parser (P5)        | HTML を goquery で解析          |
 | `pdf`         | Parser (P5)        | PDF レスポンスの処理（MVP: 簡易テキスト抽出） |
 | `markdown`    | Transformer (P6)   | HTML → Markdown 変換          |

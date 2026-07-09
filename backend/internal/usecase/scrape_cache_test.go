@@ -92,7 +92,7 @@ func TestScrapeCache(t *testing.T) {
 		ctx := context.Background()
 		makeCfg := func(ua string) *model.Config {
 			c := testScrapeCfg()
-			c.Request.Headers["User-Agent"] = ua
+			c.Plugins.Stealth.HTTP.UserAgent = ua
 			return c
 		}
 

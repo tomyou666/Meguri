@@ -141,11 +141,35 @@ type uiCrawlJSON struct {
 type uiPluginsJSON struct {
 	Fetcher       string                 `json:"fetcher"`
 	FetcherConfig map[string]interface{} `json:"fetcher_config"`
+	Stealth       *uiStealthJSON         `json:"stealth"`
 	PreProcessors []string               `json:"preprocessors"`
 	Parsers       []string               `json:"parsers"`
 	Transformer   string                 `json:"transformer"`
 	Filters       []string               `json:"filters"`
 	LinkExtractor string                 `json:"link_extractor"`
+}
+
+type uiHTTPStealthJSON struct {
+	UserAgent      string `json:"user_agent"`
+	AcceptLanguage string `json:"accept_language"`
+	Cookie         string `json:"cookie"`
+}
+
+type uiChromiumStealthJSON struct {
+	UserAgent      string `json:"user_agent"`
+	Headless       *bool  `json:"headless"`
+	HideAutomation *bool  `json:"hide_automation"`
+	DisableGPU     *bool  `json:"disable_gpu"`
+	UserDataDir    string `json:"user_data_dir"`
+	Lang           string `json:"lang"`
+	WindowWidth    int    `json:"window_width"`
+	WindowHeight   int    `json:"window_height"`
+	AcceptLanguage string `json:"accept_language"`
+}
+
+type uiStealthJSON struct {
+	HTTP     *uiHTTPStealthJSON     `json:"http"`
+	Chromium *uiChromiumStealthJSON `json:"chromium"`
 }
 
 type uiOutputJSON struct {
@@ -286,6 +310,9 @@ func applyUIConfig(cfg *model.Config, ui uiConfigJSON) {
 		if ui.Plugins.FetcherConfig != nil {
 			applyFetcherConfig(&cfg.Plugins.FetcherConfig, ui.Plugins.FetcherConfig)
 		}
+		if ui.Plugins.Stealth != nil {
+			applyStealthConfig(&cfg.Plugins.Stealth, ui.Plugins.Stealth)
+		}
 	}
 	if ui.Output != nil {
 		if ui.Output.Dir != "" {
@@ -311,12 +338,6 @@ func applyFetcherConfig(fc *model.FetcherConfig, raw map[string]interface{}) {
 	if v, ok := raw["browser_path"].(string); ok {
 		fc.BrowserPath = v
 	}
-	if v, ok := raw["user_agent"].(string); ok {
-		fc.UserAgent = v
-	}
-	if v, ok := raw["headless"].(bool); ok {
-		fc.Headless = v
-	}
 	if v, ok := raw["wait_until"].(string); ok && v != "" {
 		fc.WaitUntil = model.WaitUntil(v)
 	}
@@ -331,6 +352,53 @@ func applyFetcherConfig(fc *model.FetcherConfig, raw map[string]interface{}) {
 	if v, ok := raw["network_idle_duration"].(string); ok {
 		if d, err := parseDuration(v); err == nil {
 			fc.NetworkIdleDuration = d
+		}
+	}
+}
+
+func applyStealthConfig(sc *model.StealthConfig, ui *uiStealthJSON) {
+	if sc == nil || ui == nil {
+		return
+	}
+	if ui.HTTP != nil {
+		if ui.HTTP.UserAgent != "" {
+			sc.HTTP.UserAgent = ui.HTTP.UserAgent
+		}
+		if ui.HTTP.AcceptLanguage != "" {
+			sc.HTTP.AcceptLanguage = ui.HTTP.AcceptLanguage
+		}
+		if ui.HTTP.Cookie != "" {
+			sc.HTTP.Cookie = ui.HTTP.Cookie
+		}
+	}
+	if ui.Chromium != nil {
+		c := &sc.Chromium
+		if ui.Chromium.UserAgent != "" {
+			c.UserAgent = ui.Chromium.UserAgent
+		}
+		if ui.Chromium.Headless != nil {
+			c.Headless = *ui.Chromium.Headless
+		}
+		if ui.Chromium.HideAutomation != nil {
+			c.HideAutomation = *ui.Chromium.HideAutomation
+		}
+		if ui.Chromium.DisableGPU != nil {
+			c.DisableGPU = *ui.Chromium.DisableGPU
+		}
+		if ui.Chromium.UserDataDir != "" {
+			c.UserDataDir = ui.Chromium.UserDataDir
+		}
+		if ui.Chromium.Lang != "" {
+			c.Lang = ui.Chromium.Lang
+		}
+		if ui.Chromium.WindowWidth > 0 {
+			c.WindowWidth = ui.Chromium.WindowWidth
+		}
+		if ui.Chromium.WindowHeight > 0 {
+			c.WindowHeight = ui.Chromium.WindowHeight
+		}
+		if ui.Chromium.AcceptLanguage != "" {
+			c.AcceptLanguage = ui.Chromium.AcceptLanguage
 		}
 	}
 }

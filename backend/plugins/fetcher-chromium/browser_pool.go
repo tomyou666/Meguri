@@ -4,18 +4,19 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/chromedp/chromedp"
 )
 
 // sessionKey はブラウザセッションを識別するキー。
-// browserPath / headless / userAgent の組み合わせで一意になる。
+// browserPath / headless / hideAutomation / userAgent / userDataDir の組み合わせで一意になる。
 type sessionKey string
 
 // makeSessionKey はブラウザ起動条件から sessionKey を組み立てる。
-func makeSessionKey(browserPath string, headless bool, userAgent string) sessionKey {
-	return sessionKey(browserPath + "|" + strconv.FormatBool(headless) + "|" + userAgent)
+func makeSessionKey(browserPath string, headless, hideAutomation bool, userAgent, userDataDir string) sessionKey {
+	return sessionKey(browserPath + "|" + strconv.FormatBool(headless) + "|" + strconv.FormatBool(hideAutomation) + "|" + userAgent + "|" + userDataDir)
 }
 
 // browserPool は sessionKey ごとに共有ブラウザセッションを管理する。
@@ -127,7 +128,7 @@ func (c *client) leavePool() {
 
 // sessionKeyFor は client 設定と UA から sessionKey を返す。
 func (c *client) sessionKeyFor(ua string) sessionKey {
-	return makeSessionKey(c.browserPath, c.fetcherCfg.Headless, ua)
+	return makeSessionKey(c.browserPath, c.stealthCfg.Headless, c.stealthCfg.HideAutomation, ua, strings.TrimSpace(c.stealthCfg.UserDataDir))
 }
 
 // runWithTab は共有セッション上でタブを開き、run を実行して閉じる。

@@ -35,6 +35,26 @@ func (h *hostImpl) FetcherConfig() model.FetcherConfig {
 	return h.cfg.Plugins.FetcherConfig
 }
 
+// StealthConfig は plugin.Host.StealthConfig の実装。
+func (h *hostImpl) StealthConfig() model.StealthConfig {
+	if h.cfg == nil {
+		return model.StealthConfig{}
+	}
+	return h.cfg.Plugins.Stealth
+}
+
+// FetcherKind は plugin.Host.FetcherKind の実装。
+func (h *hostImpl) FetcherKind() model.FetcherKind {
+	if h.cfg == nil {
+		return model.FetcherHTTP
+	}
+	f := h.cfg.Plugins.Fetcher
+	if f == "" {
+		return model.FetcherHTTP
+	}
+	return f
+}
+
 // Config はフラットキーで設定値を文字列として取得する軽量 API。
 // 例: "request.headers.User-Agent" / "content.selector" / "pdf.mode"
 func (h *hostImpl) Config(key string) (string, bool) {
