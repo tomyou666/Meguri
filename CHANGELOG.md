@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-11
+
 ### 追加
 
 - chromium フェッチャーの `wait_until=load` 成功後に SPA 等のレンダリング完了を待つ `wait_after_load` 設定を追加（wait_timeout とは独立）
