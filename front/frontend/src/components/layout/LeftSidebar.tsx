@@ -257,6 +257,7 @@ export function LeftSidebarContent() {
 							<ConfigEditor
 								layer='workspace'
 								settings={activeWorkspace.settings}
+								defaults={appDefaults}
 								onSave={(settings) => persistWorkspaceSettings(settings)}
 							/>
 						</div>

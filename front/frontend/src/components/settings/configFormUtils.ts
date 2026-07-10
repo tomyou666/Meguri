@@ -27,6 +27,16 @@ export function sanitizeConfigForLayer(
 	return stripContentFormats(config);
 }
 
+/** レイヤーに応じたリセット用デフォルト（app はそのまま、下位は output 除去 + サニタイズ）。 */
+export function defaultsForLayer(
+	defaults: PartialConfig,
+	layer: ConfigLayer,
+): PartialConfig {
+	if (layer === 'app') return structuredClone(defaults);
+	const { output: _output, ...rest } = structuredClone(defaults);
+	return sanitizeConfigForLayer(rest, layer);
+}
+
 export function fieldError(
 	errors: FieldErrors,
 	path: string,

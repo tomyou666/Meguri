@@ -1,19 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AppConfigTabs } from '@/components/settings/ConfigFormFields';
 import type { ConfigLayer } from '@/components/settings/configFormUtils';
-import { sanitizeConfigForLayer } from '@/components/settings/configFormUtils';
+import {
+	defaultsForLayer,
+	sanitizeConfigForLayer,
+} from '@/components/settings/configFormUtils';
 import { Button } from '@/components/ui/button';
 import { messages } from '@/i18n/messages';
 import {
 	getConfigFieldErrors,
 	validatePartialConfig,
 } from '@/lib/configValidation';
+import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
 import type { PartialConfig } from '@/types/config';
 
 type ConfigEditorProps = {
 	layer: ConfigLayer;
 	settings: PartialConfig;
 	onSave: (settings: PartialConfig) => Promise<boolean>;
+	/** リセット先。省略時は DEFAULT_APP_CONFIG。 */
+	defaults?: PartialConfig;
 	compact?: boolean;
 	/** 省略時 true。false のとき PDF 設定タブを非表示にする。 */
 	showPdfTab?: boolean;
@@ -28,6 +34,7 @@ export function ConfigEditor({
 	layer,
 	settings,
 	onSave,
+	defaults,
 	compact,
 	showPdfTab = true,
 	showRequestTab = true,
@@ -68,6 +75,11 @@ export function ConfigEditor({
 		}
 	};
 
+	const handleReset = () => {
+		setDraft(defaultsForLayer(defaults ?? DEFAULT_APP_CONFIG, layer));
+		setSaveErrors([]);
+	};
+
 	return (
 		<div className='flex h-full min-h-0 flex-col'>
 			<div
@@ -94,18 +106,33 @@ export function ConfigEditor({
 						))}
 					</ul>
 				)}
-				<Button
-					type='button'
-					size={compact ? 'xs' : 'sm'}
-					className='w-full nodrag nopan nowheel'
-					disabled={saving || hasFieldErrors}
-					onClick={(e) => {
-						e.stopPropagation();
-						void handleSave();
-					}}
-				>
-					{saving ? messages.settings.saving : messages.settings.save}
-				</Button>
+				<div className='flex gap-2'>
+					<Button
+						type='button'
+						variant='outline'
+						size={compact ? 'xs' : 'sm'}
+						className='flex-1 nodrag nopan nowheel'
+						disabled={saving}
+						onClick={(e) => {
+							e.stopPropagation();
+							handleReset();
+						}}
+					>
+						{messages.settings.reset}
+					</Button>
+					<Button
+						type='button'
+						size={compact ? 'xs' : 'sm'}
+						className='flex-1 nodrag nopan nowheel'
+						disabled={saving || hasFieldErrors}
+						onClick={(e) => {
+							e.stopPropagation();
+							void handleSave();
+						}}
+					>
+						{saving ? messages.settings.saving : messages.settings.save}
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

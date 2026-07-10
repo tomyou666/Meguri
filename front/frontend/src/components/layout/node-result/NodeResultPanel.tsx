@@ -51,6 +51,7 @@ export function NodeResultPanel({
 	className,
 }: NodeResultPanelProps) {
 	const persistNodeSettings = useAppStore((s) => s.persistNodeSettings);
+	const appDefaults = useAppStore((s) => s.appDefaults);
 	const updateNodeResult = useAppStore((s) => s.updateNodeResult);
 	const showMaximizedNodeResult = useAppStore((s) => s.showMaximizedNodeResult);
 	const activeWorkspace = useAppStore((s) => s.getActiveWorkspace());
@@ -229,6 +230,7 @@ export function NodeResultPanel({
 					<ConfigEditor
 						layer='node'
 						settings={node.nodeSettings ?? {}}
+						defaults={appDefaults}
 						compact
 						showPdfTab={showPdfTab}
 						showRequestTab={false}

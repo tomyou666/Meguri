@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { scraperPort } from '@/adapters';
-import { sanitizeConfigForLayer } from '@/components/settings/configFormUtils';
+import { defaultsForLayer } from '@/components/settings/configFormUtils';
 import { messages } from '@/i18n/messages';
 import { validatePartialConfig } from '@/lib/configValidation';
 import {
@@ -101,8 +101,7 @@ function patchWorkspaces(
 function workspaceSettingsFromAppDefaults(
 	appDefaults: PartialConfig,
 ): PartialConfig {
-	const { output: _output, ...rest } = structuredClone(appDefaults);
-	return sanitizeConfigForLayer(rest, 'workspace');
+	return defaultsForLayer(appDefaults, 'workspace');
 }
 
 function emptyWorkspace(

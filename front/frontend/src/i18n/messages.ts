@@ -212,6 +212,7 @@ export const messages = {
 	settings: {
 		save: '保存',
 		saving: '保存中…',
+		reset: 'リセット',
 		saveSuccess: '設定を保存しました',
 		saveFailed: '設定の保存に失敗しました',
 		validationFailed: '入力内容に誤りがあります',
