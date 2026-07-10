@@ -4,6 +4,12 @@ import { defaultsForLayer } from '@/components/settings/configFormUtils';
 import { messages } from '@/i18n/messages';
 import { validatePartialConfig } from '@/lib/configValidation';
 import {
+	getRescrapeExisting as getRescrapeExistingPreference,
+	getRunMode as getRunModePreference,
+	setRescrapeExisting as setRescrapeExistingPreference,
+	setRunMode as setRunModePreference,
+} from '@/lib/controlBarPreferences';
+import {
 	computeDagrePositions,
 	type DagreLayoutDirection,
 	fallbackNearParent,
@@ -303,8 +309,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 	workspaceDiffCache: {},
 	diffSummaryOpen: false,
 	diffSummaryWorkspaceId: null,
-	runMode: 1,
-	rescrapeExisting: false,
+	runMode: getRunModePreference(1),
+	rescrapeExisting: getRescrapeExistingPreference(false),
 	crawlStatus: 'idle',
 	crawlLogs: [],
 	runHistory: [],
@@ -655,8 +661,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const { workspaces, activeWorkspaceId } = redoGraph();
 		set({ workspaces, activeWorkspaceId });
 	},
-	setRunMode: (mode) => set({ runMode: mode }),
-	setRescrapeExisting: (value) => set({ rescrapeExisting: value }),
+	setRunMode: (mode) => {
+		setRunModePreference(mode);
+		set({ runMode: mode });
+	},
+	setRescrapeExisting: (value) => {
+		setRescrapeExistingPreference(value);
+		set({ rescrapeExisting: value });
+	},
 
 	updateNodePosition: (id, position) => {
 		const ws = get().getActiveWorkspace();

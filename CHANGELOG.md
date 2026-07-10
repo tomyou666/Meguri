@@ -8,8 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
-- ドメインステータスの robots.txt 取得結果を localStorage にキャッシュ（24時間TTL）。再起動後はキャッシュがあれば再取得しない
+- ドメインステータスの robots.txt 取得結果をキャッシュ（24時間TTL）。再起動後はキャッシュがあれば再取得しない
 - 設定エディタにリセットボタンを追加（app は既定値、workspace/node はデフォルト設定へドラフトを戻す）
+
+### 修正
+
+- コントロールバーの再生モード・既存ノード再取得の設定をキャッシュに保存し、再起動後も保持されるように変更
 
 ### 削除
 
