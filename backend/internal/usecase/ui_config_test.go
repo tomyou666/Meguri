@@ -67,6 +67,14 @@ func TestMergeUIConfigLayers(t *testing.T) {
 		assert.Equal(t, 15*time.Second, cfg.Plugins.FetcherConfig.NetworkIdleRequestMaxAge)
 	})
 
+	t.Run("正常系: wait_after_load をマージ結果に反映する", func(t *testing.T) {
+		raw := json.RawMessage(`{"plugins":{"fetcher":"chromium","fetcher_config":{"wait_until":"load","wait_after_load":"3s"}}}`)
+		cfg, err := usecase.ParseUIConfig(raw)
+		require.NoError(t, err)
+		assert.Equal(t, model.WaitUntilLoad, cfg.Plugins.FetcherConfig.WaitUntil)
+		assert.Equal(t, 3*time.Second, cfg.Plugins.FetcherConfig.WaitAfterLoad)
+	})
+
 	t.Run("正常系: stealth.http をマージ結果に反映する", func(t *testing.T) {
 		raw := json.RawMessage(`{"plugins":{"stealth":{"http":{"user_agent":"HTTP/1","accept_language":"ja","cookie":"a=1"}}}}`)
 		cfg, err := usecase.ParseUIConfig(raw)

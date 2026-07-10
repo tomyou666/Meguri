@@ -230,6 +230,7 @@ export const messages = {
 			waitTimeoutRange: '0秒以上120秒以下で入力してください',
 			networkIdleDurationRange: '100ミリ秒以上30秒以下で入力してください',
 			networkIdleRequestMaxAgeRange: '1秒以上60秒以下で入力してください',
+			waitAfterLoadRange: '0秒以上30秒以下で入力してください',
 			waitVisibleSelectorRequired:
 				'wait_until=selector のとき wait_visible_selector は必須です',
 		},
@@ -332,6 +333,8 @@ export const messages = {
 				'wait_until=network_idle のとき、アクティブな接続がゼロの状態が続く時間。',
 			network_idle_request_max_age:
 				'終わらない通信を、何秒で諦めて無視するか。ページ本体以外の通信で待ち続けないための上限です。',
+			wait_after_load:
+				'wait_until=load 成功後、SPA等のレンダリング完了を待つための追加待機時間。wait_timeout とは独立に必ず待機します（0 なら追加待機なし）。',
 			ws_name: '一覧に表示するワークスペース名。',
 			seed_url: 'グラフの起点となる URL。新規 WS 作成時に使います。',
 		},

@@ -56,9 +56,7 @@ func (c *client) fetchOnce(ctx context.Context, u *url.URL, headers map[string]s
 	}
 
 	var html string
-	err := c.runWithWait(ctx, ua, func(tabCtx context.Context) []chromedp.Action {
-		return c.buildHTMLFetchTasks(u.String(), &html)
-	})
+	err := c.fetchHTML(ctx, ua, u.String(), &html)
 	if err != nil {
 		return nil, err
 	}

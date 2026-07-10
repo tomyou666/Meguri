@@ -261,6 +261,8 @@ type FetcherConfig struct {
 	NetworkIdleDuration time.Duration `yaml:"network_idle_duration"`
 	// NetworkIdleRequestMaxAge は wait_until=network_idle のとき、終わらない 1 リクエストを追跡し続ける上限。
 	NetworkIdleRequestMaxAge time.Duration `yaml:"network_idle_request_max_age"`
+	// WaitAfterLoad は wait_until=load 成功後に SPA 等のレンダリング完了を待つ追加 sleep 時間（0 なら追加待機なし）。
+	WaitAfterLoad time.Duration `yaml:"wait_after_load"`
 }
 
 // EffectiveWaitUntil は未設定時 load を返す実効 wait_until を返す。
@@ -612,6 +614,10 @@ func (c *Config) validatePlugins() []error {
 		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_request_max_age: 0s 以上 60s 以下 (現在: %s)", maxAge))
 	} else if maxAge > 0 && maxAge < time.Second {
 		errs = append(errs, fmt.Errorf("plugins.fetcher_config.network_idle_request_max_age: 1s 以上 60s 以下 (現在: %s)", maxAge))
+	}
+	afterLoad := c.Plugins.FetcherConfig.WaitAfterLoad
+	if afterLoad < 0 || afterLoad > 30*time.Second {
+		errs = append(errs, fmt.Errorf("plugins.fetcher_config.wait_after_load: 0s 以上 30s 以下 (現在: %s)", afterLoad))
 	}
 	errs = append(errs, c.validateStealth()...)
 	return errs

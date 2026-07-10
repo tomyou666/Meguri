@@ -25,6 +25,7 @@ const FIELD_LABELS: Record<string, string> = {
 	'plugins.fetcher_config.browser_path': 'ブラウザパス',
 	'plugins.fetcher_config.wait_until': 'ページ読み込み待機',
 	'plugins.fetcher_config.wait_timeout': '待機タイムアウト',
+	'plugins.fetcher_config.wait_after_load': 'load 成功後の追加待機',
 	'plugins.fetcher_config.wait_visible_selector': '待機セレクタ',
 	'plugins.fetcher_config.network_idle_duration': 'ネットワーク静止時間',
 	'plugins.fetcher_config.network_idle_request_max_age': '通信の打ち切り時間',

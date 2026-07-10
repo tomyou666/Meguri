@@ -184,6 +184,17 @@ func TestConfig_Validate(t *testing.T) {
 		assert.Contains(t, err.Error(), "network_idle_request_max_age")
 	})
 
+	t.Run("異常系: wait_after_load が範囲外だとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Plugins.FetcherConfig.WaitAfterLoad = 45 * time.Second
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "wait_after_load")
+	})
+
 	t.Run("異常系: fetch_limits の watermark が不正だとエラー", func(t *testing.T) {
 		c := Default()
 		c.Targets = []string{"https://example.com/"}

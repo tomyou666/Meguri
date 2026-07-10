@@ -21,8 +21,8 @@ func (c *client) waitTimeout() time.Duration {
 	return 60 * time.Second
 }
 
-// buildHTMLFetchTasks は HTML 取得用の chromedp タスク列を組み立てる。
-func (c *client) buildHTMLFetchTasks(u string, html *string) []chromedp.Action {
+// buildNavigateAndWaitTasks は Navigate と wait_until 待機までの chromedp タスク列を組み立てる。
+func (c *client) buildNavigateAndWaitTasks(u string) []chromedp.Action {
 	var idleWatch *networkIdleWatch
 	tasks := []chromedp.Action{}
 
@@ -37,7 +37,6 @@ func (c *client) buildHTMLFetchTasks(u string, html *string) []chromedp.Action {
 	tasks = append(tasks, chromiumSetExtraHeadersAction(chromiumExtraHTTPHeaders(c.stealthCfg)))
 	tasks = append(tasks, chromedp.Navigate(u))
 	c.appendPostNavigateWait(&tasks, idleWatch)
-	tasks = append(tasks, chromedp.OuterHTML("html", html, chromedp.ByQuery))
 	return tasks
 }
 
@@ -60,19 +59,37 @@ func (c *client) appendPostNavigateWait(tasks *[]chromedp.Action, idleWatch *net
 	}
 }
 
-// runWithWait は wait_until 待機を含む chromedp アクションを実行する。
-func (c *client) runWithWait(ctx context.Context, ua string, build func(context.Context) []chromedp.Action) error {
-	waitUntil := c.fetcherCfg.EffectiveWaitUntil()
-	if waitUntil == model.WaitUntilNone {
-		return c.runWithTab(ctx, ua, func(tabCtx context.Context) error {
-			return chromedp.Run(tabCtx, build(tabCtx)...)
-		})
-	}
+// shouldSleepAfterLoad は wait_until=load 成功後に wait_after_load の追加 sleep を行うべきかを返す。
+// selector・network_idle・none では常に false（load 限定の追加待機のため）。
+func shouldSleepAfterLoad(waitUntil model.WaitUntil, waitAfterLoad time.Duration) bool {
+	return waitUntil == model.WaitUntilLoad && waitAfterLoad > 0
+}
 
-	waitCtx, cancel := context.WithTimeout(ctx, c.waitTimeout())
-	defer cancel()
+// fetchHTML は wait_until 設定に従いページ HTML を取得する。
+func (c *client) fetchHTML(ctx context.Context, ua string, u string, html *string) error {
+	return c.runWithTab(ctx, ua, func(tabCtx context.Context) error {
+		waitUntil := c.fetcherCfg.EffectiveWaitUntil()
 
-	return c.runWithTab(waitCtx, ua, func(tabCtx context.Context) error {
-		return chromedp.Run(tabCtx, build(tabCtx)...)
+		if waitUntil == model.WaitUntilNone {
+			return chromedp.Run(tabCtx, append(
+				c.buildNavigateAndWaitTasks(u),
+				chromedp.OuterHTML("html", html, chromedp.ByQuery),
+			)...)
+		}
+
+		waitCtx, cancel := context.WithTimeout(tabCtx, c.waitTimeout())
+		defer cancel()
+
+		if err := chromedp.Run(waitCtx, c.buildNavigateAndWaitTasks(u)...); err != nil {
+			return err
+		}
+
+		if shouldSleepAfterLoad(waitUntil, c.fetcherCfg.WaitAfterLoad) {
+			if err := chromedp.Run(tabCtx, chromedp.Sleep(c.fetcherCfg.WaitAfterLoad)); err != nil {
+				return err
+			}
+		}
+
+		return chromedp.Run(tabCtx, chromedp.OuterHTML("html", html, chromedp.ByQuery))
 	})
 }

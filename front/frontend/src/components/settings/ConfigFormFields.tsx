@@ -616,6 +616,25 @@ export function PluginsConfigFields({
 							onChange={(wait_timeout) => patchFetcherConfig({ wait_timeout })}
 						/>
 					</ConfigField>
+					{waitUntil === 'load' ? (
+						<ConfigField
+							path='plugins.fetcher_config.wait_after_load'
+							errors={fieldErrors}
+							label='wait_after_load'
+							help={h.wait_after_load}
+						>
+							<DurationInput
+								invalid={fieldInvalid(
+									fieldErrors,
+									'plugins.fetcher_config.wait_after_load',
+								)}
+								value={fc.wait_after_load as string | undefined}
+								onChange={(wait_after_load) =>
+									patchFetcherConfig({ wait_after_load })
+								}
+							/>
+						</ConfigField>
+					) : null}
 					{waitUntil === 'selector' ? (
 						<ConfigField
 							path='plugins.fetcher_config.wait_visible_selector'
