@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+### 追加
+
+- ドメインステータスの robots.txt 取得結果を localStorage にキャッシュ（24時間TTL）。再起動後はキャッシュがあれば再取得しない
+
+### 削除
+
+- 設定画面の `crawl.enabled` チェックボックス（実行時は常に上書きされ効果がなかったため）
+
 ## [0.7.0] - 2026-07-10
 
 ### 追加

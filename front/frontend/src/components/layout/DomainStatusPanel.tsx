@@ -28,22 +28,19 @@ import {
 	robotsTargetsFromNodes,
 	robotsTargetsKey,
 } from '@/lib/domainStats';
+import {
+	loadRobotsCache,
+	type RobotsInfo,
+	type RobotsStatus,
+	saveRobotsCacheEntry,
+} from '@/lib/robotsCache';
 import { cn } from '@/lib/utils';
 import type { PartialConfig } from '@/types/config';
 import type { GraphNode } from '@/types/graph';
 import * as ScraperService from '../../../bindings/meguri-app/internal/usecase/wails_service/scraperservice';
 
-type RobotsStatus = 'loading' | 'found' | 'not_found' | 'error';
-
-type RobotsInfo = {
-	status: RobotsStatus;
-	statusCode?: number;
-	body?: string;
-	error?: string;
-};
-
 /** host 単位のセッションキャッシュ。WS 切替・パネル unmount でも保持する。 */
-let robotsSessionCache: Record<string, RobotsInfo> = {};
+let robotsSessionCache: Record<string, RobotsInfo> = loadRobotsCache();
 const robotsFetchGenByHost: Record<string, number> = {};
 
 function readRobotsSessionCache(): Record<string, RobotsInfo> {
@@ -197,6 +194,7 @@ export function DomainStatusPanel({
 						if (gens[host] !== robotsFetchGenByHost[host]) continue;
 						if (!info) continue;
 						next[host] = info;
+						saveRobotsCacheEntry(host, info);
 						changed = true;
 					}
 					return changed ? next : prev;

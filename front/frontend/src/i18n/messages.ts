@@ -297,7 +297,6 @@ export const messages = {
 			pdf_mode: 'fast=速い / auto=自動 / ocr=スキャン向け。',
 			pdf_max_pages: '1ファイルあたり読む最大ページ数。',
 			pdf_output: 'PDF から得るテキストの形式。',
-			crawl_enabled: 'この設定層でリンクを辿って巡回するか。',
 			max_depth: '起点から何階層まで辿るか（0=起点のみ）。',
 			max_pages: 'ワークスペース全体で訪問する最大ページ数。',
 			include_paths: '辿る URL パス。正規表現可。（例: .*/docs）',

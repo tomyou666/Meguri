@@ -289,13 +289,6 @@ export function CrawlConfigFields({
 	const v = value ?? {};
 	return (
 		<div className='space-y-3'>
-			<ConfigCheckboxRow
-				inputId={configCheckboxId('crawl.enabled')}
-				checked={v.enabled ?? false}
-				onCheckedChange={(c) => onChange({ ...v, enabled: !!c })}
-			>
-				<FieldLabel label='enabled' help={h.crawl_enabled} />
-			</ConfigCheckboxRow>
 			<ConfigField
 				path='crawl.max_depth'
 				errors={fieldErrors}
