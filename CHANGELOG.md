@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+### 修正
+
+- クロール enqueue で安い判定と `max_pages` を robots より先に行い、枠外 URL の robots 取得を避けるように変更
+- robots.txt キャッシュのロック範囲を縮小し、同一ホストの同時ミスを singleflight で 1 回にまとめるように変更
+- robots.txt キャッシュキーを host 単位にし、http/https で共有するように変更
+
 ## [0.8.0] - 2026-07-11
 
 ### 追加

@@ -127,7 +127,7 @@ crawl:
     - "^/docs/.*"
   exclude_paths:
     - ".*\\.zip$"
-  allow_external_links: false
+  allow_external_links: false  # true だと新ホストごとに robots.txt 取得コストが増える
   allow_subdomains: false
   request_delay: 0s     # > 0 のとき並行数は 1 に強制
   max_concurrency: 4
@@ -221,7 +221,7 @@ output:
 | `--max-pages`           | `crawl.max_pages`            | `100`   |
 | `--include-path`（繰り返し可） | `crawl.include_paths`        | 空（全許可）  |
 | `--exclude-path`（繰り返し可） | `crawl.exclude_paths`        | 空       |
-| `--allow-external`      | `crawl.allow_external_links` | `false` |
+| `--allow-external`      | `crawl.allow_external_links` | `false`（true だと新ホストごとに robots 取得コスト増） |
 | `--allow-subdomains`    | `crawl.allow_subdomains`     | `false` |
 | `--delay`               | `crawl.request_delay`        | `0s`    |
 | `--concurrency`         | `crawl.max_concurrency`      | `4`     |

@@ -168,10 +168,15 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 
 	var (
 		stateMu sync.Mutex
+		// queueMu は pushQ への send と close を直列化し、閉じた channel への send panic を防ぐ。
+		queueMu sync.Mutex
 		seen    = map[string]struct{}{}
 		visited int
 		pending int
 		closed  bool
+		// seeding は初期シード enqueue 中。この間は pending==0 でも pushQ を閉じない
+		//（先頭シード robots 拒否で後続シードが入れなくなるのを防ぐ）。
+		seeding = true
 	)
 
 	// dispatcher: pushQ → jobs を中継しつつ無制限キューを内部に持つ
@@ -213,6 +218,19 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		}
 	}()
 
+	// maybeClosePushQ は pending が 0 なら pushQ を 1 回だけ閉じる。
+	// stateMu 保持中に呼び、close 自体は queueMu 下で行う。
+	// seeding 中は閉じない（シード投入完了後に再度呼ぶ）。
+	maybeClosePushQ := func() {
+		if pending != 0 || closed || seeding {
+			return
+		}
+		closed = true
+		queueMu.Lock()
+		close(pushQ)
+		queueMu.Unlock()
+	}
+
 	finishOne := func(ok bool) {
 		stateMu.Lock()
 		defer stateMu.Unlock()
@@ -222,10 +240,7 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		} else {
 			stats.Failed++
 		}
-		if pending == 0 && !closed {
-			closed = true
-			close(pushQ)
-		}
+		maybeClosePushQ()
 	}
 
 	emitSkip := func(u *url.URL, depth int, parentURL, reason string) {
@@ -237,6 +252,14 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 			Depth:      depth,
 			SkipReason: reason,
 		})
+	}
+
+	// releaseReserve は provisional reserve を取り消す（seen は残す）。
+	// robots 拒否時のロールバック用。pending が 0 なら maybeClosePushQ する。
+	releaseReserve := func() {
+		visited--
+		pending--
+		maybeClosePushQ()
 	}
 
 	enqueue := func(u *url.URL, depth int, parentURL string) bool {
@@ -255,7 +278,7 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 			emitSkip(normalized, depth, parentURL, "duplicate")
 			return false
 		}
-		if reason := c.skipReason(ctx, normalized, depth, seeds[0]); reason != "" {
+		if reason := c.skipReason(normalized, depth, seeds[0]); reason != "" {
 			stateMu.Unlock()
 			emitSkip(normalized, depth, parentURL, reason)
 			return false
@@ -265,17 +288,35 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 			emitSkip(normalized, depth, parentURL, "max_pages")
 			return false
 		}
-		seen[key] = struct{}{}
-		visited++
 		if closed {
 			stateMu.Unlock()
 			return false
 		}
+		// provisional reserve: robots I/O 中の二重 enqueue を防ぐ。
+		seen[key] = struct{}{}
+		visited++
 		pending++
-		stats.Enqueued++
 		stateMu.Unlock()
 
+		if c.cfg.Crawl.RespectRobotsTxt && c.robots != nil {
+			ua := c.cfg.Plugins.Stealth.HTTP.EffectiveUserAgent()
+			if !c.robots.Allowed(ctx, normalized, ua) {
+				stateMu.Lock()
+				releaseReserve()
+				stateMu.Unlock()
+				emitSkip(normalized, depth, parentURL, "robots")
+				return false
+			}
+		}
+
+		// stateMu → queueMu の順で取得し、閉じた channel への send を防ぐ。
+		// pending 予約中は maybeClosePushQ しないため、send 完了まで close は待つ。
+		stateMu.Lock()
+		stats.Enqueued++
+		queueMu.Lock()
+		stateMu.Unlock()
 		pushQ <- job{url: normalized, depth: depth, parentURL: parentURL}
+		queueMu.Unlock()
 		return true
 	}
 
@@ -303,6 +344,10 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 	for _, s := range seeds {
 		enqueue(s, 0, "")
 	}
+	stateMu.Lock()
+	seeding = false
+	maybeClosePushQ()
+	stateMu.Unlock()
 	wg.Wait()
 	<-queueDone
 	return stats, ctx.Err()
@@ -376,8 +421,9 @@ func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int,
 	return true
 }
 
-// skipReason は訪問不可の理由を返す。訪問可能なら空文字。
-func (c *Crawler) skipReason(ctx context.Context, u *url.URL, depth int, base *url.URL) string {
+// skipReason はネットワーク不要の訪問不可理由を返す。訪問可能なら空文字。
+// robots.txt 判定は含まない（enqueue 側で max_pages 予約後に lock 外で行う）。
+func (c *Crawler) skipReason(u *url.URL, depth int, base *url.URL) string {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return "invalid_scheme"
 	}
@@ -419,12 +465,6 @@ func (c *Crawler) skipReason(ctx context.Context, u *url.URL, depth int, base *u
 	for _, re := range c.excludeRe {
 		if re.MatchString(u.Path) {
 			return "exclude_paths"
-		}
-	}
-	if c.cfg.Crawl.RespectRobotsTxt && c.robots != nil {
-		ua := c.cfg.Plugins.Stealth.HTTP.EffectiveUserAgent()
-		if !c.robots.Allowed(ctx, u, ua) {
-			return "robots"
 		}
 	}
 	return ""
