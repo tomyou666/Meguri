@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-13
+
 ### 修正
 
 - クロール enqueue で安い判定と `max_pages` を robots より先に行い、枠外 URL の robots 取得を避けるように変更
