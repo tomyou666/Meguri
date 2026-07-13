@@ -1,6 +1,6 @@
 module meguri
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
