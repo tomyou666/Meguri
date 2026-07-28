@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-28
+
 ### 追加
 
 - ノード status 一括照会 API `GetGraphNodeStatuses` を追加
@@ -13,7 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
-- クロール完了後にノードが running のまま残る問題を修正（成功 Event の軽量化・完了時 reconcile・runId 確定前キュー）
+- クロール完了後にノードが running のまま残る問題を修正（成功 Event の軽量化・完了時 reconcile・runId 確定前キュー）]
+- 脆弱性修正
 
 ## [0.9.0] - 2026-07-13
 
