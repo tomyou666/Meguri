@@ -47,7 +47,7 @@ export type CrawlError = {
 
 export interface CrawlEventHandlers {
 	onNodeStarted: (nodeId: string, url: string) => void;
-	onNodeSucceeded: (nodeId: string, result: CrawlResultPreview) => void;
+	onNodeSucceeded: (nodeId: string) => void;
 	onNodeFailed: (nodeId: string, url: string, error: string) => void;
 	onNodeSkipped: (nodeId: string, url: string, reason: string) => void;
 	onLinkSkipped: (

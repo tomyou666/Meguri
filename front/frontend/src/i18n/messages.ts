@@ -176,6 +176,7 @@ export const messages = {
 		linkSkipLine: (parent: string, target: string, reason: string) =>
 			parent ? `${parent} → ${target}（${reason}）` : `${target}（${reason}）`,
 		noResultApi: '結果がありません（API未取得）',
+		resultLoading: '結果を読み込み中…',
 		transformerBadge: (name: string) => `transformer: ${name}`,
 		manuallyEdited: '手動編集',
 		copy: 'コピー',

@@ -434,6 +434,34 @@ func (s *Store) PatchGraphNodeStatus(ctx context.Context, workspaceID, nodeID, s
 	return nil
 }
 
+// GetGraphNodeStatuses は指定ノードの status と last_error を返す。
+// nodeIDs が空のときは空スライスを返す。
+func (s *Store) GetGraphNodeStatuses(ctx context.Context, workspaceID string, nodeIDs []string) ([]model.GraphNodeStatusDTO, error) {
+	if len(nodeIDs) == 0 {
+		return []model.GraphNodeStatusDTO{}, nil
+	}
+	gn := s.q.GraphNode
+	rows, err := gn.WithContext(ctx).
+		Select(gn.ID, gn.Status, gn.LastError).
+		Where(gn.WorkspaceID.Eq(workspaceID), gn.ID.In(nodeIDs...)).
+		Find()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]model.GraphNodeStatusDTO, 0, len(rows))
+	for _, r := range rows {
+		dto := model.GraphNodeStatusDTO{NodeID: r.ID}
+		if r.Status != nil {
+			dto.Status = *r.Status
+		}
+		if r.LastError != nil {
+			dto.LastError = *r.LastError
+		}
+		out = append(out, dto)
+	}
+	return out, nil
+}
+
 // PatchGraphNodePositions は graph_nodes の座標を部分更新する。
 func (s *Store) PatchGraphNodePositions(ctx context.Context, workspaceID string, updates []model.NodePositionPatchDTO) error {
 	if len(updates) == 0 {

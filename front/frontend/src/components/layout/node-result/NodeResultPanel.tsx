@@ -6,6 +6,7 @@ import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { messages } from '@/i18n/messages';
 import { isPdfResourceResult } from '@/lib/crawlResultUtils';
@@ -27,6 +28,7 @@ type NodeResultPanelProps = {
 	node?: GraphNode;
 	formats: ContentFormat[];
 	result: CrawlResultPreview | null;
+	loading?: boolean;
 	readonly?: boolean;
 	panelMode?: 'sidebar' | 'maximized';
 	workspaceId?: string;
@@ -41,6 +43,7 @@ export function NodeResultPanel({
 	node,
 	formats,
 	result,
+	loading = false,
 	readonly = false,
 	panelMode = 'sidebar',
 	workspaceId,
@@ -152,6 +155,24 @@ export function NodeResultPanel({
 	};
 
 	const isEditingContent = !readonly && editing;
+
+	if (loading) {
+		return (
+			<div
+				className={cn(
+					'flex min-h-0 flex-1 flex-col gap-3 px-3 py-3',
+					className,
+				)}
+				role='status'
+				aria-busy='true'
+			>
+				<span className='sr-only'>{messages.right.resultLoading}</span>
+				<Skeleton className='h-8 w-full' />
+				<Skeleton className='h-4 w-2/3' />
+				<Skeleton className='min-h-40 flex-1 w-full' />
+			</div>
+		);
+	}
 
 	return (
 		<Tabs

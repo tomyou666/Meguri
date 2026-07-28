@@ -13,6 +13,7 @@ export {
     FinishCrawlRunRequest,
     GraphEdgeDTO,
     GraphNodeDTO,
+    GraphNodeStatusDTO,
     MaximizedNodeResultRequest,
     MergeResultsResponseDTO,
     NodeDiffDTO,

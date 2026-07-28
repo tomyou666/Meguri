@@ -744,7 +744,6 @@ func (s *ScraperService) runMainBFS(
 				RunID:       req.RunID,
 				NodeID:      nodeID,
 				URL:         urlKey,
-				Result:      dto,
 			})
 		case runner.ProgressFailed:
 			nodeID, urlKey := st.resolveNodeID(ev.URL, false)
@@ -956,7 +955,6 @@ func (s *ScraperService) scrapeOneNode(
 				RunID:       req.RunID,
 				NodeID:      node.ID,
 				URL:         ev.URL,
-				Result:      dto,
 			})
 		case runner.ProgressFailed:
 			failed = true

@@ -368,3 +368,105 @@ func TestStore(t *testing.T) {
 		}
 	})
 }
+
+// TestGetGraphNodeStatuses は指定ノードの status / lastError 照会を検証する。
+func TestGetGraphNodeStatuses(t *testing.T) {
+	t.Run("正常系: 空 nodeIDs は空スライスを返す", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+		db, err := gorm.Open(sqlite.Open(sqlitedsn.DSN(dbPath)), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		store := NewStore(db)
+		out, err := store.GetGraphNodeStatuses(context.Background(), "ws-1", nil)
+		if err != nil {
+			t.Fatalf("get: %v", err)
+		}
+		if len(out) != 0 {
+			t.Fatalf("expected empty, got %+v", out)
+		}
+	})
+
+	t.Run("正常系: 指定 ID の status と lastError を返す", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+		db, err := gorm.Open(sqlite.Open(sqlitedsn.DSN(dbPath)), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		ctx := context.Background()
+		store := NewStore(db)
+		wsID := "ws-status"
+		errMsg := "boom"
+		bundle := model.WorkspaceBundle{
+			Workspace: model.Workspace{
+				ID:                   model.StrPtr(wsID),
+				Name:                 "Status",
+				SeedURL:              "https://example.com",
+				SettingsJSON:         `{}`,
+				ExcludeUrlsJSON:      `[]`,
+				GraphLayoutDirection: model.StrPtr("LR"),
+				CreatedAt:            "2026-01-01T00:00:00Z",
+				UpdatedAt:            "2026-01-01T00:00:00Z",
+			},
+			Nodes: []model.GraphNode{
+				{
+					WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com/a",
+					Label: "a", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+				{
+					WorkspaceID: wsID, ID: "n2", URLNormalized: "https://example.com/b",
+					Label: "b", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl",
+					Status: model.StrPtr("error"), LastError: &errMsg,
+				},
+				{
+					WorkspaceID: wsID, ID: "n3", URLNormalized: "https://example.com/c",
+					Label: "c", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("running"),
+				},
+			},
+		}
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("save: %v", err)
+		}
+
+		out, err := store.GetGraphNodeStatuses(ctx, wsID, []string{"n1", "n2"})
+		if err != nil {
+			t.Fatalf("get: %v", err)
+		}
+		byID := map[string]model.GraphNodeStatusDTO{}
+		for _, row := range out {
+			byID[row.NodeID] = row
+		}
+		if byID["n1"].Status != "success" || byID["n1"].LastError != "" {
+			t.Fatalf("n1: %+v", byID["n1"])
+		}
+		if byID["n2"].Status != "error" || byID["n2"].LastError != "boom" {
+			t.Fatalf("n2: %+v", byID["n2"])
+		}
+		if _, ok := byID["n3"]; ok {
+			t.Fatalf("n3 should not be returned")
+		}
+	})
+}

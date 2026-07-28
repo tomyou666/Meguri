@@ -293,7 +293,7 @@ type StartCrawlRequest struct {
 	Workspace        WorkspaceDTO    `json:"workspace"`
 }
 
-// CrawlNodeResultDTO は Wails Event 用のノード結果プレビュー。
+// CrawlNodeResultDTO は persist 用のノード結果プレビュー。
 type CrawlNodeResultDTO struct {
 	URL      string            `json:"url"`
 	Markdown string            `json:"markdown,omitempty"`
@@ -304,19 +304,26 @@ type CrawlNodeResultDTO struct {
 }
 
 // CrawlEventPayload は scraper:crawl:* Event の共通フィールド。
+// status 通知向け。本文（html/markdown/rawHtml）は載せない。
 type CrawlEventPayload struct {
-	WorkspaceID string              `json:"workspaceId"`
-	RunID       string              `json:"runId"`
-	NodeID      string              `json:"nodeId,omitempty"`
-	URL         string              `json:"url,omitempty"`
-	Result      *CrawlNodeResultDTO `json:"result,omitempty"`
-	Error       string              `json:"error,omitempty"`
-	Reason      string              `json:"reason,omitempty"`
-	SourceID    string              `json:"sourceId,omitempty"`
-	TargetID    string              `json:"targetId,omitempty"`
-	TargetURL   string              `json:"targetUrl,omitempty"`
-	Summary     *CrawlSummaryDTO    `json:"summary,omitempty"`
-	Message     string              `json:"message,omitempty"`
+	WorkspaceID string           `json:"workspaceId"`
+	RunID       string           `json:"runId"`
+	NodeID      string           `json:"nodeId,omitempty"`
+	URL         string           `json:"url,omitempty"`
+	Error       string           `json:"error,omitempty"`
+	Reason      string           `json:"reason,omitempty"`
+	SourceID    string           `json:"sourceId,omitempty"`
+	TargetID    string           `json:"targetId,omitempty"`
+	TargetURL   string           `json:"targetUrl,omitempty"`
+	Summary     *CrawlSummaryDTO `json:"summary,omitempty"`
+	Message     string           `json:"message,omitempty"`
+}
+
+// GraphNodeStatusDTO はノード status の照会結果。
+type GraphNodeStatusDTO struct {
+	NodeID    string `json:"nodeId"`
+	Status    string `json:"status"`
+	LastError string `json:"lastError,omitempty"`
 }
 
 // CrawlSummaryDTO は crawl 完了サマリ。

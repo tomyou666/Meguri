@@ -1,4 +1,5 @@
 import { Events } from '@wailsio/runtime';
+import { createRunIdEventBuffer } from '@/lib/crawlEventQueue';
 import { DEFAULT_APP_CONFIG } from '@/lib/defaults';
 import {
 	crawlResultFromDTO,
@@ -52,7 +53,6 @@ interface CrawlEventPayload {
 	runId: string;
 	nodeId?: string;
 	url?: string;
-	result?: CrawlResultPreview;
 	error?: string;
 	reason?: string;
 	sourceId?: string;
@@ -159,6 +159,19 @@ export class CompositeScraperAdapter implements ScraperPort {
 	): Promise<CrawlResultPreview[]> {
 		const rows = await StoreService.GetNodeResults(workspaceId, nodeIds);
 		return rows.map((dto) => crawlResultFromDTO(dto));
+	}
+
+	async getGraphNodeStatuses(
+		workspaceId: string,
+		nodeIds: string[],
+	): Promise<Array<{ nodeId: string; status: string; lastError?: string }>> {
+		if (nodeIds.length === 0) return [];
+		const rows = await StoreService.GetGraphNodeStatuses(workspaceId, nodeIds);
+		return rows.map((r) => ({
+			nodeId: r.nodeId,
+			status: r.status,
+			lastError: r.lastError || undefined,
+		}));
 	}
 
 	async updateNodeResult(
@@ -386,9 +399,6 @@ export class CompositeScraperAdapter implements ScraperPort {
 			unsubscribers.length = 0;
 		};
 
-		const matchesRun = (payload: CrawlEventPayload) =>
-			runId !== '' && payload.runId === runId;
-
 		await new Promise<void>((resolve) => {
 			let settled = false;
 			const done = () => {
@@ -403,14 +413,14 @@ export class CompositeScraperAdapter implements ScraperPort {
 			};
 			params.signal.addEventListener('abort', onAbort);
 
+			const buffer = createRunIdEventBuffer<CrawlEventPayload>();
+
 			const subscribe = (
 				topic: string,
 				handler: (p: CrawlEventPayload) => void,
 			) => {
 				const off = Events.On(topic, (ev) => {
-					const p = eventData(ev);
-					if (!matchesRun(p)) return;
-					handler(p);
+					buffer.accept(eventData(ev), handler);
 				});
 				unsubscribers.push(off);
 			};
@@ -421,8 +431,8 @@ export class CompositeScraperAdapter implements ScraperPort {
 			});
 
 			subscribe(TOPIC_NODE_SUCCEEDED, (p) => {
-				if (!p.nodeId || !p.result) return;
-				params.onNodeSucceeded(p.nodeId, p.result);
+				if (!p.nodeId) return;
+				params.onNodeSucceeded(p.nodeId);
 			});
 
 			subscribe(TOPIC_NODE_FAILED, (p) => {
@@ -472,7 +482,8 @@ export class CompositeScraperAdapter implements ScraperPort {
 			)
 				.then((id) => {
 					runId = id;
-					params.onRunStarted?.(runId);
+					buffer.setRunId(id);
+					params.onRunStarted?.(id);
 				})
 				.catch((err: unknown) => {
 					params.signal.removeEventListener('abort', onAbort);

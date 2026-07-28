@@ -500,6 +500,35 @@ export class GraphNodeDTO {
 }
 
 /**
+ * GraphNodeStatusDTO はノード status の照会結果。
+ */
+export class GraphNodeStatusDTO {
+    "nodeId": string;
+    "status": string;
+    "lastError"?: string;
+
+    /** Creates a new GraphNodeStatusDTO instance. */
+    constructor($$source: Partial<GraphNodeStatusDTO> = {}) {
+        if (!("nodeId" in $$source)) {
+            this["nodeId"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GraphNodeStatusDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GraphNodeStatusDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new GraphNodeStatusDTO($$parsedSource as Partial<GraphNodeStatusDTO>);
+    }
+}
+
+/**
  * MaximizedNodeResultRequest は最大化ウィンドウ表示用スナップショット。
  */
 export class MaximizedNodeResultRequest {

@@ -98,7 +98,7 @@ export interface StartCrawlParams {
 	isPaused: () => boolean;
 	waitWhilePaused: () => Promise<void>;
 	onNodeStarted: (nodeId: string, url: string) => void;
-	onNodeSucceeded: (nodeId: string, result: CrawlResultPreview) => void;
+	onNodeSucceeded: (nodeId: string) => void;
 	onNodeFailed: (nodeId: string, url: string, error: string) => void;
 	onNodeSkipped: (nodeId: string, url: string, reason: string) => void;
 	onLinkSkipped: (
@@ -161,6 +161,10 @@ export interface ScraperPort {
 		workspaceId: string,
 		nodeIds: string[],
 	): Promise<CrawlResultPreview[]>;
+	getGraphNodeStatuses(
+		workspaceId: string,
+		nodeIds: string[],
+	): Promise<Array<{ nodeId: string; status: string; lastError?: string }>>;
 	updateNodeResult(
 		workspaceId: string,
 		nodeId: string,

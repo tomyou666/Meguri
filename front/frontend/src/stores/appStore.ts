@@ -30,6 +30,11 @@ import {
 	getMinimapCollapsed,
 	setMinimapCollapsed,
 } from '@/lib/minimapPreferences';
+import {
+	buildNodeStatusPatches,
+	collectRunningNodeIds,
+	nodeSucceededStatusPatch,
+} from '@/lib/nodeStatusReconcile';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import { notifyDiffDetected, notifyError, notifySuccess } from '@/lib/notify';
 import { withDerivedContentFormats } from '@/lib/previewFormats';
@@ -172,6 +177,8 @@ interface AppState {
 		edges: { source: string; target: string }[];
 	} | null;
 	loadedNodeResult: CrawlResultPreview | null;
+	/** 本文取得中のノード ID。未取得時は null */
+	nodeResultLoadingNodeId: string | null;
 	resultPreview: CrawlResultPreview[] | null;
 	workspaceDiffCache: Record<string, WorkspaceDiff>;
 	diffSummaryOpen: boolean;
@@ -236,6 +243,7 @@ interface AppState {
 	collapseAllNodes: () => void;
 	deleteSelectedNodes: () => void;
 	fetchSelectedNodeResult: () => Promise<void>;
+	reconcileRunningNodeStatuses: (workspaceId: string) => Promise<void>;
 	updateNodeResult: (
 		nodeId: string,
 		patch: UpdateNodeResultPatch,
@@ -305,6 +313,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	minimapCollapsed: getMinimapCollapsed(),
 	clipboard: null,
 	loadedNodeResult: null,
+	nodeResultLoadingNodeId: null,
 	resultPreview: null,
 	workspaceDiffCache: {},
 	diffSummaryOpen: false,
@@ -549,6 +558,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				selectedNodeIds: [],
 				selectionAnchorId: null,
 				loadedNodeResult: null,
+				nodeResultLoadingNodeId: null,
 				resultPreview: null,
 			});
 			return;
@@ -592,6 +602,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedNodeIds,
 			selectionAnchorId,
 			loadedNodeResult: null,
+			nodeResultLoadingNodeId: null,
 			resultPreview: null,
 		});
 		if (selectedNodeIds.length === 1) {
@@ -609,6 +620,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedNodeId: primary,
 			selectionAnchorId: primary,
 			loadedNodeResult: null,
+			nodeResultLoadingNodeId: null,
 			resultPreview: null,
 		});
 		if (ids.length === 1) {
@@ -981,12 +993,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 			onNodeStarted: (nodeId, url) => {
 				patchNode(nodeId, { status: 'running' as NodeStatus, label: url });
 			},
-			onNodeSucceeded: (nodeId, result: CrawlResultPreview) => {
+			onNodeSucceeded: (nodeId) => {
+				const patch = nodeSucceededStatusPatch(nodeId);
 				patchNode(nodeId, {
-					status: 'success',
-					lastResult: result,
-					lastError: undefined,
+					status: patch.status,
+					lastError: patch.lastError,
 				});
+				if (get().selectedNodeId === nodeId) {
+					void get().fetchSelectedNodeResult();
+				}
 			},
 			onNodeFailed: (nodeId, _url, error) => {
 				patchNode(nodeId, { status: 'error', lastError: error });
@@ -1071,6 +1086,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 					_activeRunId: null,
 					runHistory: [full, ...s.runHistory].slice(0, 20),
 				}));
+				void get().reconcileRunningNodeStatuses(ws.id);
 				if (summary.stoppedReason === 'completed') {
 					void get().handleCrawlDiffAfterComplete(ws.id, runId);
 				}
@@ -1087,6 +1103,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 						at: new Date().toISOString(),
 					},
 				});
+				void get().reconcileRunningNodeStatuses(ws.id);
 			},
 		});
 	},
@@ -1270,8 +1287,61 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const ws = get().getActiveWorkspace();
 		const nodeId = get().selectedNodeId;
 		if (!ws || !nodeId) return;
-		const result = await scraperPort.getNodeResult(ws.id, nodeId);
-		set({ loadedNodeResult: result });
+		set({ nodeResultLoadingNodeId: nodeId });
+		try {
+			const result = await scraperPort.getNodeResult(ws.id, nodeId);
+			if (get().selectedNodeId !== nodeId) return;
+			if (get().nodeResultLoadingNodeId !== nodeId) return;
+			set({ loadedNodeResult: result, nodeResultLoadingNodeId: null });
+		} catch {
+			if (get().nodeResultLoadingNodeId === nodeId) {
+				set({ nodeResultLoadingNodeId: null });
+			}
+		}
+	},
+
+	reconcileRunningNodeStatuses: async (workspaceId) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws || ws.id !== workspaceId) return;
+		const runningIds = collectRunningNodeIds(ws.nodes);
+		if (runningIds.length === 0) return;
+		try {
+			const rows = await scraperPort.getGraphNodeStatuses(
+				workspaceId,
+				runningIds,
+			);
+			const patches = buildNodeStatusPatches(rows);
+			if (patches.length === 0) return;
+			const active = get().getActiveWorkspace();
+			if (!active || active.id !== workspaceId) return;
+			const patchById = new Map(patches.map((p) => [p.nodeId, p]));
+			set((s) => ({
+				workspaces: s.workspaces.map((w) => {
+					if (w.id !== workspaceId) return w;
+					return {
+						...w,
+						nodes: w.nodes.map((n) => {
+							const p = patchById.get(n.id);
+							if (!p) return n;
+							return {
+								...n,
+								status: p.status,
+								lastError: p.lastError,
+							};
+						}),
+					};
+				}),
+			}));
+			const selectedId = get().selectedNodeId;
+			if (selectedId) {
+				const p = patchById.get(selectedId);
+				if (p?.status === 'success') {
+					void get().fetchSelectedNodeResult();
+				}
+			}
+		} catch {
+			// reconcile 失敗時は running 残留を許容（再選択や再クロールで別経路）
+		}
 	},
 
 	updateNodeResult: async (nodeId, patch) => {
@@ -1389,7 +1459,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const ids = get().selectedNodeIds;
 		if (!ws || ids.length === 0) return;
 		await scraperPort.deleteResults(ws.id, ids);
-		set({ loadedNodeResult: null, resultPreview: null });
+		set({
+			loadedNodeResult: null,
+			nodeResultLoadingNodeId: null,
+			resultPreview: null,
+		});
 	},
 
 	bulkScrapeSelected: async () => {

@@ -91,11 +91,20 @@ export function GetExportSession(): $CancellablePromise<model$0.ExportSessionReq
 }
 
 /**
+ * GetGraphNodeStatuses は指定ノードの status と lastError を返す。
+ */
+export function GetGraphNodeStatuses(workspaceID: string, nodeIDs: string[]): $CancellablePromise<model$0.GraphNodeStatusDTO[]> {
+    return $Call.ByID(1086371375, workspaceID, nodeIDs).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+/**
  * GetMaximizedNodeResult は最大化ウィンドウ用の直近スナップショットを返す。
  */
 export function GetMaximizedNodeResult(): $CancellablePromise<model$0.MaximizedNodeResultRequest> {
     return $Call.ByID(790067210).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType5($result);
     });
 }
 
@@ -104,7 +113,7 @@ export function GetMaximizedNodeResult(): $CancellablePromise<model$0.MaximizedN
  */
 export function GetNodeDiffDetail(workspaceID: string, nodeID: string): $CancellablePromise<model$0.NodeDiffDetailDTO> {
     return $Call.ByID(1971368189, workspaceID, nodeID).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType6($result);
     });
 }
 
@@ -113,7 +122,7 @@ export function GetNodeDiffDetail(workspaceID: string, nodeID: string): $Cancell
  */
 export function GetNodeDiffViewerSession(): $CancellablePromise<model$0.NodeDiffViewerRequest> {
     return $Call.ByID(2980533114).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType7($result);
     });
 }
 
@@ -122,7 +131,7 @@ export function GetNodeDiffViewerSession(): $CancellablePromise<model$0.NodeDiff
  */
 export function GetNodeResult(workspaceID: string, nodeID: string): $CancellablePromise<model$0.CrawlResultDTO | null> {
     return $Call.ByID(1231862750, workspaceID, nodeID).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType9($result);
     });
 }
 
@@ -131,7 +140,7 @@ export function GetNodeResult(workspaceID: string, nodeID: string): $Cancellable
  */
 export function GetNodeResults(workspaceID: string, nodeIDs: string[]): $CancellablePromise<model$0.CrawlResultDTO[]> {
     return $Call.ByID(1126920535, workspaceID, nodeIDs).then(($result: any) => {
-        return $$createType8($result);
+        return $$createType10($result);
     });
 }
 
@@ -140,7 +149,7 @@ export function GetNodeResults(workspaceID: string, nodeIDs: string[]): $Cancell
  */
 export function GetWorkspaceDiff(workspaceID: string): $CancellablePromise<model$0.WorkspaceDiffDTO> {
     return $Call.ByID(1767944683, workspaceID).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType11($result);
     });
 }
 
@@ -149,7 +158,7 @@ export function GetWorkspaceDiff(workspaceID: string): $CancellablePromise<model
  */
 export function ListWorkspaces(): $CancellablePromise<model$0.WorkspaceListItemDTO[]> {
     return $Call.ByID(737251475).then(($result: any) => {
-        return $$createType11($result);
+        return $$createType13($result);
     });
 }
 
@@ -167,7 +176,7 @@ export function LoadWorkspace(id: string): $CancellablePromise<model$0.Workspace
  */
 export function MergeResults(workspaceID: string, nodeIDs: string[], formats: string[]): $CancellablePromise<model$0.MergeResultsResponseDTO> {
     return $Call.ByID(1679166919, workspaceID, nodeIDs, formats).then(($result: any) => {
-        return $$createType12($result);
+        return $$createType14($result);
     });
 }
 
@@ -190,7 +199,7 @@ export function PatchGraphNodeStatus(req: model$0.PatchGraphNodeStatusRequest): 
  */
 export function SaveAppDefaults(config: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(2781423509, config).then(($result: any) => {
-        return $$createType13($result);
+        return $$createType15($result);
     });
 }
 
@@ -218,7 +227,7 @@ export function SaveExportZip(entries: model$0.ExportZipEntryDTO[], defaultExt: 
  */
 export function SaveNodeSettings(workspaceID: string, nodeID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(3704504073, workspaceID, nodeID, settings).then(($result: any) => {
-        return $$createType13($result);
+        return $$createType15($result);
     });
 }
 
@@ -248,7 +257,7 @@ export function SaveWorkspace(ws: model$0.WorkspaceDTO): $CancellablePromise<voi
  */
 export function SaveWorkspaceSettings(workspaceID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(1553310216, workspaceID, settings).then(($result: any) => {
-        return $$createType13($result);
+        return $$createType15($result);
     });
 }
 
@@ -292,7 +301,7 @@ export function ShowNodeDiffWindow(req: model$0.NodeDiffViewerRequest): $Cancell
  */
 export function UpdateNodeResult(req: model$0.UpdateNodeResultRequest): $CancellablePromise<model$0.CrawlResultDTO | null> {
     return $Call.ByID(3146172057, req).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType9($result);
     });
 }
 
@@ -307,14 +316,16 @@ export function UpsertDiscoveredGraph(req: model$0.UpsertDiscoveredGraphRequest)
 const $$createType0 = model$0.WorkspaceDTO.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = model$0.ExportSessionRequest.createFrom;
-const $$createType3 = model$0.MaximizedNodeResultRequest.createFrom;
-const $$createType4 = model$0.NodeDiffDetailDTO.createFrom;
-const $$createType5 = model$0.NodeDiffViewerRequest.createFrom;
-const $$createType6 = model$0.CrawlResultDTO.createFrom;
-const $$createType7 = $Create.Nullable($$createType6);
-const $$createType8 = $Create.Array($$createType6);
-const $$createType9 = model$0.WorkspaceDiffDTO.createFrom;
-const $$createType10 = model$0.WorkspaceListItemDTO.createFrom;
-const $$createType11 = $Create.Array($$createType10);
-const $$createType12 = model$0.MergeResultsResponseDTO.createFrom;
-const $$createType13 = model$0.SaveSettingsResponseDTO.createFrom;
+const $$createType3 = model$0.GraphNodeStatusDTO.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = model$0.MaximizedNodeResultRequest.createFrom;
+const $$createType6 = model$0.NodeDiffDetailDTO.createFrom;
+const $$createType7 = model$0.NodeDiffViewerRequest.createFrom;
+const $$createType8 = model$0.CrawlResultDTO.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = $Create.Array($$createType8);
+const $$createType11 = model$0.WorkspaceDiffDTO.createFrom;
+const $$createType12 = model$0.WorkspaceListItemDTO.createFrom;
+const $$createType13 = $Create.Array($$createType12);
+const $$createType14 = model$0.MergeResultsResponseDTO.createFrom;
+const $$createType15 = model$0.SaveSettingsResponseDTO.createFrom;

@@ -348,6 +348,11 @@ func (s *StoreService) PatchGraphNodeStatus(req model.PatchGraphNodeStatusReques
 	return s.crawlPersist.PatchGraphNodeStatus(s.ctx(), req)
 }
 
+// GetGraphNodeStatuses は指定ノードの status と lastError を返す。
+func (s *StoreService) GetGraphNodeStatuses(workspaceID string, nodeIDs []string) ([]model.GraphNodeStatusDTO, error) {
+	return s.crawlPersist.GetGraphNodeStatuses(s.ctx(), workspaceID, nodeIDs)
+}
+
 // PatchGraphNodePositions はノード座標を部分更新する。
 func (s *StoreService) PatchGraphNodePositions(req model.PatchGraphNodePositionsRequest) error {
 	return s.workspaces.PatchGraphNodePositions(s.ctx(), req)

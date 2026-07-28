@@ -47,6 +47,13 @@ func (s *CrawlPersistService) PatchGraphNodeStatus(ctx context.Context, req mode
 	return s.repo.PatchGraphNodeStatus(ctx, req.WorkspaceID, req.NodeID, req.Status, strPtr(req.LastError))
 }
 
+// GetGraphNodeStatuses は指定ノードの status と lastError を返す。
+//
+// nodeIDs が空のときは空スライスを返す。
+func (s *CrawlPersistService) GetGraphNodeStatuses(ctx context.Context, workspaceID string, nodeIDs []string) ([]model.GraphNodeStatusDTO, error) {
+	return s.repo.GetGraphNodeStatuses(ctx, workspaceID, nodeIDs)
+}
+
 // UpsertDiscoveredGraph は crawl 中に発見したノードとエッジを永続化する。
 func (s *CrawlPersistService) UpsertDiscoveredGraph(ctx context.Context, req model.UpsertDiscoveredGraphRequest) error {
 	return s.repo.UpsertDiscoveredGraph(ctx, req.WorkspaceID, req.SourceID, req.TargetID, req.TargetURL)

@@ -45,6 +45,7 @@ export function RightSidebarContent() {
 	const crawlStatus = useAppStore((s) => s.crawlStatus);
 	const crawlError = useAppStore((s) => s.crawlError);
 	const loadedNodeResult = useAppStore((s) => s.loadedNodeResult);
+	const nodeResultLoadingNodeId = useAppStore((s) => s.nodeResultLoadingNodeId);
 	const resultPreview = useAppStore((s) => s.resultPreview);
 	const clearCrawlError = useAppStore((s) => s.clearCrawlError);
 	const appDefaults = useAppStore((s) => s.appDefaults);
@@ -197,6 +198,7 @@ export function RightSidebarContent() {
 					node={node}
 					formats={formats}
 					result={resultForDisplay}
+					loading={nodeResultLoadingNodeId === node.id}
 				/>
 			</aside>
 		);
