@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"meguri/internal/core/fetchlimit"
 	"meguri/internal/domain/model"
@@ -123,7 +124,7 @@ func (k *Kernel) Init(ctx context.Context) error {
 	k.transformer = t
 	k.initialized = append(k.initialized, t)
 
-	for _, name := range k.cfg.Plugins.Filters {
+	for _, name := range k.filterNames() {
 		p, err := k.reg.NewFilter(name)
 		if err != nil {
 			return rollback(err)
@@ -146,6 +147,33 @@ func (k *Kernel) Init(ctx context.Context) error {
 	k.initialized = append(k.initialized, le)
 
 	return nil
+}
+
+// excludeSelectorsFilter は content.exclude_selectors を適用する Filter 名。
+const excludeSelectorsFilter = "exclude_selectors"
+
+// filterNames は plugins.filters に content 設定から必要になる Filter を補って返す。
+// content.exclude_selectors を指定しても plugins.filters に載っていなければ除外が
+// 黙って無視されるため、レジストリに存在する場合だけ先頭へ補う。
+func (k *Kernel) filterNames() []string {
+	names := append([]string(nil), k.cfg.Plugins.Filters...)
+
+	empty := true
+	for _, s := range k.cfg.Content.ExcludeSelectors {
+		if strings.TrimSpace(s) != "" {
+			empty = false
+			break
+		}
+	}
+	if empty || !k.reg.Has(plugin.KindFilter, excludeSelectorsFilter) {
+		return names
+	}
+	for _, n := range names {
+		if n == excludeSelectorsFilter {
+			return names
+		}
+	}
+	return append([]string{excludeSelectorsFilter}, names...)
 }
 
 // Close は初期化済みプラグインを登録の逆順で Close する。

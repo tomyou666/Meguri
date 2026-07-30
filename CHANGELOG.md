@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 ### 修正
 
 - Biome 2.5 向けに `biome.json` を移行し、`useSortedClasses` の class 並びを修正
+- `content.exclude_selectors` 指定時に Filter `exclude_selectors` を自動でパイプラインへ組み込むように修正
 
 ## [0.10.0] - 2026-07-28
 
