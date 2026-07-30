@@ -10,6 +10,7 @@ const FIELD_LABELS: Record<string, string> = {
 	'request.headers': 'HTTP ヘッダー',
 	'content.formats': '保存形式',
 	'content.selector': 'セレクタ',
+	'content.exclude_selectors': '除外セレクタ',
 	'pdf.max_pages': 'PDF 最大ページ数',
 	'pdf.mode': 'PDF モード',
 	'pdf.output': 'PDF 出力形式',

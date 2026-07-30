@@ -19,6 +19,7 @@ import (
 	// プラグイン副作用 import: 実装プラグインをレジストリへ登録する
 	_ "meguri/plugins/fetcher-chromium"
 	_ "meguri/plugins/fetcher-http"
+	_ "meguri/plugins/filter-exclude-selectors"
 	_ "meguri/plugins/filter-maincontent"
 	_ "meguri/plugins/filter-selector"
 	_ "meguri/plugins/linkextractor-default"
@@ -189,6 +190,25 @@ func TestPipeline_SingleURL(t *testing.T) {
 		assert.NotContains(t, out.Result.HTML, "NOT_TARGET_CONTENT", "範囲外は除外される")
 		assert.NotContains(t, out.Result.HTML, "HEADER_TEXT")
 		assert.NotContains(t, out.Result.HTML, "FOOTER_TEXT")
+	})
+
+	t.Run("正常系: filter-exclude-selectors を有効化すると指定要素が除去される", func(t *testing.T) {
+		cfg := baseConfig()
+		cfg.Content.ExcludeSelectors = []string{".ad", "#promo"}
+		cfg.Plugins.Filters = []string{"exclude_selectors"}
+
+		k := setupKernel(t, cfg)
+		p := core.NewPipeline(k)
+
+		u, _ := url.Parse(srv.URL + "/exclude_selectors.html")
+		req := model.NewRequest(u, 0)
+
+		out, err := p.Run(context.Background(), req)
+
+		assert.NoError(t, err)
+		assert.Contains(t, out.Result.Markdown, "残る本文")
+		assert.NotContains(t, out.Result.HTML, "REMOVE_AD")
+		assert.NotContains(t, out.Result.HTML, "REMOVE_PROMO")
 	})
 }
 

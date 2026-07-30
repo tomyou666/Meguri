@@ -189,6 +189,17 @@ export function ContentConfigFields({
 					onChange={(e) => onChange({ ...v, selector: e.target.value })}
 				/>
 			</ConfigField>
+			<StringListEditor
+				path='content.exclude_selectors'
+				label='exclude_selectors'
+				help={h.exclude_selectors}
+				values={v.exclude_selectors ?? []}
+				onChange={(exclude_selectors) =>
+					onChange({ ...v, exclude_selectors })
+				}
+				fieldErrors={fieldErrors}
+				compact={compact}
+			/>
 			<ConfigCheckboxRow
 				inputId={configCheckboxId('content.extract_links')}
 				checked={v.extract_links ?? true}

@@ -294,6 +294,7 @@ export const messages = {
 			include_tags: '抽出対象の HTML タグ。',
 			exclude_tags: '除外する HTML タグ。',
 			selector: '本文を取る CSS セレクタ。空ならページ全体から推定。',
+			exclude_selectors: '抽出結果から除く要素の CSS セレクタ。',
 			extract_links: 'ページ内のリンク一覧を別形式で保存します。',
 			extract_metadata: 'タイトル・description などのメタ情報を保存します。',
 			pdf_enabled: 'PDF URL をテキスト化して取得するかどうか。',

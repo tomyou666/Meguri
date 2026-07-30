@@ -27,6 +27,8 @@ func (h configHost) StealthConfig() model.StealthConfig { return model.StealthCo
 
 func (h configHost) FetcherKind() model.FetcherKind { return model.FetcherHTTP }
 
+func (h configHost) ContentConfig() model.ContentConfig { return model.ContentConfig{} }
+
 func (h configHost) Config(key string) (string, bool) {
 	v, ok := h.values[key]
 	return v, ok

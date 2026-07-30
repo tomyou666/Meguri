@@ -71,6 +71,12 @@ content:
   # - 指定時は filters に selector を含めること
   selector: ""
 
+  # exclude_selectors: DOM から除去する CSS セレクタの一覧（goquery 互換）
+  # - 空 = セレクタによる除去なし
+  # - 指定時は filters に exclude_selectors を含めること
+  # - 推奨順: [maincontent, selector, exclude_selectors]
+  exclude_selectors: []
+
   # extract_links: ページ内リンクを Result に含める（既定: true）
   # クロール時はリンク抽出が実質必須
   extract_links: true
@@ -254,8 +260,10 @@ plugins:
 
   # filters (P7): コンテンツ絞り込み（複数可、指定順に実行）
   # 選択肢:
-  #   - maincontent … ヘッダ・フッタ・ナビ・script/style/noscript 除去
-  #   - selector    … content.selector で指定範囲のみ残す（selector 設定時に使用）
+  #   - maincontent        … ヘッダ・フッタ・ナビ・script/style/noscript 除去
+  #   - selector           … content.selector で指定範囲のみ残す（selector 設定時に使用）
+  #   - exclude_selectors  … content.exclude_selectors にマッチする要素を除去
+  # 推奨順: [maincontent, selector, exclude_selectors]
   filters: [maincontent]
 
   # link_extractor (P8): 次ページ候補リンクの抽出（単一指定）

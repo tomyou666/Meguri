@@ -16,6 +16,7 @@ import (
 	// プラグイン副作用 import: CLI テストでもプラグインを利用するため
 	_ "meguri/plugins/fetcher-chromium"
 	_ "meguri/plugins/fetcher-http"
+	_ "meguri/plugins/filter-exclude-selectors"
 	_ "meguri/plugins/filter-maincontent"
 	_ "meguri/plugins/filter-selector"
 	_ "meguri/plugins/linkextractor-default"

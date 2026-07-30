@@ -70,6 +70,7 @@ export const contentConfigSchema = z.object({
 	include_tags: z.array(z.string()).optional(),
 	exclude_tags: z.array(z.string()).optional(),
 	selector: z.string().optional(),
+	exclude_selectors: z.array(z.string()).optional(),
 	extract_links: z.boolean().optional(),
 	extract_metadata: z.boolean().optional(),
 });

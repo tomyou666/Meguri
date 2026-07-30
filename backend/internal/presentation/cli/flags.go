@@ -36,6 +36,8 @@ type Flags struct {
 	ExcludeTags stringSlice
 	// Selector は --selector。
 	Selector string
+	// ExcludeSelectors は --exclude-selector の繰り返し指定。
+	ExcludeSelectors stringSlice
 	// ExtractLinks は --extract-links。
 	ExtractLinks boolFlag
 	// ExtractMetadata は --extract-metadata。
@@ -205,6 +207,7 @@ func ParseArgs(args []string) (*Flags, error) {
 	fs.Var(&f.IncludeTags, "include-tag", "include する HTML タグ (繰り返し可)")
 	fs.Var(&f.ExcludeTags, "exclude-tag", "exclude する HTML タグ (繰り返し可)")
 	fs.StringVar(&f.Selector, "selector", "", "CSSセレクタで本文を絞り込む")
+	fs.Var(&f.ExcludeSelectors, "exclude-selector", "exclude する CSS セレクタ (繰り返し可)")
 	fs.Var(&f.ExtractLinks, "extract-links", "リンク抽出を有効化")
 	fs.Var(&f.ExtractMetadata, "extract-metadata", "メタデータ抽出を有効化")
 
@@ -296,6 +299,9 @@ func Merge(cfg *model.Config, f *Flags) {
 	}
 	if f.Selector != "" {
 		cfg.Content.Selector = f.Selector
+	}
+	if f.ExcludeSelectors.set {
+		cfg.Content.ExcludeSelectors = f.ExcludeSelectors.values
 	}
 	if f.ExtractLinks.set {
 		cfg.Content.ExtractLinks = f.ExtractLinks.v

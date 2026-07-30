@@ -11,6 +11,7 @@
     "include_tags": [],
     "exclude_tags": ["script", "style", "noscript"],
     "selector": "",
+    "exclude_selectors": [],
     "extract_links": true,
     "extract_metadata": true
   },

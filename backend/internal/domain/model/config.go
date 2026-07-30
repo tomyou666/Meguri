@@ -73,6 +73,8 @@ type ContentConfig struct {
 	ExcludeTags []string `yaml:"exclude_tags"`
 	// Selector は本文を絞り込む CSS セレクタ（空なら全体）。
 	Selector string `yaml:"selector"`
+	// ExcludeSelectors は DOM から除去する CSS セレクタの一覧（空なら除去なし）。
+	ExcludeSelectors []string `yaml:"exclude_selectors"`
 	// ExtractLinks は結果にリンク一覧を含めるか。
 	ExtractLinks bool `yaml:"extract_links"`
 	// ExtractMetadata はメタデータ抽出を行うか。
@@ -327,13 +329,14 @@ func Default() Config {
 			RetryInterval: 1 * time.Second,
 		},
 		Content: ContentConfig{
-			Formats:         []OutputFormat{FormatMarkdown},
-			OnlyMainContent: true,
-			IncludeTags:     []string{},
-			ExcludeTags:     []string{"script", "style", "noscript"},
-			Selector:        "",
-			ExtractLinks:    true,
-			ExtractMetadata: true,
+			Formats:          []OutputFormat{FormatMarkdown},
+			OnlyMainContent:  true,
+			IncludeTags:      []string{},
+			ExcludeTags:      []string{"script", "style", "noscript"},
+			Selector:         "",
+			ExcludeSelectors: []string{},
+			ExtractLinks:     true,
+			ExtractMetadata:  true,
 		},
 		PDF: PDFConfig{
 			Enabled:  true,
@@ -499,6 +502,15 @@ func (c *Config) validateContent() []error {
 	if s := strings.TrimSpace(c.Content.Selector); s != "" {
 		if _, err := cascadia.Compile(s); err != nil {
 			errs = append(errs, fmt.Errorf("content.selector: CSSセレクタとしてパースできません: %w", err))
+		}
+	}
+	for _, raw := range c.Content.ExcludeSelectors {
+		s := strings.TrimSpace(raw)
+		if s == "" {
+			continue
+		}
+		if _, err := cascadia.Compile(s); err != nil {
+			errs = append(errs, fmt.Errorf("content.exclude_selectors: CSSセレクタとしてパースできません: %q: %w", s, err))
 		}
 	}
 	return errs

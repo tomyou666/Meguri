@@ -98,13 +98,14 @@ type uiRequestJSON struct {
 }
 
 type uiContentJSON struct {
-	Formats         []string `json:"formats"`
-	OnlyMainContent *bool    `json:"only_main_content"`
-	IncludeTags     []string `json:"include_tags"`
-	ExcludeTags     []string `json:"exclude_tags"`
-	Selector        string   `json:"selector"`
-	ExtractLinks    *bool    `json:"extract_links"`
-	ExtractMetadata *bool    `json:"extract_metadata"`
+	Formats          []string `json:"formats"`
+	OnlyMainContent  *bool    `json:"only_main_content"`
+	IncludeTags      []string `json:"include_tags"`
+	ExcludeTags      []string `json:"exclude_tags"`
+	Selector         string   `json:"selector"`
+	ExcludeSelectors []string `json:"exclude_selectors"`
+	ExtractLinks     *bool    `json:"extract_links"`
+	ExtractMetadata  *bool    `json:"extract_metadata"`
 }
 
 type uiPDFJSON struct {
@@ -210,6 +211,9 @@ func applyUIConfig(cfg *model.Config, ui uiConfigJSON) {
 		}
 		if ui.Content.Selector != "" {
 			cfg.Content.Selector = ui.Content.Selector
+		}
+		if ui.Content.ExcludeSelectors != nil {
+			cfg.Content.ExcludeSelectors = ui.Content.ExcludeSelectors
 		}
 		if ui.Content.ExtractLinks != nil {
 			cfg.Content.ExtractLinks = *ui.Content.ExtractLinks

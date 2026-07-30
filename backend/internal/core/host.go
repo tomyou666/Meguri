@@ -55,6 +55,14 @@ func (h *hostImpl) FetcherKind() model.FetcherKind {
 	return f
 }
 
+// ContentConfig は plugin.Host.ContentConfig の実装。
+func (h *hostImpl) ContentConfig() model.ContentConfig {
+	if h.cfg == nil {
+		return model.ContentConfig{}
+	}
+	return h.cfg.Content
+}
+
 // Config はフラットキーで設定値を文字列として取得する軽量 API。
 // 例: "request.headers.User-Agent" / "content.selector" / "pdf.mode"
 func (h *hostImpl) Config(key string) (string, bool) {

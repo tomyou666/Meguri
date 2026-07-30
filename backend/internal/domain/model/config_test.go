@@ -95,6 +95,17 @@ func TestConfig_Validate(t *testing.T) {
 		assert.Contains(t, err.Error(), "content.selector")
 	})
 
+	t.Run("異常系: content.exclude_selectorsに不正なCSSセレクタがあるとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Content.ExcludeSelectors = []string{".ok", "div[unclosed"}
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "content.exclude_selectors")
+	})
+
 	t.Run("異常系: pdf.modeが列挙外だとエラー", func(t *testing.T) {
 		c := Default()
 		c.Targets = []string{"https://example.com/"}

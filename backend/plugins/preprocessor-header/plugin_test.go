@@ -23,6 +23,7 @@ func (h stealthHost) RequestConfig() model.RequestConfig {
 func (h stealthHost) FetcherConfig() model.FetcherConfig { return model.FetcherConfig{} }
 func (h stealthHost) StealthConfig() model.StealthConfig { return h.stealth }
 func (h stealthHost) FetcherKind() model.FetcherKind     { return h.fetcher }
+func (h stealthHost) ContentConfig() model.ContentConfig { return model.ContentConfig{} }
 
 var _ plugin.Host = stealthHost{}
 

@@ -50,4 +50,5 @@ type Host interface {
 	FetcherConfig() model.FetcherConfig
 	StealthConfig() model.StealthConfig
 	FetcherKind() model.FetcherKind
+	ContentConfig() model.ContentConfig
 }

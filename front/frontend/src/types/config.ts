@@ -19,6 +19,7 @@ export interface ContentConfig {
 	include_tags?: string[];
 	exclude_tags?: string[];
 	selector?: string;
+	exclude_selectors?: string[];
 	extract_links?: boolean;
 	extract_metadata?: boolean;
 }
