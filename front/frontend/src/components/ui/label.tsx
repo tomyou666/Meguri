@@ -5,7 +5,7 @@ function Label({ className, ...props }: React.ComponentProps<'label'>) {
 	return (
 		// biome-ignore lint/a11y/noLabelWithoutControl: This reusable component forwards htmlFor/children from props.
 		<label
-			className={cn('text-xs font-medium text-muted-foreground', className)}
+			className={cn('font-medium text-muted-foreground text-xs', className)}
 			{...props}
 		/>
 	);

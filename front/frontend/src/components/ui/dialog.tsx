@@ -61,7 +61,7 @@ function DialogHeader({ children }: { children: React.ReactNode }) {
 }
 
 function DialogTitle({ children }: { children: React.ReactNode }) {
-	return <h2 className='text-sm font-semibold'>{children}</h2>;
+	return <h2 className='font-semibold text-sm'>{children}</h2>;
 }
 
 function DialogFooter({

@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 - `content.exclude_selectors`（CSS セレクタ除外）と Filter `exclude_selectors`、フロント設定・CLI `--exclude-selector` を追加
 
+### 修正
+
+- Biome 2.5 向けに `biome.json` を移行し、`useSortedClasses` の class 並びを修正
+
 ## [0.10.0] - 2026-07-28
 
 ### 追加

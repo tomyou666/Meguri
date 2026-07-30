@@ -9,8 +9,8 @@ type FieldLabelProps = {
 export function FieldLabel({ label, help }: FieldLabelProps) {
 	return (
 		<div className='space-y-0.5'>
-			<Label className='text-xs font-medium'>{label}</Label>
-			<p className='text-[10px] leading-snug text-muted-foreground'>{help}</p>
+			<Label className='font-medium text-xs'>{label}</Label>
+			<p className='text-[10px] text-muted-foreground leading-snug'>{help}</p>
 		</div>
 	);
 }

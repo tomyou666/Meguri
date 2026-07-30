@@ -169,7 +169,7 @@ export function NodeResultPanel({
 				<span className='sr-only'>{messages.right.resultLoading}</span>
 				<Skeleton className='h-8 w-full' />
 				<Skeleton className='h-4 w-2/3' />
-				<Skeleton className='min-h-40 flex-1 w-full' />
+				<Skeleton className='min-h-40 w-full flex-1' />
 			</div>
 		);
 	}

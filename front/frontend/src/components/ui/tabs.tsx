@@ -32,7 +32,7 @@ function TabsList({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className={cn('flex gap-1 border-b border-border', className)}>
+		<div className={cn('flex gap-1 border-border border-b', className)}>
 			{children}
 		</div>
 	);
@@ -52,9 +52,9 @@ function TabsTrigger({
 			type='button'
 			onClick={() => ctx.onValueChange(value)}
 			className={cn(
-				'px-2 py-1.5 text-xs font-medium transition-colors',
+				'px-2 py-1.5 font-medium text-xs transition-colors',
 				active
-					? 'border-b-2 border-primary text-foreground'
+					? 'border-primary border-b-2 text-foreground'
 					: 'text-muted-foreground hover:text-foreground',
 			)}
 		>

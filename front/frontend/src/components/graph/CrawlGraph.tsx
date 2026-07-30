@@ -293,7 +293,7 @@ export function CrawlGraph() {
 
 	if (!ws) {
 		return (
-			<div className='flex flex-1 items-center justify-center text-sm text-muted-foreground'>
+			<div className='flex flex-1 items-center justify-center text-muted-foreground text-sm'>
 				ワークスペースを作成してください
 			</div>
 		);
@@ -332,8 +332,8 @@ export function CrawlGraph() {
 				fitViewOptions={graphFitViewOptions}
 				className={
 					isSelectTool
-						? 'bg-background rf-tool-select'
-						: 'bg-background rf-tool-pan'
+						? 'rf-tool-select bg-background'
+						: 'rf-tool-pan bg-background'
 				}
 				proOptions={proOptions}
 			>
@@ -404,7 +404,7 @@ export function CrawlGraph() {
 							</button>
 							<button
 								type='button'
-								className='block w-full px-2 py-1 text-left text-xs text-destructive hover:bg-muted'
+								className='block w-full px-2 py-1 text-left text-destructive text-xs hover:bg-muted'
 								onClick={() => {
 									deleteSelectedNodes();
 									setContextMenu(null);
@@ -417,7 +417,7 @@ export function CrawlGraph() {
 					{contextMenu.kind === 'edge' && contextMenu.id && (
 						<button
 							type='button'
-							className='block w-full px-2 py-1 text-left text-xs text-destructive hover:bg-muted'
+							className='block w-full px-2 py-1 text-left text-destructive text-xs hover:bg-muted'
 							onClick={() => {
 								removeEdges([contextMenu.id!]);
 								setContextMenu(null);

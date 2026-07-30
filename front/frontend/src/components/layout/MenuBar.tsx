@@ -105,7 +105,7 @@ export function MenuBar({
 
 	return (
 		<>
-			<div className='flex h-8 items-center gap-1 border-b border-border bg-card px-2 text-xs'>
+			<div className='flex h-8 items-center gap-1 border-border border-b bg-card px-2 text-xs'>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button
@@ -120,9 +120,9 @@ export function MenuBar({
 					<DropdownMenuContent
 						align='start'
 						sideOffset={6}
-						className='min-w-44 w-auto border-border p-1 shadow-lg'
+						className='w-auto min-w-44 border-border p-1 shadow-lg'
 					>
-						<DropdownMenuLabel className='px-2 py-1 text-xs font-normal text-muted-foreground'>
+						<DropdownMenuLabel className='px-2 py-1 font-normal text-muted-foreground text-xs'>
 							{messages.menu.file}
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator className='my-1' />
@@ -158,9 +158,9 @@ export function MenuBar({
 					<DropdownMenuContent
 						align='start'
 						sideOffset={6}
-						className='min-w-44 w-auto border-border p-1 shadow-lg'
+						className='w-auto min-w-44 border-border p-1 shadow-lg'
 					>
-						<DropdownMenuLabel className='px-2 py-1 text-xs font-normal text-muted-foreground'>
+						<DropdownMenuLabel className='px-2 py-1 font-normal text-muted-foreground text-xs'>
 							{messages.menu.settings}
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator className='my-1' />
@@ -177,7 +177,7 @@ export function MenuBar({
 							onClick={() => void handleCheckForUpdates()}
 						>
 							<RefreshCw
-								className={`size-3.5 text-muted-foreground${checkingUpdates ? ' animate-spin' : ''}`}
+								className={`size-3.5 text-muted-foreground${checkingUpdates ? 'animate-spin' : ''}`}
 							/>
 							<span className='flex flex-1 items-center justify-between gap-2'>
 								{messages.menu.checkForUpdates}

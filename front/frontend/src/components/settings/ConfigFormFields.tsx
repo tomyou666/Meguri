@@ -194,9 +194,7 @@ export function ContentConfigFields({
 				label='exclude_selectors'
 				help={h.exclude_selectors}
 				values={v.exclude_selectors ?? []}
-				onChange={(exclude_selectors) =>
-					onChange({ ...v, exclude_selectors })
-				}
+				onChange={(exclude_selectors) => onChange({ ...v, exclude_selectors })}
 				fieldErrors={fieldErrors}
 				compact={compact}
 			/>
@@ -390,10 +388,10 @@ export function CrawlConfigFields({
 				/>
 			</ConfigField>
 			<div className='space-y-3 rounded-lg border border-border/60 p-3'>
-				<p className='text-xs font-medium text-muted-foreground'>
+				<p className='font-medium text-muted-foreground text-xs'>
 					取得並列 (fetch_limits)
 				</p>
-				<p className='text-xs text-muted-foreground'>
+				<p className='text-muted-foreground text-xs'>
 					{h.fetch_limits_overview}
 				</p>
 				<ConfigField
@@ -711,10 +709,10 @@ export function PluginsConfigFields({
 				</>
 			) : null}
 			<div className='space-y-3 rounded-lg border border-border/60 p-3'>
-				<p className='text-xs font-medium text-muted-foreground'>
+				<p className='font-medium text-muted-foreground text-xs'>
 					ステルス対策
 				</p>
-				<p className='text-xs text-muted-foreground'>{h.stealth_group}</p>
+				<p className='text-muted-foreground text-xs'>{h.stealth_group}</p>
 				{isChromium ? (
 					<>
 						<ConfigField

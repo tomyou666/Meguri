@@ -31,11 +31,11 @@ export function ExportPreviewPane({
 
 	return (
 		<main className='flex h-full min-w-0 flex-col bg-background'>
-			<div className='border-b border-border px-3 py-2 text-xs font-semibold'>
+			<div className='border-border border-b px-3 py-2 font-semibold text-xs'>
 				{messages.export.previewTitle}
 			</div>
 			{format === 'markdown' && hasRenderablePreview && !loading && (
-				<div className='border-b border-border px-3 py-2'>
+				<div className='border-border border-b px-3 py-2'>
 					<MarkdownViewToggle
 						view={markdownView}
 						editing={false}
@@ -45,7 +45,7 @@ export function ExportPreviewPane({
 			)}
 			<ScrollArea className='min-h-0 flex-1'>
 				{loading ? (
-					<p className='p-4 text-sm text-muted-foreground'>
+					<p className='p-4 text-muted-foreground text-sm'>
 						{messages.export.previewLoading}
 					</p>
 				) : hasRenderablePreview ? (
@@ -79,7 +79,7 @@ export function ExportPreviewPane({
 						</div>
 					)
 				) : (
-					<p className='p-4 text-sm text-muted-foreground'>
+					<p className='p-4 text-muted-foreground text-sm'>
 						{messages.export.previewEmpty}
 					</p>
 				)}

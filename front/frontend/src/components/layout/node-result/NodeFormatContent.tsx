@@ -43,7 +43,7 @@ export function NodeFormatContent({
 
 	if (!result) {
 		return (
-			<p className='text-xs text-muted-foreground'>
+			<p className='text-muted-foreground text-xs'>
 				{messages.right.noResultApi}
 			</p>
 		);
@@ -118,5 +118,5 @@ export function NodeFormatContent({
 		);
 	}
 
-	return <p className='text-xs text-muted-foreground'>—</p>;
+	return <p className='text-muted-foreground text-xs'>—</p>;
 }

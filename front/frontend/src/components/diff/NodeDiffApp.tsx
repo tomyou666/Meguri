@@ -39,7 +39,7 @@ export function NodeDiffApp() {
 
 	if (!snapshot) {
 		return (
-			<div className='flex h-screen items-center justify-center text-sm text-muted-foreground'>
+			<div className='flex h-screen items-center justify-center text-muted-foreground text-sm'>
 				Loading…
 			</div>
 		);

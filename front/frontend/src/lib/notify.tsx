@@ -101,7 +101,7 @@ function UpdateToastDescription({
 }) {
 	const checkboxId = 'update-toast-dismiss';
 	return (
-		<div className='flex items-center gap-2 pt-1 text-xs text-muted-foreground'>
+		<div className='flex items-center gap-2 pt-1 text-muted-foreground text-xs'>
 			<Checkbox
 				id={checkboxId}
 				onCheckedChange={(checked) => {

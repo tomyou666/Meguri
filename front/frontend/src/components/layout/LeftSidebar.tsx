@@ -78,9 +78,9 @@ export function LeftSidebarContent() {
 
 	return (
 		<>
-			<aside className='flex h-full w-full min-w-[14rem] flex-col overflow-hidden border-r border-border bg-sidebar'>
-				<div className='flex items-center justify-between border-b border-sidebar-border px-2 py-2'>
-					<span className='text-xs font-semibold'>
+			<aside className='flex h-full w-full min-w-[14rem] flex-col overflow-hidden border-border border-r bg-sidebar'>
+				<div className='flex items-center justify-between border-sidebar-border border-b px-2 py-2'>
+					<span className='font-semibold text-xs'>
 						{messages.sidebar.workspaces}
 					</span>
 					<div className='flex gap-0.5'>
@@ -108,7 +108,7 @@ export function LeftSidebarContent() {
 				</div>
 				<ScrollArea className='max-h-40 flex-none px-1 py-1'>
 					{workspaces.length === 0 ? (
-						<p className='px-2 py-2 text-xs text-muted-foreground'>
+						<p className='px-2 py-2 text-muted-foreground text-xs'>
 							{messages.sidebar.emptyWorkspaces}
 						</p>
 					) : (
@@ -183,9 +183,9 @@ export function LeftSidebarContent() {
 										<DropdownMenuContent
 											align='end'
 											sideOffset={6}
-											className='min-w-44 w-auto border-border p-1 shadow-lg'
+											className='w-auto min-w-44 border-border p-1 shadow-lg'
 										>
-											<DropdownMenuLabel className='max-w-44 truncate px-2 py-1 text-xs font-normal text-muted-foreground'>
+											<DropdownMenuLabel className='max-w-44 truncate px-2 py-1 font-normal text-muted-foreground text-xs'>
 												{ws.name}
 											</DropdownMenuLabel>
 											<DropdownMenuSeparator className='my-1' />
@@ -221,9 +221,9 @@ export function LeftSidebarContent() {
 					)}
 				</ScrollArea>
 
-				<div className='flex flex-1 flex-col border-t border-sidebar-border'>
+				<div className='flex flex-1 flex-col border-sidebar-border border-t'>
 					<div className='px-2 py-2'>
-						<span className='text-xs font-semibold'>
+						<span className='font-semibold text-xs'>
 							{messages.sidebar.domainStatus}
 						</span>
 					</div>
@@ -235,7 +235,7 @@ export function LeftSidebarContent() {
 								wsSettings={activeWorkspace.settings}
 							/>
 						) : (
-							<p className='px-2 py-2 text-xs text-muted-foreground'>
+							<p className='px-2 py-2 text-muted-foreground text-xs'>
 								{messages.sidebar.emptyDomains}
 							</p>
 						)}

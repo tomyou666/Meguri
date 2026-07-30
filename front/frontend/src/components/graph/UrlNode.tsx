@@ -167,7 +167,7 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 					{cfg.icon}
 					<div className='min-w-0 flex-1 overflow-hidden'>
 						<p
-							className='truncate text-[10px] font-medium leading-tight'
+							className='truncate font-medium text-[10px] leading-tight'
 							title={d.label}
 						>
 							{d.label}

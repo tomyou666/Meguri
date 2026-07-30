@@ -34,8 +34,8 @@ export function ExportSettingsSidebar({
 	const actionsDisabled = checkedCount === 0;
 
 	return (
-		<aside className='flex h-full w-full min-w-[14rem] flex-col border-l border-border bg-card'>
-			<div className='border-b border-border px-3 py-2 text-xs font-semibold'>
+		<aside className='flex h-full w-full min-w-[14rem] flex-col border-border border-l bg-card'>
+			<div className='border-border border-b px-3 py-2 font-semibold text-xs'>
 				{messages.export.settingsTitle}
 			</div>
 			<ScrollArea className='min-h-0 flex-1'>
@@ -75,7 +75,7 @@ export function ExportSettingsSidebar({
 								})
 							}
 						/>
-						<Label htmlFor='export-split-save' className='text-xs font-normal'>
+						<Label htmlFor='export-split-save' className='font-normal text-xs'>
 							{messages.export.splitSave}
 						</Label>
 					</div>
@@ -128,7 +128,7 @@ export function ExportSettingsSidebar({
 								})
 							}
 						/>
-						<Label htmlFor='export-heading' className='text-xs font-normal'>
+						<Label htmlFor='export-heading' className='font-normal text-xs'>
 							{messages.export.includeHeading}
 						</Label>
 					</div>
@@ -165,7 +165,7 @@ export function ExportSettingsSidebar({
 				</div>
 			</ScrollArea>
 
-			<div className='space-y-2 border-t border-border p-3'>
+			<div className='space-y-2 border-border border-t p-3'>
 				{actionsDisabled && (
 					<p className='text-[10px] text-muted-foreground'>
 						{messages.export.noNodesChecked}

@@ -32,7 +32,7 @@ export function CollapsedSidebarRail({
 			>
 				<Icon className='size-5 shrink-0' strokeWidth={2} />
 				<span
-					className='text-[9px] font-medium text-muted-foreground [writing-mode:vertical-rl]'
+					className='font-medium text-[9px] text-muted-foreground [writing-mode:vertical-rl]'
 					aria-hidden
 				>
 					{label}

@@ -62,7 +62,7 @@ export function UpdatePromptApp() {
 
 	if (!snapshot) {
 		return (
-			<div className='flex h-screen items-center justify-center text-sm text-muted-foreground'>
+			<div className='flex h-screen items-center justify-center text-muted-foreground text-sm'>
 				Loading…
 			</div>
 		);
@@ -70,8 +70,8 @@ export function UpdatePromptApp() {
 
 	return (
 		<div className='flex h-screen flex-col bg-background p-6 text-foreground'>
-			<h1 className='text-lg font-semibold'>{messages.update.promptTitle}</h1>
-			<p className='mt-3 text-sm text-muted-foreground'>
+			<h1 className='font-semibold text-lg'>{messages.update.promptTitle}</h1>
+			<p className='mt-3 text-muted-foreground text-sm'>
 				{messages.update.promptBody(snapshot.version)}
 			</p>
 			{snapshot.releaseURL ? (

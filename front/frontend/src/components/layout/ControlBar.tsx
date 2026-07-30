@@ -53,10 +53,10 @@ export function ControlBar() {
 	const diffCount = ws ? (workspaceDiffCache[ws.id]?.nodes.length ?? 0) : 0;
 
 	return (
-		<div className='flex h-12 items-center justify-between gap-2 border-b border-border bg-card px-3'>
-			<div className='flex shrink-0 items-center gap-2 text-sm font-semibold'>
+		<div className='flex h-12 items-center justify-between gap-2 border-border border-b bg-card px-3'>
+			<div className='flex shrink-0 items-center gap-2 font-semibold text-sm'>
 				<span className='text-primary'>{messages.appName}</span>
-				<span className='text-xs font-normal text-muted-foreground'>
+				<span className='font-normal text-muted-foreground text-xs'>
 					v{messages.version}
 				</span>
 			</div>
@@ -90,7 +90,7 @@ export function ControlBar() {
 								className='fixed inset-0 z-40'
 								onClick={() => setModeMenuOpen(false)}
 							/>
-							<div className='absolute left-0 top-full z-50 mt-1 min-w-56 rounded-lg border border-border bg-popover py-1 shadow-lg'>
+							<div className='absolute top-full left-0 z-50 mt-1 min-w-56 rounded-lg border border-border bg-popover py-1 shadow-lg'>
 								{([1, 2, 3, 4] as RunMode[]).map((m) => (
 									<button
 										key={m}
@@ -153,7 +153,7 @@ export function ControlBar() {
 					/>
 					<Label
 						htmlFor='rescrape-existing'
-						className='cursor-pointer text-xs font-normal text-muted-foreground'
+						className='cursor-pointer font-normal text-muted-foreground text-xs'
 					>
 						{messages.control.rescrapeExisting}
 					</Label>

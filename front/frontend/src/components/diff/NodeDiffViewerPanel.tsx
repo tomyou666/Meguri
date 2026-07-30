@@ -78,9 +78,9 @@ export function NodeDiffViewerPanel({
 
 	return (
 		<div className='flex h-screen flex-col overflow-hidden bg-background p-4'>
-			<h1 className='mb-3 truncate text-sm font-semibold'>{title}</h1>
+			<h1 className='mb-3 truncate font-semibold text-sm'>{title}</h1>
 			{loading && (
-				<p className='text-xs text-muted-foreground'>{messages.diff.loading}</p>
+				<p className='text-muted-foreground text-xs'>{messages.diff.loading}</p>
 			)}
 			{!loading && detail && kinds.length > 0 && (
 				<Tabs

@@ -32,7 +32,7 @@ export function EditableTextResult({
 			<textarea
 				className={textareaClassName(
 					false,
-					'min-h-0 flex-1 w-full resize-none overflow-y-auto',
+					'min-h-0 w-full flex-1 resize-none overflow-y-auto',
 				)}
 				value={value}
 				onChange={(e) => onChange(e.target.value)}

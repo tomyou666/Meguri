@@ -97,7 +97,7 @@ export function DiffSummarySheet() {
 					<TabsContent value={filter} className='min-h-0 flex-1'>
 						<ScrollArea className='h-[calc(100vh-10rem)]'>
 							{filteredNodes.length === 0 ? (
-								<p className='py-4 text-xs text-muted-foreground'>
+								<p className='py-4 text-muted-foreground text-xs'>
 									{messages.diff.emptyNodes}
 								</p>
 							) : (

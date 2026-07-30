@@ -97,8 +97,8 @@ export function RightSidebarContent() {
 	if (selectedNodeIds.length > 1) {
 		return (
 			<aside className={shellClass}>
-				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
-					<p className='text-xs font-semibold'>
+				<div className='flex items-center justify-between border-border border-b px-3 py-2'>
+					<p className='font-semibold text-xs'>
 						{messages.right.multiSelectCount(selectedNodeIds.length)}
 					</p>
 					<CloseRightSidebarButton onClick={toggleRightSidebar} />
@@ -150,13 +150,13 @@ export function RightSidebarContent() {
 
 		return (
 			<aside className={shellClass}>
-				<div className='flex items-center justify-between border-b border-border px-3 py-2'>
+				<div className='flex items-center justify-between border-border border-b px-3 py-2'>
 					<div className='min-w-0 flex-1'>
-						<p className='text-xs font-semibold'>{messages.right.nodeResult}</p>
+						<p className='font-semibold text-xs'>{messages.right.nodeResult}</p>
 						<div className='flex min-w-0 items-center gap-0.5'>
 							<ExternalLink
 								href={node.urlNormalized}
-								className='min-w-0 flex-1 truncate text-xs text-muted-foreground'
+								className='min-w-0 flex-1 truncate text-muted-foreground text-xs'
 							/>
 							<ActionTooltip label={messages.right.copy}>
 								<Button
@@ -170,13 +170,13 @@ export function RightSidebarContent() {
 								</Button>
 							</ActionTooltip>
 						</div>
-						<Badge variant='outline' className='mt-1 text-[10px] font-normal'>
+						<Badge variant='outline' className='mt-1 font-normal text-[10px]'>
 							{messages.right.transformerBadge(transformerFormat)}
 						</Badge>
 						{(resultForDisplay ?? node.lastResult)?.manuallyEdited && (
 							<Badge
 								variant='secondary'
-								className='mt-1 text-[10px] font-normal'
+								className='mt-1 font-normal text-[10px]'
 							>
 								{messages.right.manuallyEdited}
 							</Badge>
@@ -206,7 +206,7 @@ export function RightSidebarContent() {
 
 	return (
 		<aside className={shellClass}>
-			<div className='flex items-center justify-between border-b border-border px-3 py-2 text-xs font-semibold'>
+			<div className='flex items-center justify-between border-border border-b px-3 py-2 font-semibold text-xs'>
 				{messages.right.runSummary}
 				<CloseRightSidebarButton onClick={toggleRightSidebar} />
 			</div>
@@ -226,15 +226,15 @@ export function RightSidebarContent() {
 				<div className='space-y-4'>
 					{(crawlStatus !== 'idle' || crawlLogs.length > 0) && (
 						<div className='space-y-2'>
-							<p className='text-xs font-medium text-muted-foreground'>
+							<p className='font-medium text-muted-foreground text-xs'>
 								{messages.right.crawlLog}
 							</p>
 							{crawlLogs.length === 0 ? (
-								<p className='text-xs text-muted-foreground'>
+								<p className='text-muted-foreground text-xs'>
 									{messages.right.crawlLogEmpty}
 								</p>
 							) : (
-								<ul className='max-h-40 space-y-1 overflow-y-auto text-xs text-muted-foreground'>
+								<ul className='max-h-40 space-y-1 overflow-y-auto text-muted-foreground text-xs'>
 									{crawlLogs.map((entry) => (
 										<li
 											key={`${entry.at}-${entry.parentUrl}-${entry.targetUrl}-${entry.reason}`}
@@ -253,13 +253,13 @@ export function RightSidebarContent() {
 					{runHistory.length === 0 ? (
 						crawlStatus === 'idle' &&
 						crawlLogs.length === 0 && (
-							<p className='text-xs text-muted-foreground'>
+							<p className='text-muted-foreground text-xs'>
 								{messages.right.noSelection}
 							</p>
 						)
 					) : (
 						<div className='space-y-2'>
-							<p className='text-xs font-medium text-muted-foreground'>
+							<p className='font-medium text-muted-foreground text-xs'>
 								{messages.right.history}
 							</p>
 							{runHistory.map((run) => (

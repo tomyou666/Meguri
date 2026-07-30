@@ -34,7 +34,7 @@ function SheetContent({
 	return (
 		<div
 			className={cn(
-				'relative z-10 flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-xl',
+				'relative z-10 flex h-full w-full max-w-md flex-col border-border border-l bg-card shadow-xl',
 				className,
 			)}
 		>
@@ -53,7 +53,7 @@ function SheetHeader({
 	return (
 		<div
 			className={cn(
-				'flex flex-col gap-1 border-b border-border px-4 py-3',
+				'flex flex-col gap-1 border-border border-b px-4 py-3',
 				className,
 			)}
 		>
@@ -69,7 +69,7 @@ function SheetTitle({
 	className?: string;
 	children: ReactNode;
 }) {
-	return <h2 className={cn('text-sm font-semibold', className)}>{children}</h2>;
+	return <h2 className={cn('font-semibold text-sm', className)}>{children}</h2>;
 }
 
 export { Sheet, SheetContent, SheetHeader, SheetTitle };

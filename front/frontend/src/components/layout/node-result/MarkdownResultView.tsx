@@ -41,12 +41,12 @@ export function MarkdownResultView({
 	}
 
 	if (!markdown) {
-		return <p className='text-xs text-muted-foreground'>—</p>;
+		return <p className='text-muted-foreground text-xs'>—</p>;
 	}
 
 	return (
 		<div
-			className='markdown-preview space-y-2 text-xs leading-relaxed [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2 [&_code]:font-mono [&_code]:text-[11px] [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground'
+			className='markdown-preview space-y-2 text-xs leading-relaxed [&_a]:text-primary [&_a]:underline [&_blockquote]:border-border [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:font-mono [&_code]:text-[11px] [&_h1]:font-semibold [&_h1]:text-base [&_h2]:font-semibold [&_h2]:text-sm [&_h3]:font-medium [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2 [&_ul]:list-disc [&_ul]:pl-5'
 			{...{ [PREVIEW_BASE_URL_ATTR]: previewBaseUrl }}
 		>
 			<ReactMarkdown>{markdown}</ReactMarkdown>

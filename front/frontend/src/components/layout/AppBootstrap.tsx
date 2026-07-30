@@ -21,7 +21,7 @@ export function AppBootstrap({ children }: { children: React.ReactNode }) {
 					<Skeleton className='h-full flex-1' />
 					<Skeleton className='h-full w-72' />
 				</div>
-				<p className='text-center text-xs text-muted-foreground'>
+				<p className='text-center text-muted-foreground text-xs'>
 					{messages.bootstrapLoading}
 				</p>
 			</div>

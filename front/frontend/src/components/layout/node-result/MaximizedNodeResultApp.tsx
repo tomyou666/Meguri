@@ -85,7 +85,7 @@ export function MaximizedNodeResultApp() {
 
 	if (loading) {
 		return (
-			<div className='flex h-screen items-center justify-center bg-card text-sm text-muted-foreground'>
+			<div className='flex h-screen items-center justify-center bg-card text-muted-foreground text-sm'>
 				{messages.right.noResultApi}
 			</div>
 		);
@@ -93,7 +93,7 @@ export function MaximizedNodeResultApp() {
 
 	if (!snapshot) {
 		return (
-			<div className='flex h-screen items-center justify-center bg-card text-sm text-muted-foreground'>
+			<div className='flex h-screen items-center justify-center bg-card text-muted-foreground text-sm'>
 				{messages.right.noResultApi}
 			</div>
 		);
@@ -102,14 +102,14 @@ export function MaximizedNodeResultApp() {
 	return (
 		<TooltipProvider>
 			<div className='flex h-screen flex-col bg-card text-foreground'>
-				<header className='border-b border-border px-4 py-3'>
-					<p className='text-sm font-semibold'>{messages.right.nodeResult}</p>
+				<header className='border-border border-b px-4 py-3'>
+					<p className='font-semibold text-sm'>{messages.right.nodeResult}</p>
 					<ExternalLink
 						href={snapshot.title}
-						className='block truncate text-sm text-muted-foreground'
+						className='block truncate text-muted-foreground text-sm'
 					/>
 					{snapshot.result.manuallyEdited && (
-						<Badge variant='secondary' className='mt-1 text-[10px] font-normal'>
+						<Badge variant='secondary' className='mt-1 font-normal text-[10px]'>
 							{messages.right.manuallyEdited}
 						</Badge>
 					)}

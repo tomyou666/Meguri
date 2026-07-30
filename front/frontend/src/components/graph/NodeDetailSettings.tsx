@@ -31,7 +31,7 @@ export function NodeDetailSettings({ node }: NodeDetailSettingsProps) {
 	return (
 		<div
 			ref={scrollRef}
-			className='nodrag nopan nowheel border-t border-border pt-2'
+			className='nodrag nopan nowheel border-border border-t pt-2'
 		>
 			<Label className='flex items-center gap-2 text-[10px]'>
 				<Checkbox

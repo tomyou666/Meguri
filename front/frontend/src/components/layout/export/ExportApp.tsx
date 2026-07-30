@@ -247,7 +247,7 @@ export function ExportApp() {
 
 	if (loading) {
 		return (
-			<div className='flex h-screen items-center justify-center bg-card text-sm text-muted-foreground'>
+			<div className='flex h-screen items-center justify-center bg-card text-muted-foreground text-sm'>
 				{messages.bootstrapLoading}
 			</div>
 		);

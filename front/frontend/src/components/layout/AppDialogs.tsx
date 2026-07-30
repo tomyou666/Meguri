@@ -149,7 +149,7 @@ export function AppDialogs() {
 					</DialogHeader>
 					<p className='text-sm'>{messages.dialog.deleteNodeConfirm}</p>
 					{selectedNode && (
-						<p className='mt-2 truncate text-xs text-muted-foreground'>
+						<p className='mt-2 truncate text-muted-foreground text-xs'>
 							{selectedNode.urlNormalized}
 						</p>
 					)}

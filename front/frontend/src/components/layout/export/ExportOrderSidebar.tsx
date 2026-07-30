@@ -43,7 +43,7 @@ function ExportTreeNode({
 		<div
 			className={cn(
 				'flex items-start gap-2 rounded px-1 py-0.5 text-xs',
-				!isChecked && !isSemiChecked && 'opacity-50 text-muted-foreground',
+				!isChecked && !isSemiChecked && 'text-muted-foreground opacity-50',
 			)}
 		>
 			<Checkbox
@@ -128,11 +128,11 @@ export function ExportOrderSidebar({
 
 	if (flatData.length === 0) {
 		return (
-			<aside className='flex h-full flex-col border-r border-border bg-card'>
-				<div className='border-b border-border px-3 py-2 text-xs font-semibold'>
+			<aside className='flex h-full flex-col border-border border-r bg-card'>
+				<div className='border-border border-b px-3 py-2 font-semibold text-xs'>
 					{messages.export.orderTitle}
 				</div>
-				<p className='p-3 text-xs text-muted-foreground'>
+				<p className='p-3 text-muted-foreground text-xs'>
 					{messages.export.noNodesInTree}
 				</p>
 			</aside>
@@ -140,11 +140,11 @@ export function ExportOrderSidebar({
 	}
 
 	return (
-		<aside className='flex h-full min-w-0 flex-col border-r border-border bg-card'>
-			<div className='border-b border-border px-3 py-2 text-xs font-semibold'>
+		<aside className='flex h-full min-w-0 flex-col border-border border-r bg-card'>
+			<div className='border-border border-b px-3 py-2 font-semibold text-xs'>
 				{messages.export.orderTitle}
 			</div>
-			<div className='flex flex-wrap gap-1 border-b border-border p-2'>
+			<div className='flex flex-wrap gap-1 border-border border-b p-2'>
 				<Button size='xs' variant='outline' onClick={selectAll}>
 					{messages.export.selectAll}
 				</Button>
@@ -161,7 +161,7 @@ export function ExportOrderSidebar({
 					/>
 					<Label
 						htmlFor='export-cascade-check'
-						className='text-[10px] font-normal'
+						className='font-normal text-[10px]'
 					>
 						{messages.export.cascadeCheck}
 					</Label>

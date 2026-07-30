@@ -219,7 +219,7 @@ export function DomainStatusPanel({
 
 	if (hosts.length === 0) {
 		return (
-			<p className='px-2 py-2 text-xs text-muted-foreground'>
+			<p className='px-2 py-2 text-muted-foreground text-xs'>
 				{messages.sidebar.emptyDomains}
 			</p>
 		);
@@ -280,7 +280,7 @@ export function DomainStatusPanel({
 							</ActionTooltip>
 						</div>
 						{expanded && (
-							<div className='space-y-2 px-2 pb-2 pt-1'>
+							<div className='space-y-2 px-2 pt-1 pb-2'>
 								<div className='flex flex-wrap gap-1'>
 									{(Object.keys(counts) as (keyof NodeStatusCounts)[]).map(
 										(key) =>
@@ -347,7 +347,7 @@ function RobotsDetail({ robots }: { robots?: RobotsInfo }) {
 
 	if (robots.status === 'found') {
 		return (
-			<pre className='max-h-40 overflow-auto rounded border border-border bg-muted/30 p-2 text-[10px] whitespace-pre-wrap break-all'>
+			<pre className='max-h-40 overflow-auto whitespace-pre-wrap break-all rounded border border-border bg-muted/30 p-2 text-[10px]'>
 				{robots.body || messages.domainStatus.robotsEmpty}
 			</pre>
 		);

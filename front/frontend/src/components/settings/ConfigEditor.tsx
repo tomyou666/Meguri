@@ -97,7 +97,7 @@ export function ConfigEditor({
 				/>
 			</div>
 			<div
-				className={`shrink-0 border-t border-border ${compact ? 'space-y-2' : 'space-y-3'}`}
+				className={`shrink-0 border-border border-t ${compact ? 'space-y-2' : 'space-y-3'}`}
 			>
 				{saveErrors.length > 0 && (
 					<ul className='rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-destructive'>
@@ -111,7 +111,7 @@ export function ConfigEditor({
 						type='button'
 						variant='outline'
 						size={compact ? 'xs' : 'sm'}
-						className='flex-1 nodrag nopan nowheel'
+						className='nodrag nopan nowheel flex-1'
 						disabled={saving}
 						onClick={(e) => {
 							e.stopPropagation();
@@ -123,7 +123,7 @@ export function ConfigEditor({
 					<Button
 						type='button'
 						size={compact ? 'xs' : 'sm'}
-						className='flex-1 nodrag nopan nowheel'
+						className='nodrag nopan nowheel flex-1'
 						disabled={saving || hasFieldErrors}
 						onClick={(e) => {
 							e.stopPropagation();

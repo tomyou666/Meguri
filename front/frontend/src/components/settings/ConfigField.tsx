@@ -25,7 +25,7 @@ export function ConfigField({
 			<FieldLabel label={label} help={help} />
 			{children}
 			{message && (
-				<p className='text-[10px] leading-snug text-destructive' role='alert'>
+				<p className='text-[10px] text-destructive leading-snug' role='alert'>
 					{message}
 				</p>
 			)}
