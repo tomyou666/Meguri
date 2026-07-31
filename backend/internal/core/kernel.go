@@ -149,31 +149,49 @@ func (k *Kernel) Init(ctx context.Context) error {
 	return nil
 }
 
+// selectorFilter は content.selector を適用する Filter 名。
+const selectorFilter = "selector"
+
 // excludeSelectorsFilter は content.exclude_selectors を適用する Filter 名。
 const excludeSelectorsFilter = "exclude_selectors"
 
 // filterNames は plugins.filters に content 設定から必要になる Filter を補って返す。
-// content.exclude_selectors を指定しても plugins.filters に載っていなければ除外が
-// 黙って無視されるため、レジストリに存在する場合だけ先頭へ補う。
+// content.selector / content.exclude_selectors を指定しても plugins.filters に載っていなければ
+// 黙って無視されるため、レジストリに存在する場合だけ先頭へ補う（selector → exclude_selectors）。
 func (k *Kernel) filterNames() []string {
 	names := append([]string(nil), k.cfg.Plugins.Filters...)
 
-	empty := true
+	var extra []string
+	if strings.TrimSpace(k.cfg.Content.Selector) != "" &&
+		k.reg.Has(plugin.KindFilter, selectorFilter) &&
+		!containsFilterName(names, selectorFilter) {
+		extra = append(extra, selectorFilter)
+	}
+
+	hasExclude := false
 	for _, s := range k.cfg.Content.ExcludeSelectors {
 		if strings.TrimSpace(s) != "" {
-			empty = false
+			hasExclude = true
 			break
 		}
 	}
-	if empty || !k.reg.Has(plugin.KindFilter, excludeSelectorsFilter) {
-		return names
+	if hasExclude &&
+		k.reg.Has(plugin.KindFilter, excludeSelectorsFilter) &&
+		!containsFilterName(names, excludeSelectorsFilter) {
+		extra = append(extra, excludeSelectorsFilter)
 	}
+
+	return append(extra, names...)
+}
+
+// containsFilterName は names に name が含まれるかを返す。
+func containsFilterName(names []string, name string) bool {
 	for _, n := range names {
-		if n == excludeSelectorsFilter {
-			return names
+		if n == name {
+			return true
 		}
 	}
-	return append([]string{excludeSelectorsFilter}, names...)
+	return false
 }
 
 // Close は初期化済みプラグインを登録の逆順で Close する。

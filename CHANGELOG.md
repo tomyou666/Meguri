@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 ### 修正
 
 - Biome 2.5 向けに `biome.json` を移行し、`useSortedClasses` の class 並びを修正
+- `content.selector` 指定時に Filter `selector` を自動でパイプラインへ組み込むように修正
 - `content.exclude_selectors` 指定時に Filter `exclude_selectors` を自動でパイプラインへ組み込むように修正
 - 既存ノード再取得 OFF でも保存リンクから BFS を続け、増やした `max_pages` 分の未訪問をクロールするように修正
 - ノード設定の保存を replace にし、編集可能でないキーがマージされて意図せぬ動作になる問題を修正
