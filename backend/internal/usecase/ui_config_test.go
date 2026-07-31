@@ -51,6 +51,14 @@ func TestMergeUIConfigLayers(t *testing.T) {
 		assert.False(t, cfg.Crawl.FetchLimits.AutoCalibrate)
 	})
 
+	t.Run("正常系: include_hosts / exclude_hosts をマージ結果に反映する", func(t *testing.T) {
+		raw := json.RawMessage(`{"crawl":{"include_hosts":["allowed.example"],"exclude_hosts":["blocked.example:8080"]}}`)
+		cfg, err := usecase.ParseUIConfig(raw)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"allowed.example"}, cfg.Crawl.IncludeHosts)
+		assert.Equal(t, []string{"blocked.example:8080"}, cfg.Crawl.ExcludeHosts)
+	})
+
 	t.Run("正常系: fetcher_config をマージ結果に反映する", func(t *testing.T) {
 		raw := json.RawMessage(`{"plugins":{"fetcher":"chromium","fetcher_config":{"browser_path":"/bin/chromium","wait_until":"selector","wait_visible_selector":"h1","wait_timeout":"10s","network_idle_duration":"750ms","network_idle_request_max_age":"15s"},"stealth":{"chromium":{"user_agent":"Test/1","headless":false,"hide_automation":true}}}}`)
 		cfg, err := usecase.ParseUIConfig(raw)

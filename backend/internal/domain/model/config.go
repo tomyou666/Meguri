@@ -105,6 +105,10 @@ type CrawlConfig struct {
 	IncludePaths []string `yaml:"include_paths"`
 	// ExcludePaths は除外する URL パスの正規表現。
 	ExcludePaths []string `yaml:"exclude_paths"`
+	// IncludeHosts は許可するホスト一覧（空なら制限なし）。url.Host 完全一致（小文字・ポート区別）。
+	IncludeHosts []string `yaml:"include_hosts"`
+	// ExcludeHosts は除外するホスト一覧。url.Host 完全一致（小文字・ポート区別）。
+	ExcludeHosts []string `yaml:"exclude_hosts"`
 	// ExcludeURLs は完全一致でスキップする正規化 URL 一覧（exclude_paths とは別）。
 	ExcludeURLs []string `yaml:"exclude_urls"`
 	// SkipScrapeURLs は fetch をスキップする正規化 URL 一覧（UI オーケストレーション用。exclude_urls とは別）。
@@ -353,6 +357,8 @@ func Default() Config {
 			MaxPages:         100,
 			IncludePaths:     nil,
 			ExcludePaths:     nil,
+			IncludeHosts:     nil,
+			ExcludeHosts:     nil,
 			AllowExternal:    false,
 			AllowSubdomains:  false,
 			RequestDelay:     0,
@@ -559,6 +565,22 @@ func (c *Config) validateCrawl() []error {
 			errs = append(errs, fmt.Errorf("crawl.exclude_paths[%d]: 不正な正規表現 %q: %w", i, p, err))
 		}
 	}
+	for i, h := range c.Crawl.IncludeHosts {
+		norm, err := normalizeCrawlHost(h)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("crawl.include_hosts[%d]: %w", i, err))
+			continue
+		}
+		c.Crawl.IncludeHosts[i] = norm
+	}
+	for i, h := range c.Crawl.ExcludeHosts {
+		norm, err := normalizeCrawlHost(h)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("crawl.exclude_hosts[%d]: %w", i, err))
+			continue
+		}
+		c.Crawl.ExcludeHosts[i] = norm
+	}
 	for i, raw := range c.Crawl.ExcludeURLs {
 		if !strings.HasPrefix(raw, "http://") && !strings.HasPrefix(raw, "https://") {
 			errs = append(errs, fmt.Errorf("crawl.exclude_urls[%d]: http:// または https:// で始まる必要があります: %q", i, raw))
@@ -570,6 +592,22 @@ func (c *Config) validateCrawl() []error {
 	}
 	errs = append(errs, c.validateFetchLimits()...)
 	return errs
+}
+
+// normalizeCrawlHost はクロール用ホスト入力を trim・小文字化し、形式を検証する。
+// scheme・パス付きは拒否する。ホストのみ（例: example.com / localhost:3000）を返す。
+func normalizeCrawlHost(raw string) (string, error) {
+	h := strings.ToLower(strings.TrimSpace(raw))
+	if h == "" {
+		return "", fmt.Errorf("空です")
+	}
+	if strings.Contains(h, "://") {
+		return "", fmt.Errorf("ホストのみを指定してください（scheme 不可）: %q", raw)
+	}
+	if strings.ContainsAny(h, "/?#") {
+		return "", fmt.Errorf("ホストのみを指定してください（パス・クエリ不可）: %q", raw)
+	}
+	return h, nil
 }
 
 // validateFetchLimits は crawl.fetch_limits の範囲を検証する。

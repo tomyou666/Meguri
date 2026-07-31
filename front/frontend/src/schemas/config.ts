@@ -91,12 +91,22 @@ export const fetchLimitsConfigSchema = z.object({
 	memory_low_watermark: z.number().min(0.5).max(0.95).optional(),
 });
 
+const crawlHostSchema = z
+	.string()
+	.trim()
+	.toLowerCase()
+	.refine((h) => h.length > 0 && !h.includes('://') && !/[/?#]/.test(h), {
+		message: messages.settings.validation.crawlHostInvalid,
+	});
+
 export const crawlConfigSchema = z.object({
 	enabled: z.boolean().optional(),
 	max_depth: optionalInt(0, 10),
 	max_pages: optionalInt(1, 100000),
 	include_paths: z.array(z.string()).optional(),
 	exclude_paths: z.array(z.string()).optional(),
+	include_hosts: z.array(crawlHostSchema).optional(),
+	exclude_hosts: z.array(crawlHostSchema).optional(),
 	allow_external_links: z.boolean().optional(),
 	allow_subdomains: z.boolean().optional(),
 	request_delay: requestDelaySchema,

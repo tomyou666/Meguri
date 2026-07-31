@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
+- robots タブの各 host 行に host 名コピーボタンを追加
 - ワークスペースコピーで「設定のみ / 設定とノード構成」を選べるようにした
 - 左サイドバーにノードツリー（検索・status フィルタ・複数選択・URL コピー・コンテキストメニュー）と robots タブを追加
 - `content.exclude_selectors`（CSS セレクタ除外）と Filter `exclude_selectors`、フロント設定・CLI `--exclude-selector` を追加
@@ -15,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 - ノード右クリックメニューで「クロールしない／クロールする」をトグルできるようにした
 - グラフのノード単一クリックで、ツリー側の該当行を展開してスクロール表示するようにした
 - ノード個別設定の作成（未作成時は作成ボタンのみ）と削除を追加
+- `crawl.include_hosts` / `crawl.exclude_hosts`（ホスト完全一致フィルタ）と CLI `--include-host` / `--exclude-host`、設定フォームを追加
+- 設定の複数値入力（TagList）バッジに全文ツールチップを表示するようにした
 
 ### 修正
 

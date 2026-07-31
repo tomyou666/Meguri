@@ -133,6 +133,15 @@ crawl:
   # 例: '.*\.zip$' で zip ファイルへのリンクを除外
   exclude_paths: []
 
+  # include_hosts: クロール対象とするホストのホワイトリスト（url.Host 完全一致・小文字）
+  # 空 = すべて許可。ホストのみ（例: example.com / localhost:3000）。scheme・パス不可
+  # 別ホストを辿る場合は allow_external_links: true も必要
+  include_hosts: []
+
+  # exclude_hosts: クロールから除外するホスト（url.Host 完全一致・小文字・ポート区別）
+  # ホストのみ。exclude_paths（パス正規表現）・exclude_urls（URL 完全一致）とは別
+  exclude_hosts: []
+
   # exclude_urls: 正規化 URL の完全一致でスキップする一覧（UI の「クロールしない」等）
   # exclude_paths（パス正規表現）とは別物
   exclude_urls: []

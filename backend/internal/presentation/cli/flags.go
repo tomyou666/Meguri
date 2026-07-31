@@ -62,6 +62,10 @@ type Flags struct {
 	IncludePaths stringSlice
 	// ExcludePaths は --exclude-path。
 	ExcludePaths stringSlice
+	// IncludeHosts は --include-host。
+	IncludeHosts stringSlice
+	// ExcludeHosts は --exclude-host。
+	ExcludeHosts stringSlice
 	// ExcludeURLs は --exclude-url。
 	ExcludeURLs stringSlice
 	// AllowExternal は --allow-external。
@@ -221,6 +225,8 @@ func ParseArgs(args []string) (*Flags, error) {
 	fs.IntVar(&f.MaxPages, "max-pages", -1, "クロール最大ページ数")
 	fs.Var(&f.IncludePaths, "include-path", "クロール許可パス正規表現 (繰り返し可)")
 	fs.Var(&f.ExcludePaths, "exclude-path", "クロール除外パス正規表現 (繰り返し可)")
+	fs.Var(&f.IncludeHosts, "include-host", "クロール許可ホスト完全一致 (繰り返し可)")
+	fs.Var(&f.ExcludeHosts, "exclude-host", "クロール除外ホスト完全一致 (繰り返し可)")
 	fs.Var(&f.ExcludeURLs, "exclude-url", "完全一致でスキップする URL (繰り返し可)")
 	fs.Var(&f.AllowExternal, "allow-external", "外部リンクの追跡を許可")
 	fs.Var(&f.AllowSubdomains, "allow-subdomains", "サブドメインの追跡を許可")
@@ -337,6 +343,12 @@ func Merge(cfg *model.Config, f *Flags) {
 	}
 	if f.ExcludePaths.set {
 		cfg.Crawl.ExcludePaths = f.ExcludePaths.values
+	}
+	if f.IncludeHosts.set {
+		cfg.Crawl.IncludeHosts = f.IncludeHosts.values
+	}
+	if f.ExcludeHosts.set {
+		cfg.Crawl.ExcludeHosts = f.ExcludeHosts.values
 	}
 	if f.ExcludeURLs.set {
 		cfg.Crawl.ExcludeURLs = append(cfg.Crawl.ExcludeURLs, f.ExcludeURLs.values...)

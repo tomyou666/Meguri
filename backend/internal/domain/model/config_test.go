@@ -128,6 +128,41 @@ func TestConfig_Validate(t *testing.T) {
 		assert.Contains(t, err.Error(), "include_paths")
 	})
 
+	t.Run("異常系: crawl.include_hosts に scheme 付きがあるとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Crawl.IncludeHosts = []string{"https://example.com"}
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "include_hosts")
+	})
+
+	t.Run("異常系: crawl.exclude_hosts にパス付きがあるとエラー", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Crawl.ExcludeHosts = []string{"example.com/path"}
+
+		err := c.Validate()
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "exclude_hosts")
+	})
+
+	t.Run("正常系: crawl.include_hosts / exclude_hosts は trim・小文字化して受理する", func(t *testing.T) {
+		c := Default()
+		c.Targets = []string{"https://example.com/"}
+		c.Crawl.IncludeHosts = []string{"  Example.COM "}
+		c.Crawl.ExcludeHosts = []string{"CDN.Example.com:8080"}
+
+		err := c.Validate()
+
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"example.com"}, c.Crawl.IncludeHosts)
+		assert.Equal(t, []string{"cdn.example.com:8080"}, c.Crawl.ExcludeHosts)
+	})
+
 	t.Run("正常系: request_delay>0 のとき max_concurrency は 1 に強制される", func(t *testing.T) {
 		c := Default()
 		c.Targets = []string{"https://example.com/"}

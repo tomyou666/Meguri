@@ -344,6 +344,34 @@ export function CrawlConfigFields({
 				fieldErrors={fieldErrors}
 				compact={compact}
 			/>
+			<StringListEditor
+				path='crawl.include_hosts'
+				label='include_hosts'
+				help={h.include_hosts}
+				values={v.include_hosts ?? []}
+				onChange={(include_hosts) =>
+					onChange({
+						...v,
+						include_hosts: include_hosts.map((host) => host.toLowerCase()),
+					})
+				}
+				fieldErrors={fieldErrors}
+				compact={compact}
+			/>
+			<StringListEditor
+				path='crawl.exclude_hosts'
+				label='exclude_hosts'
+				help={h.exclude_hosts}
+				values={v.exclude_hosts ?? []}
+				onChange={(exclude_hosts) =>
+					onChange({
+						...v,
+						exclude_hosts: exclude_hosts.map((host) => host.toLowerCase()),
+					})
+				}
+				fieldErrors={fieldErrors}
+				compact={compact}
+			/>
 			<ConfigCheckboxRow
 				inputId={configCheckboxId('crawl.allow_external_links')}
 				checked={v.allow_external_links ?? false}

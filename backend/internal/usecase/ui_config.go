@@ -164,6 +164,8 @@ type uiCrawlJSON struct {
 	MaxPages         int                `json:"max_pages"`
 	IncludePaths     []string           `json:"include_paths"`
 	ExcludePaths     []string           `json:"exclude_paths"`
+	IncludeHosts     []string           `json:"include_hosts"`
+	ExcludeHosts     []string           `json:"exclude_hosts"`
 	ExcludeURLs      []string           `json:"exclude_urls"`
 	AllowExternal    *bool              `json:"allow_external_links"`
 	AllowSubdomains  *bool              `json:"allow_subdomains"`
@@ -285,6 +287,12 @@ func applyUIConfig(cfg *model.Config, ui uiConfigJSON) {
 		}
 		if ui.Crawl.ExcludePaths != nil {
 			cfg.Crawl.ExcludePaths = ui.Crawl.ExcludePaths
+		}
+		if ui.Crawl.IncludeHosts != nil {
+			cfg.Crawl.IncludeHosts = ui.Crawl.IncludeHosts
+		}
+		if ui.Crawl.ExcludeHosts != nil {
+			cfg.Crawl.ExcludeHosts = ui.Crawl.ExcludeHosts
 		}
 		if ui.Crawl.ExcludeURLs != nil {
 			cfg.Crawl.ExcludeURLs = ui.Crawl.ExcludeURLs

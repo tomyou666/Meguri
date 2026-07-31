@@ -4,6 +4,7 @@ import {
 	ChevronDown,
 	ChevronRight,
 	CircleAlert,
+	Copy,
 	Loader2,
 	RefreshCw,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import {
 	robotsTargetsFromNodes,
 	robotsTargetsKey,
 } from '@/lib/domainStats';
+import { notifyError, notifySuccess } from '@/lib/notify';
 import {
 	loadRobotsCache,
 	type RobotsInfo,
@@ -217,6 +219,17 @@ export function DomainStatusPanel({
 		fetchRobotsForHosts(hostsToFetch);
 	}, [fetchTargets, fetchRobotsForHosts]);
 
+	const copyHost = async (host: string) => {
+		try {
+			await navigator.clipboard.writeText(host);
+			notifySuccess(messages.right.copied);
+		} catch (err) {
+			notifyError(messages.right.copyFailed, {
+				description: err instanceof Error ? err.message : String(err),
+			});
+		}
+	};
+
 	if (hosts.length === 0) {
 		return (
 			<p className='px-2 py-2 text-muted-foreground text-xs'>
@@ -263,6 +276,18 @@ export function DomainStatusPanel({
 								</span>
 								<RobotsStatusIcon robots={robots} />
 							</button>
+							<ActionTooltip label={messages.domainStatus.copyHost}>
+								<span className='mt-0.5 inline-flex shrink-0'>
+									<Button
+										variant='ghost'
+										size='icon-xs'
+										aria-label={messages.domainStatus.copyHost}
+										onClick={() => void copyHost(host)}
+									>
+										<Copy className='size-3' />
+									</Button>
+								</span>
+							</ActionTooltip>
 							<ActionTooltip label={messages.domainStatus.robotsRefresh}>
 								<span className='mt-0.5 inline-flex shrink-0'>
 									<Button

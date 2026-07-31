@@ -36,6 +36,10 @@ type Crawler struct {
 	includeRe []*regexp.Regexp
 	// excludeRe は除外パス正規表現（コンパイル済み）。
 	excludeRe []*regexp.Regexp
+	// includeHosts は許可ホスト集合（空なら制限なし）。キーは小文字の url.Host。
+	includeHosts map[string]struct{}
+	// excludeHosts は除外ホスト集合。キーは小文字の url.Host。
+	excludeHosts map[string]struct{}
 	// excludeURLs は完全一致でスキップする正規化 URL 集合。
 	excludeURLs map[string]struct{}
 	// skipScrapeURLs は fetch のみスキップする正規化 URL 集合（already_success 理由で通知）。
@@ -85,6 +89,18 @@ func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink Result
 	for _, p := range cfg.Crawl.ExcludePaths {
 		if re, err := regexp.Compile(p); err == nil {
 			c.excludeRe = append(c.excludeRe, re)
+		}
+	}
+	if len(cfg.Crawl.IncludeHosts) > 0 {
+		c.includeHosts = make(map[string]struct{}, len(cfg.Crawl.IncludeHosts))
+		for _, h := range cfg.Crawl.IncludeHosts {
+			c.includeHosts[strings.ToLower(strings.TrimSpace(h))] = struct{}{}
+		}
+	}
+	if len(cfg.Crawl.ExcludeHosts) > 0 {
+		c.excludeHosts = make(map[string]struct{}, len(cfg.Crawl.ExcludeHosts))
+		for _, h := range cfg.Crawl.ExcludeHosts {
+			c.excludeHosts[strings.ToLower(strings.TrimSpace(h))] = struct{}{}
 		}
 	}
 	if len(cfg.Crawl.ExcludeURLs) > 0 {
@@ -492,6 +508,12 @@ func (c *Crawler) skipReason(u *url.URL, depth int, base *url.URL) string {
 	if depth > c.cfg.Crawl.MaxDepth {
 		return "max_depth"
 	}
+	host := strings.ToLower(u.Host)
+	if c.excludeHosts != nil {
+		if _, ok := c.excludeHosts[host]; ok {
+			return "exclude_hosts"
+		}
+	}
 	if c.excludeURLs != nil {
 		if _, ok := c.excludeURLs[u.String()]; ok {
 			return "exclude_urls"
@@ -505,6 +527,11 @@ func (c *Crawler) skipReason(u *url.URL, depth int, base *url.URL) string {
 			if !sameRegisteredDomain(u.Host, base.Host, c.cfg.Crawl.AllowSubdomains) {
 				return "external_domain"
 			}
+		}
+	}
+	if len(c.includeHosts) > 0 {
+		if _, ok := c.includeHosts[host]; !ok {
+			return "include_hosts"
 		}
 	}
 	if len(c.includeRe) > 0 {

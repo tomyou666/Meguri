@@ -46,6 +46,8 @@ export interface CrawlConfig {
 	max_pages?: number;
 	include_paths?: string[];
 	exclude_paths?: string[];
+	include_hosts?: string[];
+	exclude_hosts?: string[];
 	allow_external_links?: boolean;
 	allow_subdomains?: boolean;
 	request_delay?: string;

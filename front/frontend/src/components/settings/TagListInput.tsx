@@ -7,6 +7,7 @@ import {
 	removeLastToken,
 	removeTokenAt,
 } from '@/components/settings/tagListInputUtils';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -70,7 +71,9 @@ export function TagListInput({
 						compact ? 'px-1 text-[10px]' : 'px-1.5 text-xs',
 					)}
 				>
-					<span className='max-w-40 truncate'>{value}</span>
+					<ActionTooltip label={value}>
+						<span className='max-w-40 truncate'>{value}</span>
+					</ActionTooltip>
 					<button
 						type='button'
 						className='inline-flex shrink-0 rounded-sm opacity-70 hover:opacity-100'

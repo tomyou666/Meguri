@@ -139,6 +139,7 @@ export const messages = {
 		robotsNotFound: 'robots なし',
 		robotsError: 'robots 取得失敗',
 		robotsRefresh: 'robots 再取得',
+		copyHost: 'host をコピー',
 		robotsEmpty: 'robots 空',
 		robotsNotFoundDetail: (code?: number) =>
 			code
@@ -258,6 +259,8 @@ export const messages = {
 			waitAfterLoadRange: '0秒以上30秒以下で入力してください',
 			waitVisibleSelectorRequired:
 				'wait_until=selector のとき wait_visible_selector は必須です',
+			crawlHostInvalid:
+				'ホストのみを入力してください（例: example.com / localhost:3000）',
 		},
 		tagList: {
 			placeholder: '追加…',
@@ -329,6 +332,10 @@ export const messages = {
 			max_pages: 'ワークスペース全体で訪問する最大ページ数。',
 			include_paths: '辿る URL パス。正規表現可。（例: .*/docs）',
 			exclude_paths: '辿らない URL パス。正規表現可。',
+			include_hosts:
+				'辿るホストの許可リスト。空なら制限なし。ホストのみ・完全一致（例: example.com / localhost:3000）。別ホストを辿るなら allow_external_links もオン。',
+			exclude_hosts:
+				'辿らないホスト。ホストのみ・完全一致（ポート区別）。パス正規表現の exclude_paths とは別。',
 			allow_external_links: '別ドメインへのリンクも辿るか。',
 			allow_subdomains: 'サブドメイン（例: blog.example.com）も辿るか。',
 			request_delay: 'リクエスト間隔。サーバー負荷軽減用。',

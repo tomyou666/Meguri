@@ -27,6 +27,8 @@
     "max_pages": 100,
     "include_paths": [],
     "exclude_paths": [],
+    "include_hosts": [],
+    "exclude_hosts": [],
     "allow_external_links": false,
     "allow_subdomains": false,
     "request_delay": "0s",
