@@ -15,7 +15,7 @@ Review the recent implementation diff (uncommitted or user-specified scope). Rea
 
 ## Output (these 4 headings only)
 
-Short bullets. No long quotes, no full file lists. Paths only when needed.
+Short bullets. No long quotes, no full file lists. Paths only when needed in japanese.
 
 ### Bug risk
 
