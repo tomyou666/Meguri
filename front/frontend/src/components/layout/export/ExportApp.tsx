@@ -42,7 +42,7 @@ function graphNodesFromSession(
 		label: n.label,
 		position: { x: 0, y: 0 },
 		nodeSettings: {},
-		crawlExclude: false,
+		crawlExclude: n.crawlExclude,
 		status: n.status as GraphNode['status'],
 	}));
 }
@@ -91,6 +91,7 @@ function snapshotFromEventData(data: unknown): ExportSessionSnapshot | null {
 						urlNormalized: String(node.urlNormalized ?? ''),
 						label: String(node.label ?? ''),
 						status: String(node.status ?? ''),
+						crawlExclude: node.crawlExclude === true,
 					};
 				})
 			: [],

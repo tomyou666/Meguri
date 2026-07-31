@@ -129,6 +129,8 @@ type ExportSessionNodeDTO struct {
 	Label string `json:"label"`
 	// Status はノードの crawl 状態。
 	Status string `json:"status"`
+	// CrawlExclude はクロール対象外フラグ。
+	CrawlExclude bool `json:"crawlExclude"`
 }
 
 // ExportSessionEdgeDTO はエクスポートツリー構築用エッジ。

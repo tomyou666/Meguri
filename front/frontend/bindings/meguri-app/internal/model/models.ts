@@ -271,6 +271,11 @@ export class ExportSessionNodeDTO {
      */
     "status": string;
 
+    /**
+     * CrawlExclude はクロール対象外フラグ。
+     */
+    "crawlExclude": boolean;
+
     /** Creates a new ExportSessionNodeDTO instance. */
     constructor($$source: Partial<ExportSessionNodeDTO> = {}) {
         if (!("id" in $$source)) {
@@ -284,6 +289,9 @@ export class ExportSessionNodeDTO {
         }
         if (!("status" in $$source)) {
             this["status"] = "";
+        }
+        if (!("crawlExclude" in $$source)) {
+            this["crawlExclude"] = false;
         }
 
         Object.assign(this, $$source);

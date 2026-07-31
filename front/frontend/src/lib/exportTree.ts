@@ -10,6 +10,7 @@ export type ExportFlatNode = {
 	urlNormalized: string;
 	label: string;
 	status: string;
+	crawlExclude: boolean;
 };
 
 export type ExportHeadingField = 'url' | 'label';
@@ -105,14 +106,17 @@ export function buildInitialFlatTree(
 		urlNormalized: n.urlNormalized,
 		label: n.label,
 		status: n.status,
+		crawlExclude: n.crawlExclude,
 	}));
 
 	return sortFlatData(flat, FLAT_KEYS) as ExportFlatNode[];
 }
 
-/** フラットデータの全ノード ID を返す（初期チェック ON 用）。 */
+/** crawlExclude でなく success のノード ID を返す（初期チェック ON 用）。 */
 export function initialCheckedIds(flatData: ExportFlatNode[]): string[] {
-	return flatData.map((n) => n.id);
+	return flatData
+		.filter((n) => !n.crawlExclude && n.status === 'success')
+		.map((n) => n.id);
 }
 
 /** チェック ON のノードのみ深さ優先・前順で ID を返す。 */

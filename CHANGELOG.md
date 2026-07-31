@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- Export ツリーの初期チェックで `crawlExclude` と非 success ノードを OFF にするようにした
 - ノード選択時に `lastResult` があれば再取得せず、DB 側は nodeIDs 絞り込みで `GetNodeResult(s)` を軽くした
   - クロール開始時に対象ノードの `lastResult`（選択中なら `loadedNodeResult` も）を無効化し、再クロール後の古い表示を防ぐ
   - repo メソッド名を `GetNodeResultsByNodeIDs` にリネームした

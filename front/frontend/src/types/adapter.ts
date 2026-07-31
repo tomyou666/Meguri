@@ -76,6 +76,7 @@ export type ExportSessionSnapshot = {
 		urlNormalized: string;
 		label: string;
 		status: string;
+		crawlExclude: boolean;
 	}[];
 	edges: { source: string; target: string }[];
 	selectedNodeIds?: string[];

@@ -253,6 +253,7 @@ export class CompositeScraperAdapter implements ScraperPort {
 					urlNormalized: n.urlNormalized,
 					label: n.label,
 					status: n.status,
+					crawlExclude: n.crawlExclude,
 				})),
 				edges: snapshot.edges.map((e) => ({
 					source: e.source,
@@ -277,6 +278,7 @@ export class CompositeScraperAdapter implements ScraperPort {
 					urlNormalized: n.urlNormalized,
 					label: n.label,
 					status: n.status,
+					crawlExclude: n.crawlExclude ?? false,
 				})),
 				edges: (dto.edges ?? []).map((e) => ({
 					source: e.source,

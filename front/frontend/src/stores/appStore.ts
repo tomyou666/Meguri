@@ -1504,6 +1504,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 					urlNormalized: n.urlNormalized,
 					label: n.label,
 					status: n.status,
+					crawlExclude: n.crawlExclude,
 				})),
 				edges: ws.edges.map((e) => ({
 					source: e.source,

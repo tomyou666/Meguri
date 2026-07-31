@@ -5,6 +5,8 @@ import {
 	buildInitialFlatTree,
 	buildSplitExportFiles,
 	computeSemiCheckedIds,
+	type ExportFlatNode,
+	initialCheckedIds,
 	mergeExportContent,
 	parseExportSeparator,
 	preorderNodeIds,
@@ -18,6 +20,7 @@ function node(
 	url: string,
 	status: GraphNode['status'] = 'success',
 	label?: string,
+	crawlExclude = false,
 ): GraphNode {
 	return {
 		id,
@@ -25,8 +28,21 @@ function node(
 		label: label ?? url,
 		position: { x: 0, y: 0 },
 		nodeSettings: {},
-		crawlExclude: false,
+		crawlExclude,
 		status,
+	};
+}
+
+function flatNode(
+	partial: Pick<ExportFlatNode, 'id' | 'parent_id'> &
+		Partial<Omit<ExportFlatNode, 'id' | 'parent_id'>>,
+): ExportFlatNode {
+	return {
+		urlNormalized: `https://${partial.id}`,
+		label: partial.id,
+		status: 'success',
+		crawlExclude: false,
+		...partial,
 	};
 }
 
@@ -74,6 +90,27 @@ describe('buildInitialFlatTree', () => {
 	});
 });
 
+describe('initialCheckedIds', () => {
+	it('success かつ非 crawlExclude のみ初期 ON', () => {
+		const flat = [
+			flatNode({ id: 'ok', parent_id: null }),
+			flatNode({ id: 'ex', parent_id: null, crawlExclude: true }),
+			flatNode({ id: 'err', parent_id: null, status: 'error' }),
+			flatNode({ id: 'skip', parent_id: null, status: 'skipped' }),
+			flatNode({ id: 'idle', parent_id: null, status: 'idle' }),
+		];
+		expect(initialCheckedIds(flat)).toEqual(['ok']);
+	});
+
+	it('親が crawlExclude でも success の子は初期 ON', () => {
+		const flat = [
+			flatNode({ id: 'parent', parent_id: null, crawlExclude: true }),
+			flatNode({ id: 'child', parent_id: 'parent' }),
+		];
+		expect(initialCheckedIds(flat)).toEqual(['child']);
+	});
+});
+
 describe('preorderNodeIds', () => {
 	it('チェック ON のノードのみ深さ優先で返す', () => {
 		const flat = [
@@ -83,6 +120,7 @@ describe('preorderNodeIds', () => {
 				urlNormalized: 'https://a',
 				label: 'a',
 				status: 'success',
+				crawlExclude: false,
 			},
 			{
 				id: 'b',
@@ -90,6 +128,7 @@ describe('preorderNodeIds', () => {
 				urlNormalized: 'https://b',
 				label: 'b',
 				status: 'success',
+				crawlExclude: false,
 			},
 			{
 				id: 'c',
@@ -97,6 +136,7 @@ describe('preorderNodeIds', () => {
 				urlNormalized: 'https://c',
 				label: 'c',
 				status: 'success',
+				crawlExclude: false,
 			},
 		];
 		expect(preorderNodeIds(flat, ['a', 'c'])).toEqual(['a', 'c']);
@@ -110,6 +150,7 @@ describe('preorderNodeIds', () => {
 				urlNormalized: 'https://a',
 				label: 'a',
 				status: 'success',
+				crawlExclude: false,
 			},
 			{
 				id: 'b',
@@ -117,6 +158,7 @@ describe('preorderNodeIds', () => {
 				urlNormalized: 'https://b',
 				label: 'b',
 				status: 'success',
+				crawlExclude: false,
 			},
 		];
 		expect(preorderNodeIds(flat, ['b'])).toEqual(['b']);
@@ -222,6 +264,7 @@ describe('toggleExportNodeCheck', () => {
 			urlNormalized: 'https://a',
 			label: 'a',
 			status: 'success',
+			crawlExclude: false,
 		},
 		{
 			id: 'b',
@@ -229,6 +272,7 @@ describe('toggleExportNodeCheck', () => {
 			urlNormalized: 'https://b',
 			label: 'b',
 			status: 'success',
+			crawlExclude: false,
 		},
 	];
 
@@ -256,6 +300,7 @@ describe('computeSemiCheckedIds', () => {
 			urlNormalized: 'https://a',
 			label: 'a',
 			status: 'success',
+			crawlExclude: false,
 		},
 		{
 			id: 'b',
@@ -263,6 +308,7 @@ describe('computeSemiCheckedIds', () => {
 			urlNormalized: 'https://b',
 			label: 'b',
 			status: 'success',
+			crawlExclude: false,
 		},
 		{
 			id: 'c',
@@ -270,6 +316,7 @@ describe('computeSemiCheckedIds', () => {
 			urlNormalized: 'https://c',
 			label: 'c',
 			status: 'success',
+			crawlExclude: false,
 		},
 	];
 
@@ -297,6 +344,7 @@ describe('buildSplitExportFiles', () => {
 				urlNormalized: 'https://example.com/page-a',
 				label: 'A',
 				status: 'success',
+				crawlExclude: false,
 			},
 			{
 				id: 'b',
@@ -304,6 +352,7 @@ describe('buildSplitExportFiles', () => {
 				urlNormalized: 'https://example.com/page-b',
 				label: 'B',
 				status: 'success',
+				crawlExclude: false,
 			},
 		];
 		const files = buildSplitExportFiles(
@@ -337,6 +386,7 @@ describe('buildExportPreview', () => {
 				urlNormalized: 'https://a',
 				label: 'a',
 				status: 'success',
+				crawlExclude: false,
 			},
 			{
 				id: 'b',
@@ -344,6 +394,7 @@ describe('buildExportPreview', () => {
 				urlNormalized: 'https://b',
 				label: 'b',
 				status: 'success',
+				crawlExclude: false,
 			},
 		];
 		const preview = buildExportPreview(
@@ -373,6 +424,7 @@ describe('buildExportPreviewSections', () => {
 				urlNormalized: 'https://a.com/page1',
 				label: 'a',
 				status: 'success',
+				crawlExclude: false,
 			},
 			{
 				id: 'b',
@@ -380,6 +432,7 @@ describe('buildExportPreviewSections', () => {
 				urlNormalized: 'https://b.com/page2',
 				label: 'b',
 				status: 'success',
+				crawlExclude: false,
 			},
 		];
 		const sections = buildExportPreviewSections(
@@ -418,6 +471,7 @@ describe('buildExportPreviewSections', () => {
 				urlNormalized: 'https://a',
 				label: 'a',
 				status: 'success',
+				crawlExclude: false,
 			},
 			{
 				id: 'b',
@@ -425,6 +479,7 @@ describe('buildExportPreviewSections', () => {
 				urlNormalized: 'https://b',
 				label: 'b',
 				status: 'success',
+				crawlExclude: false,
 			},
 		];
 		const sections = buildExportPreviewSections(
