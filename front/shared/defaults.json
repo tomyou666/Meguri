@@ -9,7 +9,7 @@
     "formats": ["markdown", "links"],
     "only_main_content": true,
     "include_tags": [],
-    "exclude_tags": ["script", "style", "noscript"],
+    "exclude_tags": ["script", "style", "noscript", "dialog"],
     "selector": "",
     "exclude_selectors": [],
     "extract_links": true,

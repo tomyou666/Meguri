@@ -339,7 +339,7 @@ func Default() Config {
 			Formats:          []OutputFormat{FormatMarkdown},
 			OnlyMainContent:  true,
 			IncludeTags:      []string{},
-			ExcludeTags:      []string{"script", "style", "noscript"},
+			ExcludeTags:      []string{"script", "style", "noscript", "dialog"},
 			Selector:         "",
 			ExcludeSelectors: []string{},
 			ExtractLinks:     true,

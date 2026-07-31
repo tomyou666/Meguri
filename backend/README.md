@@ -108,7 +108,7 @@ request:
 content:
   formats: [markdown, links]
   only_main_content: true
-  exclude_tags: [script, style, noscript]
+  exclude_tags: [script, style, noscript, dialog]
   selector: ""          # 指定時は only_main_content より優先
   extract_links: true
   extract_metadata: true
@@ -192,7 +192,7 @@ output:
 | `--format`（繰り返し可）      | `content.formats`           | `markdown`                |
 | `--only-main`          | `content.only_main_content` | `true`                    |
 | `--include-tag`（繰り返し可） | `content.include_tags`      | 空                         |
-| `--exclude-tag`（繰り返し可） | `content.exclude_tags`      | `script, style, noscript` |
+| `--exclude-tag`（繰り返し可） | `content.exclude_tags`      | `script, style, noscript, dialog` |
 | `--selector`           | `content.selector`          | 空                         |
 | `--extract-links`      | `content.extract_links`     | `true`                    |
 | `--extract-metadata`   | `content.extract_metadata`  | `true`                    |

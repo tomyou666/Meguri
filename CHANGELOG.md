@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
+- `content.include_tags` 用 Filter `include_tags` を追加し、指定時にパイプラインへ自動組み込みするようにした
+- `content.exclude_tags` 用 Filter `exclude_tags` を追加し、指定時にパイプラインへ自動組み込みするようにした
+- デフォルト `exclude_tags` に `dialog` を追加した
 - robots タブの各 host 行に host 名コピーボタンを追加
 - ワークスペースコピーで「設定のみ / 設定とノード構成」を選べるようにした
 - 左サイドバーにノードツリー（検索・status フィルタ・複数選択・URL コピー・コンテキストメニュー）と robots タブを追加
@@ -21,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- `content.only_main_content` を Filter `maincontent` の起動と連動させ、`selector` 指定時は maincontent を入れないように修正
+- Filter チェーンを固定順（selector → maincontent → exclude_selectors → include_tags → exclude_tags）で組み立てるように修正
+- `maincontent` の script/style/noscript ハードコード除去をやめ、`exclude_tags` に一本化した
 - Biome 2.5 向けに `biome.json` を移行し、`useSortedClasses` の class 並びを修正
 - `content.selector` 指定時に Filter `selector` を自動でパイプラインへ組み込むように修正
 - `content.exclude_selectors` 指定時に Filter `exclude_selectors` を自動でパイプラインへ組み込むように修正

@@ -152,36 +152,70 @@ func (k *Kernel) Init(ctx context.Context) error {
 // selectorFilter は content.selector を適用する Filter 名。
 const selectorFilter = "selector"
 
+// maincontentFilter は only_main_content を適用する Filter 名。
+const maincontentFilter = "maincontent"
+
 // excludeSelectorsFilter は content.exclude_selectors を適用する Filter 名。
 const excludeSelectorsFilter = "exclude_selectors"
 
-// filterNames は plugins.filters に content 設定から必要になる Filter を補って返す。
-// content.selector / content.exclude_selectors を指定しても plugins.filters に載っていなければ
-// 黙って無視されるため、レジストリに存在する場合だけ先頭へ補う（selector → exclude_selectors）。
-func (k *Kernel) filterNames() []string {
-	names := append([]string(nil), k.cfg.Plugins.Filters...)
+// includeTagsFilter は content.include_tags を適用する Filter 名。
+const includeTagsFilter = "include_tags"
 
-	var extra []string
-	if strings.TrimSpace(k.cfg.Content.Selector) != "" &&
-		k.reg.Has(plugin.KindFilter, selectorFilter) &&
-		!containsFilterName(names, selectorFilter) {
-		extra = append(extra, selectorFilter)
+// excludeTagsFilter は content.exclude_tags を適用する Filter 名。
+const excludeTagsFilter = "exclude_tags"
+
+// managedFilterNames は content / only_main_content から固定順で組み立てる Filter 名。
+var managedFilterNames = map[string]struct{}{
+	selectorFilter:         {},
+	maincontentFilter:      {},
+	excludeSelectorsFilter: {},
+	includeTagsFilter:      {},
+	excludeTagsFilter:      {},
+}
+
+// filterNames は content 設定と only_main_content から Filter チェーンを固定順で組み立てて返す。
+//
+// 適用順: selector → maincontent → exclude_selectors → include_tags → exclude_tags → その他 plugins.filters。
+// content.* / only_main_content 由来は plugins.filters に無くても補完する。
+// selector 指定時は maincontent を入れない。only_main_content が false なら maincontent を外す。
+// managed な名前は plugins.filters 側の位置を無視し、上記固定順に寄せる。
+func (k *Kernel) filterNames() []string {
+	hasSelector := strings.TrimSpace(k.cfg.Content.Selector) != ""
+
+	var out []string
+	appendIf := func(name string, want bool) {
+		if !want || !k.reg.Has(plugin.KindFilter, name) {
+			return
+		}
+		out = append(out, name)
 	}
 
-	hasExclude := false
-	for _, s := range k.cfg.Content.ExcludeSelectors {
-		if strings.TrimSpace(s) != "" {
-			hasExclude = true
-			break
+	appendIf(selectorFilter, hasSelector)
+	appendIf(maincontentFilter, k.cfg.Content.OnlyMainContent && !hasSelector)
+	appendIf(excludeSelectorsFilter, hasNonEmpty(k.cfg.Content.ExcludeSelectors))
+	appendIf(includeTagsFilter, hasNonEmpty(k.cfg.Content.IncludeTags))
+	appendIf(excludeTagsFilter, hasNonEmpty(k.cfg.Content.ExcludeTags))
+
+	for _, name := range k.cfg.Plugins.Filters {
+		if _, managed := managedFilterNames[name]; managed {
+			continue
+		}
+		if containsFilterName(out, name) {
+			continue
+		}
+		out = append(out, name)
+	}
+	return out
+}
+
+// hasNonEmpty は values に空白のみでない要素が 1 つ以上あるかを返す。
+func hasNonEmpty(values []string) bool {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return true
 		}
 	}
-	if hasExclude &&
-		k.reg.Has(plugin.KindFilter, excludeSelectorsFilter) &&
-		!containsFilterName(names, excludeSelectorsFilter) {
-		extra = append(extra, excludeSelectorsFilter)
-	}
-
-	return append(extra, names...)
+	return false
 }
 
 // containsFilterName は names に name が含まれるかを返す。

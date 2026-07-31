@@ -54,27 +54,27 @@ content:
   #   - metadata   … メタデータのみ（title / description / OGP 等）
   formats: [markdown, links]
 
-  # only_main_content: true のとき、ヘッダ・フッタ・ナビ等を除去して本文中心に抽出
-  # filter プラグイン maincontent と組み合わせて使用（既定: true）
-  # 注意: selector が指定されている場合は selector の方が優先される
+  # only_main_content: true のとき Filter maincontent をパイプラインへ自動挿入する（既定: true）
+  # false なら plugins.filters に maincontent があっても外す
+  # 注意: selector が指定されている場合は selector が優先され maincontent は入れない
   only_main_content: true
 
   # include_tags: 残す HTML タグ名のホワイトリスト（空 = 制限なし）
-  # exclude_tags と同名タグは指定不可
+  # 非空時は Filter include_tags が自動挿入される。exclude_tags と同名タグは指定不可
   include_tags: []
 
-  # exclude_tags: 除去する HTML タグ名（既定: script, style, noscript）
-  exclude_tags: [script, style, noscript]
+  # exclude_tags: 除去する HTML タグ名（既定: script, style, noscript, dialog）
+  # 非空時は Filter exclude_tags が自動挿入される
+  exclude_tags: [script, style, noscript, dialog]
 
   # selector: 本文抽出用の CSS セレクタ（goquery 互換）
   # - 空文字 = セレクタによる絞り込みなし
-  # - 指定時は filters に selector を含めること
+  # - 指定時は Filter selector が自動挿入され、only_main_content / maincontent より優先
   selector: ""
 
   # exclude_selectors: DOM から除去する CSS セレクタの一覧（goquery 互換）
   # - 空 = セレクタによる除去なし
-  # - 指定時は filters に exclude_selectors を含めること
-  # - 推奨順: [maincontent, selector, exclude_selectors]
+  # - 非空時は Filter exclude_selectors が自動挿入される
   exclude_selectors: []
 
   # extract_links: ページ内リンクを Result に含める（既定: true）
@@ -267,12 +267,18 @@ plugins:
   # 選択肢: markdown … HTML → Markdown
   transformer: markdown
 
-  # filters (P7): コンテンツ絞り込み（複数可、指定順に実行）
+  # filters (P7): コンテンツ絞り込み
+  # content.* / only_main_content 由来の Filter は Kernel が固定順で自動挿入する。
+  # plugins.filters に書いた名前のうち、自動管理対象（下記）は固定順に寄せられ、
+  # それ以外だけが末尾に追加される。リスト省略でも content 設定があれば補完される。
+  # 適用順:
+  #   selector → maincontent → exclude_selectors → include_tags → exclude_tags → その他明示分
   # 選択肢:
-  #   - maincontent        … ヘッダ・フッタ・ナビ・script/style/noscript 除去
-  #   - selector           … content.selector で指定範囲のみ残す（selector 設定時に使用）
-  #   - exclude_selectors  … content.exclude_selectors にマッチする要素を除去
-  # 推奨順: [maincontent, selector, exclude_selectors]
+  #   - selector           … content.selector（指定時。このとき maincontent は入れない）
+  #   - maincontent        … only_main_content（ヘッダ・フッタ・ナビ・aside 除去）
+  #   - exclude_selectors  … content.exclude_selectors
+  #   - include_tags       … content.include_tags（指定タグのみ残す）
+  #   - exclude_tags       … content.exclude_tags（指定タグを除去）
   filters: [maincontent]
 
   # link_extractor (P8): 次ページ候補リンクの抽出（単一指定）

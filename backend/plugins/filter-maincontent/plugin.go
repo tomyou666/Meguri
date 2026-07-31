@@ -1,4 +1,4 @@
-// Package maincontent はヘッダ・フッタ・ナビ・script/style/noscript などのノイズ要素を
+// Package maincontent はヘッダ・フッタ・ナビ・aside などのノイズ要素を
 // HTML から除去する P7 Filter を提供する。
 package maincontent
 
@@ -28,7 +28,7 @@ func (f *filter) Metadata() plugin.Metadata {
 		Name:        "maincontent",
 		Version:     "0.1.0",
 		Kind:        plugin.KindFilter,
-		Description: "ヘッダー・フッター・ナビ・script/style/noscript を除去する",
+		Description: "ヘッダー・フッター・ナビ・aside を除去する",
 	}
 }
 
@@ -42,6 +42,7 @@ func (f *filter) Init(_ context.Context, host plugin.Host) error {
 func (f *filter) Close(_ context.Context) error { return nil }
 
 // Filter はノイズ要素を DOM から除去する。
+// script / style / noscript は content.exclude_tags 側で除去する。
 func (f *filter) Filter(_ context.Context, c *model.Content) (*model.Content, error) {
 	if c.Format != "html" {
 		return c, nil
@@ -51,7 +52,7 @@ func (f *filter) Filter(_ context.Context, c *model.Content) (*model.Content, er
 		return c, nil
 	}
 
-	doc.Find("header, footer, nav, aside, script, style, noscript").Remove()
+	doc.Find("header, footer, nav, aside").Remove()
 
 	if main := doc.Find("main, article").First(); main.Length() > 0 {
 		c.Text = main.Text()
