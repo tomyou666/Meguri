@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- chromium 取得で Navigate・待機・HTML 取得を同一 `chromedp.Run` にまとめ、`waitCtx` cancel 後の別 Run によるタブデッドロックを解消した
+  - HTML 取得を `OuterHTML` から `Evaluate(document.documentElement.outerHTML)` に変更
+  - リクエスト期限切れが `context canceled` に化ける問題を `preferRequestContextError` で修正
 - Export ツリーの初期チェックで `crawlExclude` と非 success ノードを OFF にするようにした
 - ノード選択時に `lastResult` があれば再取得せず、DB 側は nodeIDs 絞り込みで `GetNodeResult(s)` を軽くした
   - クロール開始時に対象ノードの `lastResult`（選択中なら `loadedNodeResult` も）を無効化し、再クロール後の古い表示を防ぐ

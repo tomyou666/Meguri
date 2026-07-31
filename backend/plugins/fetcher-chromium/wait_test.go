@@ -1,6 +1,7 @@
 package chromiumfetch
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -71,5 +72,21 @@ func TestShouldSleepAfterLoad(t *testing.T) {
 
 	t.Run("正常系: selector は wait_after_load>0 でも false", func(t *testing.T) {
 		assert.False(t, shouldSleepAfterLoad(model.WaitUntilSelector, 5*time.Second))
+	})
+}
+
+// TestPreferRequestContextError は reqCtx 期限切れが tabCancel 由来の Canceled より優先されることを検証する。
+func TestPreferRequestContextError(t *testing.T) {
+	t.Run("正常系: reqCtx が deadline かつ err が canceled なら DeadlineExceeded", func(t *testing.T) {
+		reqCtx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+		defer cancel()
+		time.Sleep(time.Millisecond)
+		err := preferRequestContextError(reqCtx, context.Canceled)
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+
+	t.Run("正常系: reqCtx が生きていれば元の err を返す", func(t *testing.T) {
+		err := preferRequestContextError(context.Background(), context.Canceled)
+		assert.ErrorIs(t, err, context.Canceled)
 	})
 }

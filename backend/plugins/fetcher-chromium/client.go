@@ -26,6 +26,8 @@ func (c *client) get(ctx context.Context, u *url.URL, headers map[string]string)
 	for i := 0; i < attempts; i++ {
 		reqCtx, cancel := context.WithTimeout(ctx, c.reqCfg.Timeout)
 		res, err := c.fetchOnce(reqCtx, u, headers, ua)
+		// tabCancel (AfterFunc) により DeadlineExceeded が Canceled に化けるため、reqCtx の期限切れを優先する。
+		err = preferRequestContextError(reqCtx, err)
 		cancel()
 
 		if err == nil {
@@ -84,6 +86,19 @@ func (c *client) chromedpAllocatorOptions(ua string) []chromedp.ExecAllocatorOpt
 		opts = append(opts, chromedp.Flag("headless", false))
 	}
 	return opts
+}
+
+// preferRequestContextError はリクエスト context の期限切れを、タブ cancel 由来の Canceled より優先する。
+//
+// openTab が AfterFunc で tabCancel するため、reqCtx の DeadlineExceeded が chromedp 上は Canceled になる。
+func preferRequestContextError(reqCtx context.Context, err error) error {
+	if err == nil || reqCtx == nil {
+		return err
+	}
+	if errors.Is(reqCtx.Err(), context.DeadlineExceeded) && errors.Is(err, context.Canceled) {
+		return context.DeadlineExceeded
+	}
+	return err
 }
 
 // isRetryableFetchError はリトライ可能な取得エラーかどうかを返す。

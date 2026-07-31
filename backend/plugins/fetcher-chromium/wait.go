@@ -65,31 +65,37 @@ func shouldSleepAfterLoad(waitUntil model.WaitUntil, waitAfterLoad time.Duration
 	return waitUntil == model.WaitUntilLoad && waitAfterLoad > 0
 }
 
+// documentHTMLAction は documentElement.outerHTML を Evaluate で取得する。
+// OuterHTML(Query) は巨大 DOM で Frame.Nodes 同期待ちに陥りやすいため使わない。
+func documentHTMLAction(html *string) chromedp.Action {
+	return chromedp.Evaluate(`document.documentElement.outerHTML`, html)
+}
+
 // fetchHTML は wait_until 設定に従いページ HTML を取得する。
+//
+// Navigate・待機・HTML 取得は同一 chromedp.Run にまとめる。
+// waitCtx を cancel した直後に別 Run をするとタブがデッドロックするため。
 func (c *client) fetchHTML(ctx context.Context, ua string, u string, html *string) error {
 	return c.runWithTab(ctx, ua, func(tabCtx context.Context) error {
 		waitUntil := c.fetcherCfg.EffectiveWaitUntil()
 
-		if waitUntil == model.WaitUntilNone {
-			return chromedp.Run(tabCtx, append(
-				c.buildNavigateAndWaitTasks(u),
-				chromedp.OuterHTML("html", html, chromedp.ByQuery),
-			)...)
-		}
-
-		waitCtx, cancel := context.WithTimeout(tabCtx, c.waitTimeout())
-		defer cancel()
-
-		if err := chromedp.Run(waitCtx, c.buildNavigateAndWaitTasks(u)...); err != nil {
-			return err
-		}
-
+		tasks := c.buildNavigateAndWaitTasks(u)
 		if shouldSleepAfterLoad(waitUntil, c.fetcherCfg.WaitAfterLoad) {
-			if err := chromedp.Run(tabCtx, chromedp.Sleep(c.fetcherCfg.WaitAfterLoad)); err != nil {
-				return err
+			tasks = append(tasks, chromedp.Sleep(c.fetcherCfg.WaitAfterLoad))
+		}
+		tasks = append(tasks, documentHTMLAction(html))
+
+		runCtx := tabCtx
+		var cancel context.CancelFunc
+		if waitUntil != model.WaitUntilNone {
+			budget := c.waitTimeout()
+			if shouldSleepAfterLoad(waitUntil, c.fetcherCfg.WaitAfterLoad) {
+				budget += c.fetcherCfg.WaitAfterLoad
 			}
+			runCtx, cancel = context.WithTimeout(tabCtx, budget)
+			defer cancel()
 		}
 
-		return chromedp.Run(tabCtx, chromedp.OuterHTML("html", html, chromedp.ByQuery))
+		return chromedp.Run(runCtx, tasks...)
 	})
 }
