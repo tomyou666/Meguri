@@ -86,6 +86,20 @@ type UpdateNodeResultRequest struct {
 	Patch       UpdateNodeResultPatchDTO `json:"patch"`
 }
 
+// DuplicateWorkspaceRequest はワークスペース複製リクエスト。
+type DuplicateWorkspaceRequest struct {
+	// ID はコピー元ワークスペース ID。
+	ID string `json:"id"`
+	// Name は複製先ワークスペース名。空文字の場合はコピー元の名前を使用する。
+	Name string `json:"name"`
+	// Mode は複製範囲。
+	// "full": 設定・ノード・エッジ・UIState をコピーする。
+	// "settings": 設定と除外 URL のみコピーし、起点 URL からシードノードを新規作成する。
+	Mode string `json:"mode"`
+	// SeedURL は settings モード時の起点 URL。full モードでは無視する。
+	SeedURL string `json:"seedUrl"`
+}
+
 // MaximizedNodeResultRequest は最大化ウィンドウ表示用スナップショット。
 type MaximizedNodeResultRequest struct {
 	Title        string         `json:"title"`

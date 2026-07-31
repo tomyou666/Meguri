@@ -58,11 +58,12 @@ export function DeleteWorkspace(id: string): $CancellablePromise<void> {
 /**
  * DuplicateWorkspace は WS を複製する。
  * 
- * name は複製先 WS 名。
- * 空文字の場合はコピー元の名前を使用する。
+ * req.Mode は複製範囲を表す。
+ * "full": 設定・ノード・エッジ・UIState をコピーする。
+ * "settings": 設定と除外 URL のみコピーし、起点 URL からシードノードを新規作成する。
  */
-export function DuplicateWorkspace(id: string, name: string): $CancellablePromise<model$0.WorkspaceDTO | null> {
-    return $Call.ByID(990842695, id, name).then(($result: any) => {
+export function DuplicateWorkspace(req: model$0.DuplicateWorkspaceRequest): $CancellablePromise<model$0.WorkspaceDTO | null> {
+    return $Call.ByID(990842695, req).then(($result: any) => {
         return $$createType1($result);
     });
 }

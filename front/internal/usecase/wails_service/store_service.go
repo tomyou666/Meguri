@@ -124,10 +124,11 @@ func (s *StoreService) DeleteWorkspace(id string) error {
 
 // DuplicateWorkspace は WS を複製する。
 //
-// name は複製先 WS 名。
-// 空文字の場合はコピー元の名前を使用する。
-func (s *StoreService) DuplicateWorkspace(id, name string) (*model.WorkspaceDTO, error) {
-	return s.workspaces.Duplicate(s.ctx(), id, name)
+// req.Mode は複製範囲を表す。
+// "full": 設定・ノード・エッジ・UIState をコピーする。
+// "settings": 設定と除外 URL のみコピーし、起点 URL からシードノードを新規作成する。
+func (s *StoreService) DuplicateWorkspace(req model.DuplicateWorkspaceRequest) (*model.WorkspaceDTO, error) {
+	return s.workspaces.Duplicate(s.ctx(), req)
 }
 
 // GetNodeResult はノード結果を返す。

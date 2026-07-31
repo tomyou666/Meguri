@@ -6,6 +6,7 @@ export {
     BeginCrawlRunRequest,
     CrawlResultDTO,
     DiffPairDTO,
+    DuplicateWorkspaceRequest,
     ExportSessionEdgeDTO,
     ExportSessionNodeDTO,
     ExportSessionRequest,

@@ -222,7 +222,11 @@ interface AppState {
 	openDuplicateWorkspaceDialog: (id: string) => void;
 	closeDuplicateWorkspaceDialog: () => void;
 	confirmDeleteWorkspace: () => Promise<void>;
-	confirmDuplicateWorkspace: (name: string) => Promise<void>;
+	confirmDuplicateWorkspace: (
+		name: string,
+		mode: 'full' | 'settings',
+		seedUrl?: string,
+	) => Promise<void>;
 	loadWorkspaceFromServer: (id: string) => Promise<void>;
 	selectNode: (
 		id: string | null,
@@ -532,13 +536,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 		}
 	},
 
-	confirmDuplicateWorkspace: async (name) => {
+	confirmDuplicateWorkspace: async (name, mode, seedUrl = '') => {
 		const id = get().pendingDuplicateWorkspaceId;
 		if (!id) return;
 		const trimmed = name.trim();
 		if (!trimmed) return;
+		if (mode === 'settings' && !seedUrl.trim()) return;
 		try {
-			const copy = await scraperPort.duplicateWorkspace(id, trimmed);
+			const copy = await scraperPort.duplicateWorkspace(
+				id,
+				trimmed,
+				mode,
+				seedUrl.trim(),
+			);
 			set((s) => {
 				const workspaces = [...s.workspaces, copy];
 				syncHistory(workspaces, copy.id);

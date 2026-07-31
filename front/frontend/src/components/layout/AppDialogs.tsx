@@ -64,14 +64,23 @@ export function AppDialogs() {
 	const [wsUrl, setWsUrl] = useState('https://example.com/');
 	const [nodeUrl, setNodeUrl] = useState('https://');
 	const [duplicateName, setDuplicateName] = useState('');
+	const [duplicateMode, setDuplicateMode] = useState<'full' | 'settings'>(
+		'full',
+	);
+	const [duplicateSeedUrl, setDuplicateSeedUrl] = useState('');
 
 	useEffect(() => {
 		if (!pendingDuplicateWorkspaceId) return;
 		const source = workspaces.find((w) => w.id === pendingDuplicateWorkspaceId);
 		setDuplicateName(source?.name ?? '');
+		setDuplicateMode('full');
+		setDuplicateSeedUrl(source?.seedUrl ?? '');
 	}, [pendingDuplicateWorkspaceId, workspaces]);
 
 	const mustShowNewWs = showNewWorkspaceDialog || workspaces.length === 0;
+	const duplicateConfirmDisabled =
+		!duplicateName.trim() ||
+		(duplicateMode === 'settings' && !duplicateSeedUrl.trim());
 
 	return (
 		<>
@@ -210,12 +219,49 @@ export function AppDialogs() {
 					<DialogHeader>
 						<DialogTitle>{messages.dialog.duplicateWorkspaceTitle}</DialogTitle>
 					</DialogHeader>
-					<Label>{messages.dialog.duplicateWorkspaceName}</Label>
-					<Input
-						className='mt-1'
-						value={duplicateName}
-						onChange={(e) => setDuplicateName(e.target.value)}
-					/>
+					<div className='space-y-3'>
+						<div>
+							<Label>{messages.dialog.duplicateWorkspaceName}</Label>
+							<Input
+								className='mt-1'
+								value={duplicateName}
+								onChange={(e) => setDuplicateName(e.target.value)}
+							/>
+						</div>
+						<fieldset className='space-y-2'>
+							<legend className='font-medium text-sm'>
+								{messages.dialog.duplicateWorkspaceMode}
+							</legend>
+							<label className='flex items-center gap-2 text-sm'>
+								<input
+									type='radio'
+									name='duplicate-mode'
+									checked={duplicateMode === 'full'}
+									onChange={() => setDuplicateMode('full')}
+								/>
+								{messages.dialog.duplicateWorkspaceModeFull}
+							</label>
+							<label className='flex items-center gap-2 text-sm'>
+								<input
+									type='radio'
+									name='duplicate-mode'
+									checked={duplicateMode === 'settings'}
+									onChange={() => setDuplicateMode('settings')}
+								/>
+								{messages.dialog.duplicateWorkspaceModeSettings}
+							</label>
+						</fieldset>
+						{duplicateMode === 'settings' && (
+							<div>
+								<Label>{messages.dialog.duplicateWorkspaceUrl}</Label>
+								<Input
+									className='mt-1'
+									value={duplicateSeedUrl}
+									onChange={(e) => setDuplicateSeedUrl(e.target.value)}
+								/>
+							</div>
+						)}
+					</div>
 					<DialogFooter>
 						<Button
 							variant='outline'
@@ -226,8 +272,14 @@ export function AppDialogs() {
 						</Button>
 						<Button
 							size='sm'
-							disabled={!duplicateName.trim()}
-							onClick={() => void confirmDuplicateWorkspace(duplicateName)}
+							disabled={duplicateConfirmDisabled}
+							onClick={() =>
+								void confirmDuplicateWorkspace(
+									duplicateName,
+									duplicateMode,
+									duplicateSeedUrl,
+								)
+							}
 						>
 							{messages.dialog.copy}
 						</Button>

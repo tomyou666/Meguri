@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 
 	"meguri-app/internal/infrastructure/persistence"
@@ -130,42 +131,81 @@ func (s *WorkspaceService) Delete(ctx context.Context, id string) error {
 
 // Duplicate は WS を複製する。
 //
-// name は複製先 WS 名。
-// 空文字の場合はコピー元の名前を使用する。
-func (s *WorkspaceService) Duplicate(ctx context.Context, id, name string) (*model.WorkspaceDTO, error) {
-	bundle, err := s.repo.LoadWorkspaceBundle(ctx, id)
+// req.Mode は複製範囲を表す。
+// "full": 設定・ノード・エッジ・UIState をコピーする（結果はコピーしない。baseline はクリア）。
+// "settings": settings と exclude_urls のみコピーし、req.SeedURL からシードノードを新規作成する。
+//
+// req.Name は複製先 WS 名。空文字の場合はコピー元の名前を使用する。
+func (s *WorkspaceService) Duplicate(ctx context.Context, req model.DuplicateWorkspaceRequest) (*model.WorkspaceDTO, error) {
+	bundle, err := s.repo.LoadWorkspaceBundle(ctx, req.ID)
 	if err != nil || bundle == nil {
 		return nil, fmt.Errorf("workspace not found")
 	}
 	wsID := genID()
-	idMap := map[string]string{}
-	for _, n := range bundle.Nodes {
-		idMap[n.ID] = genID()
-	}
-	bundle.Workspace.ID = model.StrPtr(wsID)
-	copyName := name
+	copyName := req.Name
 	if copyName == "" {
 		copyName = bundle.Workspace.Name
 	}
+	bundle.Workspace.ID = model.StrPtr(wsID)
 	bundle.Workspace.Name = copyName
 	bundle.Workspace.BaselineRunID = nil
 	bundle.Workspace.CreatedAt = time.Now().UTC().Format(time.RFC3339)
-	for i := range bundle.Nodes {
-		old := bundle.Nodes[i].ID
-		bundle.Nodes[i].WorkspaceID = wsID
-		bundle.Nodes[i].ID = idMap[old]
-		bundle.Nodes[i].Status = model.StrPtr("idle")
-		bundle.Nodes[i].LastError = nil
+
+	switch req.Mode {
+	case "full":
+		idMap := map[string]string{}
+		for _, n := range bundle.Nodes {
+			idMap[n.ID] = genID()
+		}
+		for i := range bundle.Nodes {
+			old := bundle.Nodes[i].ID
+			bundle.Nodes[i].WorkspaceID = wsID
+			bundle.Nodes[i].ID = idMap[old]
+			bundle.Nodes[i].Status = model.StrPtr("idle")
+			bundle.Nodes[i].LastError = nil
+		}
+		for i := range bundle.Edges {
+			bundle.Edges[i].WorkspaceID = wsID
+			bundle.Edges[i].ID = fmt.Sprintf("e-%s-%s", idMap[bundle.Edges[i].SourceNodeID], idMap[bundle.Edges[i].TargetNodeID])
+			bundle.Edges[i].SourceNodeID = idMap[bundle.Edges[i].SourceNodeID]
+			bundle.Edges[i].TargetNodeID = idMap[bundle.Edges[i].TargetNodeID]
+		}
+		if bundle.UIState != nil {
+			bundle.UIState.WorkspaceID = model.StrPtr(wsID)
+		}
+	case "settings":
+		seedURL, err := NormalizeCrawlURL(req.SeedURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid seed URL: %w", err)
+		}
+		parsed, err := url.Parse(seedURL)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+			return nil, fmt.Errorf("invalid seed URL")
+		}
+		bundle.Workspace.SeedURL = seedURL
+		nodeID := genID()
+		bundle.Nodes = []model.GraphNode{
+			{
+				WorkspaceID:      wsID,
+				ID:               nodeID,
+				URLNormalized:    seedURL,
+				Label:            seedURL,
+				PositionX:        250,
+				PositionY:        200,
+				NodeSettingsJSON: `{}`,
+				Origin:           "crawl",
+				Status:           model.StrPtr("idle"),
+			},
+		}
+		bundle.Edges = nil
+		bundle.UIState = &model.GraphUIState{
+			WorkspaceID:          model.StrPtr(wsID),
+			CollapsedNodeIdsJSON: `{"collapsed":[],"expandedDetail":[]}`,
+		}
+	default:
+		return nil, fmt.Errorf("invalid duplicate mode: %q", req.Mode)
 	}
-	for i := range bundle.Edges {
-		bundle.Edges[i].WorkspaceID = wsID
-		bundle.Edges[i].ID = fmt.Sprintf("e-%s-%s", idMap[bundle.Edges[i].SourceNodeID], idMap[bundle.Edges[i].TargetNodeID])
-		bundle.Edges[i].SourceNodeID = idMap[bundle.Edges[i].SourceNodeID]
-		bundle.Edges[i].TargetNodeID = idMap[bundle.Edges[i].TargetNodeID]
-	}
-	if bundle.UIState != nil {
-		bundle.UIState.WorkspaceID = model.StrPtr(wsID)
-	}
+
 	if err := s.repo.SaveWorkspaceBundle(ctx, *bundle); err != nil {
 		return nil, err
 	}

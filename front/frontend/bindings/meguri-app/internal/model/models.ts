@@ -160,6 +160,59 @@ export class DiffPairDTO {
 }
 
 /**
+ * DuplicateWorkspaceRequest はワークスペース複製リクエスト。
+ */
+export class DuplicateWorkspaceRequest {
+    /**
+     * ID はコピー元ワークスペース ID。
+     */
+    "id": string;
+
+    /**
+     * Name は複製先ワークスペース名。空文字の場合はコピー元の名前を使用する。
+     */
+    "name": string;
+
+    /**
+     * Mode は複製範囲。
+     * "full": 設定・ノード・エッジ・UIState をコピーする。
+     * "settings": 設定と除外 URL のみコピーし、起点 URL からシードノードを新規作成する。
+     */
+    "mode": string;
+
+    /**
+     * SeedURL は settings モード時の起点 URL。full モードでは無視する。
+     */
+    "seedUrl": string;
+
+    /** Creates a new DuplicateWorkspaceRequest instance. */
+    constructor($$source: Partial<DuplicateWorkspaceRequest> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("name" in $$source)) {
+            this["name"] = "";
+        }
+        if (!("mode" in $$source)) {
+            this["mode"] = "";
+        }
+        if (!("seedUrl" in $$source)) {
+            this["seedUrl"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DuplicateWorkspaceRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DuplicateWorkspaceRequest {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DuplicateWorkspaceRequest($$parsedSource as Partial<DuplicateWorkspaceRequest>);
+    }
+}
+
+/**
  * ExportSessionEdgeDTO はエクスポートツリー構築用エッジ。
  */
 export class ExportSessionEdgeDTO {

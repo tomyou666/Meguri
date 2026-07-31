@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
+- ワークスペースコピーで「設定のみ / 設定とノード構成」を選べるようにした
 - 左サイドバーにノードツリー（検索・status フィルタ・複数選択・URL コピー・コンテキストメニュー）と robots タブを追加
 - `content.exclude_selectors`（CSS セレクタ除外）と Filter `exclude_selectors`、フロント設定・CLI `--exclude-selector` を追加
 - グラフツール切替ショートカット（手のひら `H` / 矩形選択 `V`）を追加

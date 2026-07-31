@@ -29,6 +29,7 @@ import type {
 } from '@/types/crawl';
 import type { Workspace } from '@/types/workspace';
 import {
+	DuplicateWorkspaceRequest,
 	ExportSessionRequest,
 	MaximizedNodeResultRequest,
 	NodeDiffViewerRequest,
@@ -138,8 +139,20 @@ export class CompositeScraperAdapter implements ScraperPort {
 		await StoreService.DeleteWorkspace(id);
 	}
 
-	async duplicateWorkspace(id: string, name: string): Promise<Workspace> {
-		const dto = await StoreService.DuplicateWorkspace(id, name);
+	async duplicateWorkspace(
+		id: string,
+		name: string,
+		mode: 'full' | 'settings',
+		seedUrl = '',
+	): Promise<Workspace> {
+		const dto = await StoreService.DuplicateWorkspace(
+			new DuplicateWorkspaceRequest({
+				id,
+				name,
+				mode,
+				seedUrl,
+			}),
+		);
 		if (!dto) throw new Error('Workspace not found');
 		return workspaceFromDTO(dto);
 	}
