@@ -634,38 +634,44 @@ export const useAppStore = create<AppState>((set, get) => ({
 		}
 
 		const primary = selectedNodeIds[selectedNodeIds.length - 1] ?? id;
+		const node = ws.nodes.find((n) => n.id === primary);
+		const cached =
+			selectedNodeIds.length === 1 &&
+			node?.status === 'success' &&
+			node.lastResult
+				? node.lastResult
+				: null;
 		set({
 			selectedNodeId: primary,
 			selectedNodeIds,
 			selectionAnchorId,
-			loadedNodeResult: null,
+			loadedNodeResult: cached,
 			nodeResultLoadingNodeId: null,
 			resultPreview: null,
 		});
-		if (selectedNodeIds.length === 1) {
-			const node = ws.nodes.find((n) => n.id === primary);
-			if (node?.status === 'success') {
-				void get().fetchSelectedNodeResult();
-			}
+		if (selectedNodeIds.length === 1 && node?.status === 'success' && !cached) {
+			void get().fetchSelectedNodeResult();
 		}
 	},
 
 	selectNodes: (ids) => {
 		const primary = ids[ids.length - 1] ?? null;
+		const ws = get().getActiveWorkspace();
+		const node = primary ? ws?.nodes.find((n) => n.id === primary) : undefined;
+		const cached =
+			ids.length === 1 && node?.status === 'success' && node.lastResult
+				? node.lastResult
+				: null;
 		set({
 			selectedNodeIds: ids,
 			selectedNodeId: primary,
 			selectionAnchorId: primary,
-			loadedNodeResult: null,
+			loadedNodeResult: cached,
 			nodeResultLoadingNodeId: null,
 			resultPreview: null,
 		});
-		if (ids.length === 1) {
-			const ws = get().getActiveWorkspace();
-			const node = ws?.nodes.find((n) => n.id === ids[0]);
-			if (node?.status === 'success') {
-				void get().fetchSelectedNodeResult();
-			}
+		if (ids.length === 1 && node?.status === 'success' && !cached) {
+			void get().fetchSelectedNodeResult();
 		}
 	},
 
@@ -1046,7 +1052,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 			onRunStarted: (id) => set({ _activeRunId: id }),
 			getWorkspace: () => get().getActiveWorkspace()!,
 			onNodeStarted: (nodeId, url) => {
-				patchNode(nodeId, { status: 'running' as NodeStatus, label: url });
+				patchNode(nodeId, {
+					status: 'running' as NodeStatus,
+					label: url,
+					lastResult: undefined,
+				});
+				if (get().selectedNodeId === nodeId) {
+					set({
+						loadedNodeResult: null,
+						nodeResultLoadingNodeId: null,
+					});
+				}
 			},
 			onNodeSucceeded: (nodeId) => {
 				const patch = nodeSucceededStatusPatch(nodeId);

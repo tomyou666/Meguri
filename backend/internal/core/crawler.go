@@ -173,12 +173,6 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 			return stats, err
 		}
 		seed := normalizeURL(seeds[0])
-		slog.Info("crawl url normalized",
-			"raw", seeds[0].String(),
-			"normalized", seed.String(),
-			"depth", 0,
-			"parent", "",
-		)
 		ok, skipped := c.runOne(ctx, job{url: seed, depth: 0}, nil)
 		if skipped {
 			stats.Skipped++
@@ -298,12 +292,6 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 
 	enqueue := func(u *url.URL, depth int, parentURL string) bool {
 		normalized := normalizeURL(u)
-		slog.Info("crawl url normalized",
-			"raw", u.String(),
-			"normalized", normalized.String(),
-			"depth", depth,
-			"parent", parentURL,
-		)
 		key := normalized.String()
 
 		stateMu.Lock()

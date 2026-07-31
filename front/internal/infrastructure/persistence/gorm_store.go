@@ -209,6 +209,22 @@ func (s *Store) GetNodeResults(ctx context.Context, workspaceID string) ([]model
 	return derefNodeResults(rows), err
 }
 
+// GetNodeResultsByNodeIDs は指定ノードの node_results を fetched_at 降順で返す。
+//
+// nodeIDs が空のときは空スライスを返す。
+// 成功／失敗の選定は呼び出し側（latestSuccessByNode 等）に委ねる。
+func (s *Store) GetNodeResultsByNodeIDs(ctx context.Context, workspaceID string, nodeIDs []string) ([]model.NodeResult, error) {
+	if len(nodeIDs) == 0 {
+		return []model.NodeResult{}, nil
+	}
+	nr := s.q.NodeResult
+	rows, err := nr.WithContext(ctx).
+		Where(nr.WorkspaceID.Eq(workspaceID), nr.NodeID.In(nodeIDs...)).
+		Order(nr.FetchedAt.Desc()).
+		Find()
+	return derefNodeResults(rows), err
+}
+
 // AppendNodeResult は結果行を追加する。
 func (s *Store) AppendNodeResult(ctx context.Context, row model.NodeResult) error {
 	ptr := row

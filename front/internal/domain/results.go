@@ -24,7 +24,7 @@ func NewResultsService(repo persistence.Repository, ws *WorkspaceService) *Resul
 
 // GetNodeResult は最新成功結果を返す。
 func (s *ResultsService) GetNodeResult(ctx context.Context, workspaceID, nodeID string) (*model.CrawlResultDTO, error) {
-	rows, err := s.repo.GetNodeResults(ctx, workspaceID)
+	rows, err := s.repo.GetNodeResultsByNodeIDs(ctx, workspaceID, []string{nodeID})
 	if err != nil {
 		return nil, err
 	}
@@ -37,16 +37,24 @@ func (s *ResultsService) GetNodeResult(ctx context.Context, workspaceID, nodeID 
 }
 
 // GetNodeResults は複数ノードの最新成功結果を返す。
+//
+// 返却順は nodeIDs の順。結果が無い ID はスキップする。
 func (s *ResultsService) GetNodeResults(ctx context.Context, workspaceID string, nodeIDs []string) ([]model.CrawlResultDTO, error) {
 	out := []model.CrawlResultDTO{}
+	if len(nodeIDs) == 0 {
+		return out, nil
+	}
+	rows, err := s.repo.GetNodeResultsByNodeIDs(ctx, workspaceID, nodeIDs)
+	if err != nil {
+		return nil, err
+	}
+	byNode := latestSuccessByNode(rows)
 	for _, nodeID := range nodeIDs {
-		r, err := s.GetNodeResult(ctx, workspaceID, nodeID)
-		if err != nil {
-			return nil, err
+		row, ok := byNode[nodeID]
+		if !ok {
+			continue
 		}
-		if r != nil {
-			out = append(out, *r)
-		}
+		out = append(out, nodeResultToPreview(row))
 	}
 	return out, nil
 }

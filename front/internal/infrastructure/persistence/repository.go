@@ -18,6 +18,7 @@ type Repository interface {
 	DeleteWorkspace(ctx context.Context, id string) error
 
 	GetNodeResults(ctx context.Context, workspaceID string) ([]model.NodeResult, error)
+	GetNodeResultsByNodeIDs(ctx context.Context, workspaceID string, nodeIDs []string) ([]model.NodeResult, error)
 	AppendNodeResult(ctx context.Context, row model.NodeResult) error
 	UpdateLatestNodeResult(ctx context.Context, workspaceID, nodeID string, patch model.NodeResultContentPatch) error
 	DeleteLatestResults(ctx context.Context, workspaceID string, nodeIDs []string) error

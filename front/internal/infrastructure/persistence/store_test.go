@@ -470,3 +470,149 @@ func TestGetGraphNodeStatuses(t *testing.T) {
 		}
 	})
 }
+
+// TestGetNodeResultsByNodeIDs は nodeIDs 絞り込み取得を検証する。
+func TestGetNodeResultsByNodeIDs(t *testing.T) {
+	t.Run("正常系: 空 nodeIDs は空スライスを返す", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+		db, err := gorm.Open(sqlite.Open(sqlitedsn.DSN(dbPath)), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		ctx := context.Background()
+		store := NewStore(db)
+		out, err := store.GetNodeResultsByNodeIDs(ctx, "ws-x", nil)
+		if err != nil {
+			t.Fatalf("get: %v", err)
+		}
+		if len(out) != 0 {
+			t.Fatalf("expected empty, got %d", len(out))
+		}
+	})
+
+	t.Run("正常系: 指定 node のみ返し fetched_at 降順", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+		db, err := gorm.Open(sqlite.Open(sqlitedsn.DSN(dbPath)), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		ctx := context.Background()
+		store := NewStore(db)
+		wsID := "ws-filter"
+		bundle := model.WorkspaceBundle{
+			Workspace: model.Workspace{
+				ID:                   model.StrPtr(wsID),
+				Name:                 "Filter",
+				SeedURL:              "https://example.com",
+				SettingsJSON:         `{}`,
+				ExcludeUrlsJSON:      `[]`,
+				GraphLayoutDirection: model.StrPtr("LR"),
+				CreatedAt:            "2026-01-01T00:00:00Z",
+				UpdatedAt:            "2026-01-01T00:00:00Z",
+			},
+			Nodes: []model.GraphNode{
+				{
+					WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com",
+					Label: "n1", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+				{
+					WorkspaceID: wsID, ID: "n2", URLNormalized: "https://example.com/a",
+					Label: "n2", PositionX: 100, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+				{
+					WorkspaceID: wsID, ID: "n3", URLNormalized: "https://example.com/b",
+					Label: "n3", PositionX: 200, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("error"),
+				},
+			},
+		}
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("save ws: %v", err)
+		}
+		if err := store.BeginCrawlRun(ctx, model.CrawlRun{
+			ID:          model.StrPtr("run-1"),
+			WorkspaceID: wsID,
+			Mode:        1,
+			Status:      model.StrPtr("completed"),
+			StartedAt:   "2026-01-01T00:00:00Z",
+		}); err != nil {
+			t.Fatalf("begin crawl run 1: %v", err)
+		}
+		if err := store.BeginCrawlRun(ctx, model.CrawlRun{
+			ID:          model.StrPtr("run-2"),
+			WorkspaceID: wsID,
+			Mode:        1,
+			Status:      model.StrPtr("running"),
+			StartedAt:   "2026-01-01T01:00:00Z",
+		}); err != nil {
+			t.Fatalf("begin crawl run 2: %v", err)
+		}
+
+		mdOld, mdNew := "# old", "# new"
+		errMsg := "fail"
+		rows := []model.NodeResult{
+			{
+				ID: model.StrPtr("nr-n1-old"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n1",
+				URL: "https://example.com", Markdown: &mdOld, FetchedAt: "2026-01-01T00:00:01Z",
+			},
+			{
+				ID: model.StrPtr("nr-n1-new"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n1",
+				URL: "https://example.com", Markdown: &mdNew, FetchedAt: "2026-01-01T01:00:02Z",
+			},
+			{
+				ID: model.StrPtr("nr-n2"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n2",
+				URL: "https://example.com/a", Markdown: &mdNew, FetchedAt: "2026-01-01T01:00:03Z",
+			},
+			{
+				ID: model.StrPtr("nr-n3"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n3",
+				URL: "https://example.com/b", Error: &errMsg, FetchedAt: "2026-01-01T01:00:04Z",
+			},
+		}
+		for _, row := range rows {
+			if err := store.AppendNodeResult(ctx, row); err != nil {
+				t.Fatalf("append: %v", err)
+			}
+		}
+
+		out, err := store.GetNodeResultsByNodeIDs(ctx, wsID, []string{"n1", "n3"})
+		if err != nil {
+			t.Fatalf("get: %v", err)
+		}
+		if len(out) != 3 {
+			t.Fatalf("expected 3 rows (2 for n1 + 1 for n3), got %d", len(out))
+		}
+		for _, r := range out {
+			if r.NodeID == "n2" {
+				t.Fatalf("n2 must not be returned")
+			}
+		}
+		if out[0].NodeID != "n3" {
+			t.Fatalf("expected newest first (n3), got %+v", out[0])
+		}
+		if out[1].NodeID != "n1" || model.StrVal(out[1].Markdown) != mdNew {
+			t.Fatalf("expected n1 newest next, got %+v", out[1])
+		}
+	})
+}
