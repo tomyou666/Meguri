@@ -8,6 +8,16 @@ export type NodeFlatNode = {
 	status: NodeStatus;
 };
 
+/** テキスト / status フィルタに必要なフラットノード最小形。 */
+export type FilterableFlatNode = {
+	id: string;
+	parent_id: string | null;
+	urlNormalized: string;
+	label: string;
+	/** status フィルタ時のみ必要（NodeStatus または同等の文字列） */
+	status?: string;
+};
+
 export type NodeTreeFilterResult = {
 	/** 表示するノード（ヒット + 祖先） */
 	visibleIds: Set<string>;
@@ -94,7 +104,7 @@ export function expandableNodeIds(flat: NodeFlatNode[]): string[] {
 	return [...parents];
 }
 
-function matchesQuery(node: NodeFlatNode, query: string): boolean {
+function matchesQuery(node: FilterableFlatNode, query: string): boolean {
 	if (!query) return true;
 	const q = query.toLowerCase();
 	return (
@@ -104,16 +114,17 @@ function matchesQuery(node: NodeFlatNode, query: string): boolean {
 }
 
 function matchesStatus(
-	node: NodeFlatNode,
+	node: FilterableFlatNode,
 	statuses: ReadonlySet<NodeStatus>,
 ): boolean {
 	if (statuses.size === 0) return true;
-	return statuses.has(node.status);
+	if (node.status === undefined) return false;
+	return (statuses as ReadonlySet<string>).has(node.status);
 }
 
 /** テキスト検索と status フィルタ（AND）で visible / hit を計算する。 */
 export function filterNodeTree(
-	flat: NodeFlatNode[],
+	flat: FilterableFlatNode[],
 	query: string,
 	statuses: ReadonlyArray<NodeStatus>,
 ): NodeTreeFilterResult {
@@ -152,7 +163,7 @@ export function filterNodeTree(
 
 /** ヒット祖先をすべて展開した expanded 集合を返す。 */
 export function expandIdsForHits(
-	flat: NodeFlatNode[],
+	flat: Pick<FilterableFlatNode, 'id' | 'parent_id'>[],
 	hitIds: ReadonlySet<string>,
 ): Set<string> {
 	const byId = new Map(flat.map((n) => [n.id, n]));
