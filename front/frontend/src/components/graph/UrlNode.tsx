@@ -1,15 +1,11 @@
 import { Handle, type NodeProps } from '@xyflow/react';
 import {
 	AlertCircle,
-	CheckCircle2,
 	ChevronDown,
 	ChevronRight,
-	Circle,
 	FileText,
 	Info,
 	Link2,
-	Loader2,
-	SkipForward,
 } from 'lucide-react';
 import { memo, type ReactNode } from 'react';
 import { NodeDetailSettings } from '@/components/graph/NodeDetailSettings';
@@ -24,6 +20,7 @@ import {
 	handlePositionsForDirection,
 	NODE_DETAIL_EXPANDED_WIDTH,
 } from '@/lib/dagreLayout';
+import { nodeStatusUi } from '@/lib/nodeStatusUi';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
 import type { DiffKind } from '@/types/adapter';
@@ -40,37 +37,6 @@ export type UrlNodeData = {
 	grayed?: boolean;
 	diffKinds?: DiffKind[];
 	url?: string;
-};
-
-const statusConfig: Record<
-	NodeStatus,
-	{ icon: ReactNode; border: string; label: string }
-> = {
-	idle: {
-		icon: <Circle className='size-3 text-muted-foreground' />,
-		border: 'border-border',
-		label: messages.status.idle,
-	},
-	running: {
-		icon: <Loader2 className='size-3 animate-spin text-blue-400' />,
-		border: 'border-blue-500',
-		label: messages.status.running,
-	},
-	success: {
-		icon: <CheckCircle2 className='size-3 text-emerald-400' />,
-		border: 'border-emerald-500',
-		label: messages.status.success,
-	},
-	error: {
-		icon: <AlertCircle className='size-3 text-destructive' />,
-		border: 'border-destructive',
-		label: messages.status.error,
-	},
-	skipped: {
-		icon: <SkipForward className='size-3 text-amber-400' />,
-		border: 'border-amber-500',
-		label: messages.status.skipped,
-	},
 };
 
 const diffKindConfig: Record<DiffKind, { icon: ReactNode; label: string }> = {
@@ -116,7 +82,7 @@ function NodeIconButton({
 
 function UrlNodeComponent({ id, data }: NodeProps) {
 	const d = data as UrlNodeData;
-	const cfg = statusConfig[d.status] ?? statusConfig.idle;
+	const cfg = nodeStatusUi[d.status] ?? nodeStatusUi.idle;
 	const handles = handlePositionsForDirection(d.layoutDirection ?? 'LR');
 	const toggleDetail = useAppStore((s) => s.toggleNodeDetailExpand);
 	const toggleSubtree = useAppStore((s) => s.toggleNodeSubtreeCollapse);

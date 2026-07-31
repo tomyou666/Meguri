@@ -13,6 +13,11 @@ import {
 	useNodesState,
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { GraphNodeFocus } from '@/components/graph/GraphNodeFocus';
+import {
+	NodeContextMenuItems,
+	type NodeContextMenuState,
+} from '@/components/graph/NodeContextMenuItems';
 import { messages } from '@/i18n/messages';
 import { handlePositionsForDirection } from '@/lib/dagreLayout';
 import {
@@ -60,11 +65,6 @@ export function CrawlGraph() {
 	const removeEdges = useAppStore((s) => s.removeEdges);
 	const addEdgeToStore = useAppStore((s) => s.addEdge);
 	const openAddNodeDialog = useAppStore((s) => s.openAddNodeDialog);
-	const collapseNodes = useAppStore((s) => s.collapseNodes);
-	const expandNodes = useAppStore((s) => s.expandNodes);
-	const deleteSelectedNodes = useAppStore((s) => s.deleteSelectedNodes);
-	const bulkScrapeSelected = useAppStore((s) => s.bulkScrapeSelected);
-	const setNodeCrawlExclude = useAppStore((s) => s.setNodeCrawlExclude);
 
 	const [contextMenu, setContextMenu] = useState<{
 		x: number;
@@ -85,15 +85,17 @@ export function CrawlGraph() {
 		return getHiddenDescendantIds(ws.collapsedNodeIds ?? [], ws.edges);
 	}, [ws]);
 
-	const contextMenuNodeState = useMemo(() => {
+	const contextMenuNodeState: NodeContextMenuState | null = useMemo(() => {
 		if (contextMenu?.kind !== 'node' || !contextMenu.id || !ws) {
 			return null;
 		}
 		const nodeId = contextMenu.id;
+		const node = ws.nodes.find((n) => n.id === nodeId);
 		return {
 			nodeId,
 			hasChildren: hasChildNodes(nodeId, ws.edges),
 			isCollapsed: (ws.collapsedNodeIds ?? []).includes(nodeId),
+			crawlExclude: node?.crawlExclude ?? false,
 		};
 	}, [contextMenu, ws]);
 
@@ -340,6 +342,7 @@ export function CrawlGraph() {
 				<Background gap={16} />
 				<GraphSelectionSync />
 				<GraphWorkspaceFitView />
+				<GraphNodeFocus />
 				<GraphCanvasControls />
 			</ReactFlow>
 			{contextMenu && (
@@ -362,57 +365,11 @@ export function CrawlGraph() {
 							{messages.sidebar.newNode}
 						</button>
 					)}
-					{contextMenu.kind === 'node' && contextMenu.id && (
-						<>
-							{contextMenuNodeState?.hasChildren && (
-								<button
-									type='button'
-									className='block w-full px-2 py-1 text-left text-xs hover:bg-muted'
-									onClick={() => {
-										if (contextMenuNodeState.isCollapsed) {
-											expandNodes([contextMenuNodeState.nodeId]);
-										} else {
-											collapseNodes([contextMenuNodeState.nodeId]);
-										}
-										setContextMenu(null);
-									}}
-								>
-									{contextMenuNodeState.isCollapsed
-										? messages.graph.contextExpand
-										: messages.graph.contextCollapse}
-								</button>
-							)}
-							<button
-								type='button'
-								className='block w-full px-2 py-1 text-left text-xs hover:bg-muted'
-								onClick={() => {
-									setNodeCrawlExclude(contextMenu.id!, true);
-									setContextMenu(null);
-								}}
-							>
-								{messages.graph.contextExcludeCrawl}
-							</button>
-							<button
-								type='button'
-								className='block w-full px-2 py-1 text-left text-xs hover:bg-muted'
-								onClick={() => {
-									void bulkScrapeSelected();
-									setContextMenu(null);
-								}}
-							>
-								{messages.graph.contextScrape}
-							</button>
-							<button
-								type='button'
-								className='block w-full px-2 py-1 text-left text-destructive text-xs hover:bg-muted'
-								onClick={() => {
-									deleteSelectedNodes();
-									setContextMenu(null);
-								}}
-							>
-								{messages.graph.contextDelete}
-							</button>
-						</>
+					{contextMenu.kind === 'node' && contextMenuNodeState && (
+						<NodeContextMenuItems
+							state={contextMenuNodeState}
+							onClose={() => setContextMenu(null)}
+						/>
 					)}
 					{contextMenu.kind === 'edge' && contextMenu.id && (
 						<button

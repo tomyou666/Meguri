@@ -168,6 +168,8 @@ interface AppState {
 	selectionAnchorId: string | null;
 	/** クリック選択時に useOnSelectionChange による上書きを防ぐ */
 	_suppressSelectionSync: boolean;
+	/** サイドバー等からのグラフ中央寄せ要求 */
+	graphFocusRequest: { ids: string[]; seq: number } | null;
 	graphToolMode: 'pan' | 'select';
 	leftSidebarCollapsed: boolean;
 	rightSidebarCollapsed: boolean;
@@ -224,6 +226,8 @@ interface AppState {
 		opts?: { additive?: boolean; range?: boolean },
 	) => void;
 	selectNodes: (ids: string[]) => void;
+	requestGraphFocus: (ids: string[]) => void;
+	clearGraphFocusRequest: () => void;
 	setGraphToolMode: (mode: 'pan' | 'select') => void;
 	selectAllNodes: () => void;
 	clearNodeSelection: () => void;
@@ -307,6 +311,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	selectedNodeIds: [],
 	selectionAnchorId: null,
 	_suppressSelectionSync: false,
+	graphFocusRequest: null,
 	graphToolMode: 'pan',
 	leftSidebarCollapsed: false,
 	rightSidebarCollapsed: false,
@@ -631,6 +636,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 			}
 		}
 	},
+
+	requestGraphFocus: (ids) => {
+		if (ids.length === 0) return;
+		const prev = get().graphFocusRequest;
+		set({
+			graphFocusRequest: { ids, seq: (prev?.seq ?? 0) + 1 },
+		});
+	},
+
+	clearGraphFocusRequest: () => set({ graphFocusRequest: null }),
 
 	setGraphToolMode: (mode) => set({ graphToolMode: mode }),
 

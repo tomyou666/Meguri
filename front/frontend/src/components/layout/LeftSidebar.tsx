@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { diffNodeCount } from '@/components/diff/diffSummaryUtils';
 import { CollapsedSidebarRail } from '@/components/layout/CollapsedSidebarRail';
 import { DomainStatusPanel } from '@/components/layout/DomainStatusPanel';
+import { NodeTreePanel } from '@/components/layout/NodeTreePanel';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { messages } from '@/i18n/messages';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
@@ -59,6 +61,7 @@ export function LeftSidebarContent() {
 	);
 	const appDefaults = useAppStore((s) => s.appDefaults);
 	const [wsSettingsOpen, setWsSettingsOpen] = useState(false);
+	const [nodesTab, setNodesTab] = useState('tree');
 
 	const openDiffForWorkspace = async (wsId: string) => {
 		await fetchWorkspaceDiff(wsId);
@@ -221,25 +224,54 @@ export function LeftSidebarContent() {
 					)}
 				</ScrollArea>
 
-				<div className='flex flex-1 flex-col border-sidebar-border border-t'>
+				<div className='flex flex-1 flex-col overflow-hidden border-sidebar-border border-t'>
 					<div className='px-2 py-2'>
 						<span className='font-semibold text-xs'>
-							{messages.sidebar.domainStatus}
+							{messages.sidebar.nodes}
 						</span>
 					</div>
-					<ScrollArea className='flex-1 px-1 pb-2'>
-						{activeWorkspace ? (
-							<DomainStatusPanel
-								nodes={activeWorkspace.nodes}
-								appDefaults={appDefaults}
-								wsSettings={activeWorkspace.settings}
-							/>
-						) : (
-							<p className='px-2 py-2 text-muted-foreground text-xs'>
-								{messages.sidebar.emptyDomains}
-							</p>
-						)}
-					</ScrollArea>
+					{activeWorkspace ? (
+						<Tabs
+							value={nodesTab}
+							onValueChange={setNodesTab}
+							className='flex min-h-0 flex-1 flex-col'
+						>
+							<TabsList className='mx-2 shrink-0'>
+								<TabsTrigger value='tree'>
+									{messages.sidebar.tabTree}
+								</TabsTrigger>
+								<TabsTrigger value='robots'>
+									{messages.sidebar.tabRobots}
+								</TabsTrigger>
+							</TabsList>
+							<TabsContent
+								value='tree'
+								className='flex min-h-0 flex-1 flex-col overflow-hidden pt-1'
+							>
+								<NodeTreePanel
+									nodes={activeWorkspace.nodes}
+									edges={activeWorkspace.edges}
+									seedUrl={activeWorkspace.seedUrl}
+								/>
+							</TabsContent>
+							<TabsContent
+								value='robots'
+								className='min-h-0 flex-1 overflow-hidden'
+							>
+								<ScrollArea className='h-full px-1 pb-2'>
+									<DomainStatusPanel
+										nodes={activeWorkspace.nodes}
+										appDefaults={appDefaults}
+										wsSettings={activeWorkspace.settings}
+									/>
+								</ScrollArea>
+							</TabsContent>
+						</Tabs>
+					) : (
+						<p className='px-2 py-2 text-muted-foreground text-xs'>
+							{messages.sidebar.emptyNodes}
+						</p>
+					)}
 				</div>
 			</aside>
 

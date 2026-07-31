@@ -46,6 +46,30 @@ export function AppKeyboardShortcuts() {
 			if (e.key === 'Delete' && store.selectedNodeIds.length > 0) {
 				if (isTextInputElement(target)) return;
 				store.deleteSelectedNodes();
+				return;
+			}
+			// ツール切替は入力中のみ除外。React Flow クリック後も focus が BODY のままのため
+			// isGraphShortcutTarget では発火できない。
+			if (
+				(e.key === 'h' || e.key === 'H') &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				!e.altKey
+			) {
+				if (isTextInputElement(target)) return;
+				e.preventDefault();
+				store.setGraphToolMode('pan');
+				return;
+			}
+			if (
+				(e.key === 'v' || e.key === 'V') &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				!e.altKey
+			) {
+				if (isTextInputElement(target)) return;
+				e.preventDefault();
+				store.setGraphToolMode('select');
 			}
 		};
 		window.addEventListener('keydown', onKeyDown);
