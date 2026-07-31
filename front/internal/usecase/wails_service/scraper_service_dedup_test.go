@@ -42,6 +42,42 @@ func TestCrawlState(t *testing.T) {
 		st.rescrapeExisting = true
 		assert.Nil(t, st.skipScrapeURLs())
 	})
+
+	t.Run("正常系: mergeSkipScrapeLinkMap は DB 優先で LastResult を補完する", func(t *testing.T) {
+		st := newCrawlState(model.StartCrawlRequest{
+			RescrapeExisting: false,
+			Workspace: model.WorkspaceDTO{
+				Nodes: []model.GraphNodeDTO{
+					{
+						ID:            "n1",
+						URLNormalized: "https://example.com/a",
+						Status:        "success",
+						LastResult:    &model.CrawlResultDTO{Links: []string{"https://example.com/from-last"}},
+					},
+					{
+						ID:            "n2",
+						URLNormalized: "https://example.com/b",
+						Status:        "success",
+						LastResult:    &model.CrawlResultDTO{Links: []string{"https://example.com/from-last-b"}},
+					},
+					{
+						ID:            "n3",
+						URLNormalized: "https://example.com/c",
+						Status:        "success",
+					},
+				},
+			},
+		})
+		skip := []string{"https://example.com/a", "https://example.com/b", "https://example.com/c"}
+		fromDB := map[string][]string{
+			"https://example.com/a": {"https://example.com/from-db"},
+		}
+		got := st.mergeSkipScrapeLinkMap(fromDB, skip)
+		assert.Equal(t, []string{"https://example.com/from-db"}, got["https://example.com/a"])
+		assert.Equal(t, []string{"https://example.com/from-last-b"}, got["https://example.com/b"])
+		_, hasC := got["https://example.com/c"]
+		assert.False(t, hasC, "no links means omitted from map")
+	})
 }
 
 // TestShouldSuppressNodeSkipped は到達済みノードへの nodeSkipped 抑止判定を検証する。

@@ -40,6 +40,8 @@ type Crawler struct {
 	excludeURLs map[string]struct{}
 	// skipScrapeURLs は fetch のみスキップする正規化 URL 集合（already_success 理由で通知）。
 	skipScrapeURLs map[string]struct{}
+	// skipScrapeLinkMap は skipScrapeURLs の保存 outbound リンク（正規化 URL → 生リンク文字列）。
+	skipScrapeLinkMap map[string][]string
 
 	// sink は各ページの Result 受け取り先（レガシー互換）。
 	sink ResultSink
@@ -105,6 +107,17 @@ func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink Result
 			c.skipScrapeURLs[normalizeURL(u).String()] = struct{}{}
 		}
 	}
+	if len(cfg.Crawl.SkipScrapeLinkMap) > 0 {
+		c.skipScrapeLinkMap = make(map[string][]string, len(cfg.Crawl.SkipScrapeLinkMap))
+		for raw, links := range cfg.Crawl.SkipScrapeLinkMap {
+			u, err := url.Parse(raw)
+			if err != nil {
+				continue
+			}
+			key := normalizeURL(u).String()
+			c.skipScrapeLinkMap[key] = append([]string(nil), links...)
+		}
+	}
 	return c
 }
 
@@ -150,7 +163,10 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 			"depth", 0,
 			"parent", "",
 		)
-		if c.runOne(ctx, job{url: seed, depth: 0}, nil) {
+		ok, skipped := c.runOne(ctx, job{url: seed, depth: 0}, nil)
+		if skipped {
+			stats.Skipped++
+		} else if ok {
 			stats.Succeeded++
 		} else {
 			stats.Failed++
@@ -231,11 +247,13 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		queueMu.Unlock()
 	}
 
-	finishOne := func(ok bool) {
+	finishOne := func(ok, skipped bool) {
 		stateMu.Lock()
 		defer stateMu.Unlock()
 		pending--
-		if ok {
+		if skipped {
+			stats.Skipped++
+		} else if ok {
 			stats.Succeeded++
 		} else {
 			stats.Failed++
@@ -329,14 +347,14 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 				if err := c.waitIfPaused(ctx); err != nil {
 					return
 				}
-				ok := c.runOne(ctx, j, enqueue)
+				ok, skipped := c.runOne(ctx, j, enqueue)
 				if c.cfg.Crawl.RequestDelay > 0 {
 					select {
 					case <-ctx.Done():
 					case <-time.After(c.cfg.Crawl.RequestDelay):
 					}
 				}
-				finishOne(ok)
+				finishOne(ok, skipped)
 			}
 		}()
 	}
@@ -363,8 +381,23 @@ func (c *Crawler) waitIfPaused(ctx context.Context) error {
 
 // runOne は 1 ジョブ分のパイプラインを実行し、結果を通知し、抽出リンクを enqueue する。
 // enqueue が nil の場合（単一URLモード）は次URLを追加しない。
-func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int, string) bool) bool {
+//
+// 戻り値 ok はパイプライン成功、skipped は fetch スキップ（already_success）を表す。
+// skipped=true のとき ok は無視する。
+func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int, string) bool) (ok bool, skipped bool) {
 	urlStr := j.url.String()
+	if _, skipFetch := c.skipScrapeURLs[urlStr]; skipFetch {
+		emitProgress(c.progress, ProgressEvent{
+			Kind:       ProgressSkipped,
+			URL:        urlStr,
+			ParentURL:  j.parentURL,
+			Depth:      j.depth,
+			SkipReason: "already_success",
+		})
+		c.expandCachedLinks(j, enqueue)
+		return false, true
+	}
+
 	emitProgress(c.progress, ProgressEvent{
 		Kind:      ProgressStarted,
 		URL:       urlStr,
@@ -383,7 +416,7 @@ func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int,
 			Depth:     j.depth,
 			Error:     err.Error(),
 		})
-		return false
+		return false, false
 	}
 	if out.Result != nil {
 		if c.sink != nil {
@@ -400,29 +433,58 @@ func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int,
 	if enqueue != nil {
 		parent := urlStr
 		for _, link := range out.Links {
-			normalizedLink := normalizeURL(link)
-			slog.Info("crawl link discovered",
-				"raw", link.String(),
-				"normalized", normalizedLink.String(),
-				"depth", j.depth+1,
-				"parent", parent,
-			)
-			if enqueue(link, j.depth+1, parent) {
-				child := normalizedLink.String()
-				emitProgress(c.progress, ProgressEvent{
-					Kind:      ProgressLinkDiscovered,
-					URL:       child,
-					ParentURL: parent,
-					Depth:     j.depth + 1,
-				})
-			}
+			c.tryEnqueueDiscovered(link, j.depth+1, parent, enqueue)
 		}
 	}
-	return true
+	return true, false
+}
+
+// expandCachedLinks は skip scrape 対象 URL の保存リンクを enqueue する。
+func (c *Crawler) expandCachedLinks(j job, enqueue func(*url.URL, int, string) bool) {
+	if enqueue == nil || len(c.skipScrapeLinkMap) == 0 {
+		return
+	}
+	links, ok := c.skipScrapeLinkMap[j.url.String()]
+	if !ok || len(links) == 0 {
+		return
+	}
+	parent := j.url.String()
+	for _, raw := range links {
+		u, err := url.Parse(raw)
+		if err != nil {
+			continue
+		}
+		c.tryEnqueueDiscovered(u, j.depth+1, parent, enqueue)
+	}
+}
+
+// tryEnqueueDiscovered は発見リンクを enqueue し、成功時に ProgressLinkDiscovered を出す。
+func (c *Crawler) tryEnqueueDiscovered(
+	link *url.URL,
+	depth int,
+	parent string,
+	enqueue func(*url.URL, int, string) bool,
+) {
+	normalizedLink := normalizeURL(link)
+	slog.Info("crawl link discovered",
+		"raw", link.String(),
+		"normalized", normalizedLink.String(),
+		"depth", depth,
+		"parent", parent,
+	)
+	if enqueue(link, depth, parent) {
+		emitProgress(c.progress, ProgressEvent{
+			Kind:      ProgressLinkDiscovered,
+			URL:       normalizedLink.String(),
+			ParentURL: parent,
+			Depth:     depth,
+		})
+	}
 }
 
 // skipReason はネットワーク不要の訪問不可理由を返す。訪問可能なら空文字。
 // robots.txt 判定は含まない（enqueue 側で max_pages 予約後に lock 外で行う）。
+// SkipScrapeURLs は enqueue 対象（枠消費）とし、fetch スキップは runOne 側で行う。
 func (c *Crawler) skipReason(u *url.URL, depth int, base *url.URL) string {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return "invalid_scheme"
@@ -433,11 +495,6 @@ func (c *Crawler) skipReason(u *url.URL, depth int, base *url.URL) string {
 	if c.excludeURLs != nil {
 		if _, ok := c.excludeURLs[u.String()]; ok {
 			return "exclude_urls"
-		}
-	}
-	if c.skipScrapeURLs != nil {
-		if _, ok := c.skipScrapeURLs[u.String()]; ok {
-			return "already_success"
 		}
 	}
 	if !c.cfg.PDF.Enabled && strings.HasSuffix(strings.ToLower(u.Path), ".pdf") {

@@ -96,6 +96,7 @@ function TreeRow({
 				isHit && !selected && 'bg-sidebar-accent/50',
 				grayed && 'opacity-45 grayscale',
 			)}
+			data-tree-node-id={node.id}
 			style={{ paddingLeft: `${depth * 0.75 + 0.125}rem` }}
 		>
 			{hasVisibleChildren ? (
@@ -212,6 +213,8 @@ export function NodeTreePanel({ nodes, edges, seedUrl }: NodeTreePanelProps) {
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const selectNode = useAppStore((s) => s.selectNode);
 	const requestGraphFocus = useAppStore((s) => s.requestGraphFocus);
+	const treeFocusRequest = useAppStore((s) => s.treeFocusRequest);
+	const clearTreeFocusRequest = useAppStore((s) => s.clearTreeFocusRequest);
 	const collapsedNodeIds = useAppStore(
 		(s) => s.getActiveWorkspace()?.collapsedNodeIds ?? [],
 	);
@@ -231,6 +234,7 @@ export function NodeTreePanel({ nodes, edges, seedUrl }: NodeTreePanelProps) {
 	const expandSnapshotRef = useRef<Set<string> | null>(null);
 	const wasFilteringRef = useRef(false);
 	const knownExpandableRef = useRef<Set<string>>(new Set(expandableIds));
+	const listRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		const expandable = expandableNodeIds(flat);
@@ -274,6 +278,48 @@ export function NodeTreePanel({ nodes, edges, seedUrl }: NodeTreePanelProps) {
 			}
 		}
 	}, [isFiltering, flat, filterResult.hitIds]);
+
+	useEffect(() => {
+		if (!treeFocusRequest || treeFocusRequest.ids.length === 0) return;
+		const id = treeFocusRequest.ids[0];
+		if (isFiltering && !filterResult.visibleIds.has(id)) {
+			clearTreeFocusRequest();
+			return;
+		}
+		const ancestors = expandIdsForHits(flat, new Set([id]));
+		setExpandedIds((prev) => {
+			let changed = false;
+			const next = new Set(prev);
+			for (const ancestorId of ancestors) {
+				if (!next.has(ancestorId)) {
+					next.add(ancestorId);
+					changed = true;
+				}
+			}
+			return changed ? next : prev;
+		});
+
+		let innerFrame = 0;
+		const outerFrame = requestAnimationFrame(() => {
+			innerFrame = requestAnimationFrame(() => {
+				const el = listRef.current?.querySelector(
+					`[data-tree-node-id="${CSS.escape(id)}"]`,
+				);
+				el?.scrollIntoView({ block: 'center' });
+				clearTreeFocusRequest();
+			});
+		});
+		return () => {
+			cancelAnimationFrame(outerFrame);
+			cancelAnimationFrame(innerFrame);
+		};
+	}, [
+		treeFocusRequest,
+		isFiltering,
+		filterResult.visibleIds,
+		flat,
+		clearTreeFocusRequest,
+	]);
 
 	const toggleExpand = useCallback((id: string) => {
 		setExpandedIds((prev) => {
@@ -436,7 +482,7 @@ export function NodeTreePanel({ nodes, edges, seedUrl }: NodeTreePanelProps) {
 					</ActionTooltip>
 				</div>
 			</div>
-			<div className='min-h-0 flex-1 overflow-auto px-0.5 pb-1'>
+			<div ref={listRef} className='min-h-0 flex-1 overflow-auto px-0.5 pb-1'>
 				{isFiltering && filterResult.hitCount === 0 ? (
 					<p className='px-2 py-2 text-muted-foreground text-xs'>
 						{messages.nodeTree.noMatches}

@@ -53,6 +53,40 @@ func MergeUIConfigLayers(layers ...json.RawMessage) (json.RawMessage, error) {
 	return json.Marshal(merged)
 }
 
+// FilterNodeUIConfigLayer はノード設定レイヤから content（formats 除く）のみを残す。
+//
+// 汚染された request / crawl 等のキーを実行時マージ前に除去する。
+func FilterNodeUIConfigLayer(layer json.RawMessage) (json.RawMessage, error) {
+	normalized, err := normalizeConfigLayer(layer)
+	if err != nil {
+		return nil, err
+	}
+	if len(normalized) == 0 {
+		return json.RawMessage("{}"), nil
+	}
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(normalized, &m); err != nil {
+		return nil, fmt.Errorf("filter node layer: %w", err)
+	}
+	content, ok := m["content"]
+	if !ok || len(content) == 0 || string(content) == "null" {
+		return json.RawMessage("{}"), nil
+	}
+	var contentMap map[string]json.RawMessage
+	if err := json.Unmarshal(content, &contentMap); err != nil {
+		return json.Marshal(map[string]json.RawMessage{"content": content})
+	}
+	delete(contentMap, "formats")
+	if len(contentMap) == 0 {
+		return json.RawMessage("{}"), nil
+	}
+	contentOut, err := json.Marshal(contentMap)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(map[string]json.RawMessage{"content": contentOut})
+}
+
 func mergeSection(base, override json.RawMessage) (json.RawMessage, error) {
 	var b, o map[string]json.RawMessage
 	if err := json.Unmarshal(base, &b); err != nil {

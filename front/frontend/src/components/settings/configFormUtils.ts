@@ -17,12 +17,21 @@ export function stripContentFormats(config: PartialConfig): PartialConfig {
 	return { ...config, content: contentRest };
 }
 
+/** ノード設定として永続化するキーは content のみ（formats 除く）。 */
+export function sanitizeNodeConfig(config: PartialConfig): PartialConfig {
+	if (!config.content) return {};
+	return stripContentFormats({ content: config.content });
+}
+
 export function sanitizeConfigForLayer(
 	config: PartialConfig,
 	layer: ConfigLayer,
 ): PartialConfig {
 	if (layer === 'app') {
 		return config;
+	}
+	if (layer === 'node') {
+		return sanitizeNodeConfig(config);
 	}
 	return stripContentFormats(config);
 }
@@ -33,6 +42,7 @@ export function defaultsForLayer(
 	layer: ConfigLayer,
 ): PartialConfig {
 	if (layer === 'app') return structuredClone(defaults);
+	if (layer === 'node') return {};
 	const { output: _output, ...rest } = structuredClone(defaults);
 	return sanitizeConfigForLayer(rest, layer);
 }

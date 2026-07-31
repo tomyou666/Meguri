@@ -223,7 +223,7 @@ export function SaveExportZip(entries: model$0.ExportZipEntryDTO[], defaultExt: 
 }
 
 /**
- * SaveNodeSettings はノード設定を保存する。
+ * SaveNodeSettings はノード設定を置き換えて保存する。
  */
 export function SaveNodeSettings(workspaceID: string, nodeID: string, settings: json$0.RawMessage): $CancellablePromise<model$0.SaveSettingsResponseDTO> {
     return $Call.ByID(3704504073, workspaceID, nodeID, settings).then(($result: any) => {

@@ -170,6 +170,8 @@ interface AppState {
 	_suppressSelectionSync: boolean;
 	/** サイドバー等からのグラフ中央寄せ要求 */
 	graphFocusRequest: { ids: string[]; seq: number } | null;
+	/** グラフ等からのツリー行フォーカス要求 */
+	treeFocusRequest: { ids: string[]; seq: number } | null;
 	graphToolMode: 'pan' | 'select';
 	leftSidebarCollapsed: boolean;
 	rightSidebarCollapsed: boolean;
@@ -210,6 +212,7 @@ interface AppState {
 		nodeId: string,
 		settings: PartialConfig,
 	) => Promise<boolean>;
+	deleteNodeSettings: (nodeId: string) => Promise<boolean>;
 	openNewWorkspaceDialog: () => void;
 	closeNewWorkspaceDialog: () => void;
 	createWorkspace: (name: string, seedUrl: string) => void;
@@ -228,6 +231,8 @@ interface AppState {
 	selectNodes: (ids: string[]) => void;
 	requestGraphFocus: (ids: string[]) => void;
 	clearGraphFocusRequest: () => void;
+	requestTreeFocus: (ids: string[]) => void;
+	clearTreeFocusRequest: () => void;
 	setGraphToolMode: (mode: 'pan' | 'select') => void;
 	selectAllNodes: () => void;
 	clearNodeSelection: () => void;
@@ -312,6 +317,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	selectionAnchorId: null,
 	_suppressSelectionSync: false,
 	graphFocusRequest: null,
+	treeFocusRequest: null,
 	graphToolMode: 'pan',
 	leftSidebarCollapsed: false,
 	rightSidebarCollapsed: false,
@@ -437,6 +443,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 			return true;
 		} catch (err) {
 			notifyError(messages.settings.saveFailed, {
+				description: err instanceof Error ? err.message : undefined,
+			});
+			return false;
+		}
+	},
+
+	deleteNodeSettings: async (nodeId) => {
+		const ws = get().getActiveWorkspace();
+		if (!ws) return false;
+		try {
+			await scraperPort.saveNodeSettings(ws.id, nodeId, {});
+			get().updateNodeSettings(nodeId, {});
+			notifySuccess(messages.settings.deleteSuccess);
+			return true;
+		} catch (err) {
+			notifyError(messages.settings.deleteFailed, {
 				description: err instanceof Error ? err.message : undefined,
 			});
 			return false;
@@ -646,6 +668,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 	},
 
 	clearGraphFocusRequest: () => set({ graphFocusRequest: null }),
+
+	requestTreeFocus: (ids) => {
+		if (ids.length === 0) return;
+		const prev = get().treeFocusRequest;
+		set({
+			treeFocusRequest: { ids, seq: (prev?.seq ?? 0) + 1 },
+		});
+	},
+
+	clearTreeFocusRequest: () => set({ treeFocusRequest: null }),
 
 	setGraphToolMode: (mode) => set({ graphToolMode: mode }),
 
@@ -896,9 +928,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 					? {
 							...w,
 							nodes: w.nodes.map((n) =>
-								n.id === nodeId
-									? { ...n, nodeSettings: { ...n.nodeSettings, ...settings } }
-									: n,
+								n.id === nodeId ? { ...n, nodeSettings: settings } : n,
 							),
 						}
 					: w,

@@ -35,4 +35,10 @@ func TestConfigLayer(t *testing.T) {
 		require.NoError(t, err)
 		assert.JSONEq(t, inner, out)
 	})
+
+	t.Run("正常系: 空 RawMessage は空オブジェクト文字列になる", func(t *testing.T) {
+		out, err := settingsJSONFromRaw(nil)
+		require.NoError(t, err)
+		assert.Equal(t, "{}", out)
+	})
 }

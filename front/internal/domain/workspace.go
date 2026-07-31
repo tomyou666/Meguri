@@ -89,7 +89,10 @@ func (s *WorkspaceService) SaveWorkspaceSettings(ctx context.Context, workspaceI
 	return s.repo.SaveWorkspaceBundle(ctx, *bundle)
 }
 
-// SaveNodeSettings はノード設定を更新する。
+// SaveNodeSettings はノード設定を置き換える。
+//
+// settings は PartialConfig JSON。空 / null は "{}" として保存する。
+// 既存キーとのマージは行わない。
 func (s *WorkspaceService) SaveNodeSettings(ctx context.Context, workspaceID, nodeID string, settings json.RawMessage) error {
 	bundle, err := s.repo.LoadWorkspaceBundle(ctx, workspaceID)
 	if err != nil || bundle == nil {
@@ -97,22 +100,14 @@ func (s *WorkspaceService) SaveNodeSettings(ctx context.Context, workspaceID, no
 	}
 	for i, n := range bundle.Nodes {
 		if n.ID == nodeID {
-			cur, err := unmarshalConfigMap(n.NodeSettingsJSON)
+			ns, err := settingsJSONFromRaw(settings)
 			if err != nil {
 				return err
 			}
-			patch, err := unmarshalConfigMap(string(settings))
-			if err != nil {
+			if _, err := unmarshalConfigMap(ns); err != nil {
 				return err
 			}
-			for k, v := range patch {
-				cur[k] = v
-			}
-			merged, err := json.Marshal(cur)
-			if err != nil {
-				return err
-			}
-			bundle.Nodes[i].NodeSettingsJSON = string(merged)
+			bundle.Nodes[i].NodeSettingsJSON = ns
 			return s.repo.SaveWorkspaceBundle(ctx, *bundle)
 		}
 	}

@@ -6,6 +6,13 @@ import {
 	sanitizeConfigForLayer,
 } from '@/components/settings/configFormUtils';
 import { Button } from '@/components/ui/button';
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog';
 import { messages } from '@/i18n/messages';
 import {
 	getConfigFieldErrors,
@@ -18,6 +25,8 @@ type ConfigEditorProps = {
 	layer: ConfigLayer;
 	settings: PartialConfig;
 	onSave: (settings: PartialConfig) => Promise<boolean>;
+	/** ノード設定削除。渡したときのみ削除ボタンを表示する。 */
+	onDelete?: () => Promise<boolean>;
 	/** リセット先。省略時は DEFAULT_APP_CONFIG。 */
 	defaults?: PartialConfig;
 	compact?: boolean;
@@ -34,6 +43,7 @@ export function ConfigEditor({
 	layer,
 	settings,
 	onSave,
+	onDelete,
 	defaults,
 	compact,
 	showPdfTab = true,
@@ -43,6 +53,8 @@ export function ConfigEditor({
 	const [draft, setDraft] = useState(settings);
 	const [saveErrors, setSaveErrors] = useState<string[]>([]);
 	const [saving, setSaving] = useState(false);
+	const [deleting, setDeleting] = useState(false);
+	const [confirmDelete, setConfirmDelete] = useState(false);
 
 	const validationDraft = useMemo(
 		() => sanitizeConfigForLayer(draft, layer),
@@ -80,6 +92,23 @@ export function ConfigEditor({
 		setSaveErrors([]);
 	};
 
+	const handleDelete = async () => {
+		if (!onDelete) return;
+		setDeleting(true);
+		try {
+			const ok = await onDelete();
+			if (ok) {
+				setConfirmDelete(false);
+			} else {
+				setSaveErrors([messages.settings.deleteFailed]);
+			}
+		} finally {
+			setDeleting(false);
+		}
+	};
+
+	const busy = saving || deleting;
+
 	return (
 		<div className='flex h-full min-h-0 flex-col'>
 			<div
@@ -112,7 +141,7 @@ export function ConfigEditor({
 						variant='outline'
 						size={compact ? 'xs' : 'sm'}
 						className='nodrag nopan nowheel flex-1'
-						disabled={saving}
+						disabled={busy}
 						onClick={(e) => {
 							e.stopPropagation();
 							handleReset();
@@ -124,7 +153,7 @@ export function ConfigEditor({
 						type='button'
 						size={compact ? 'xs' : 'sm'}
 						className='nodrag nopan nowheel flex-1'
-						disabled={saving || hasFieldErrors}
+						disabled={busy || hasFieldErrors}
 						onClick={(e) => {
 							e.stopPropagation();
 							void handleSave();
@@ -133,7 +162,48 @@ export function ConfigEditor({
 						{saving ? messages.settings.saving : messages.settings.save}
 					</Button>
 				</div>
+				{onDelete && (
+					<Button
+						type='button'
+						variant='destructive'
+						size={compact ? 'xs' : 'sm'}
+						className='nodrag nopan nowheel w-full'
+						disabled={busy}
+						onClick={(e) => {
+							e.stopPropagation();
+							setConfirmDelete(true);
+						}}
+					>
+						{deleting ? messages.settings.deleting : messages.settings.delete}
+					</Button>
+				)}
 			</div>
+			<Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{messages.dialog.deleteNodeSettingsTitle}</DialogTitle>
+					</DialogHeader>
+					<p className='text-sm'>{messages.dialog.deleteNodeSettingsConfirm}</p>
+					<DialogFooter>
+						<Button
+							variant='outline'
+							size='sm'
+							disabled={deleting}
+							onClick={() => setConfirmDelete(false)}
+						>
+							{messages.dialog.cancel}
+						</Button>
+						<Button
+							variant='destructive'
+							size='sm'
+							disabled={deleting}
+							onClick={() => void handleDelete()}
+						>
+							{deleting ? messages.settings.deleting : messages.dialog.delete}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

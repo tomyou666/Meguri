@@ -109,7 +109,7 @@ func (s *StoreService) SaveWorkspaceSettings(workspaceID string, settings json.R
 	return model.SaveSettingsResponseDTO{OK: true, Scope: "workspace"}, nil
 }
 
-// SaveNodeSettings はノード設定を保存する。
+// SaveNodeSettings はノード設定を置き換えて保存する。
 func (s *StoreService) SaveNodeSettings(workspaceID, nodeID string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error) {
 	if err := s.workspaces.SaveNodeSettings(s.ctx(), workspaceID, nodeID, settings); err != nil {
 		return model.SaveSettingsResponseDTO{}, err

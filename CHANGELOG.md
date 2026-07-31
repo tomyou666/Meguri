@@ -12,11 +12,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 - `content.exclude_selectors`（CSS セレクタ除外）と Filter `exclude_selectors`、フロント設定・CLI `--exclude-selector` を追加
 - グラフツール切替ショートカット（手のひら `H` / 矩形選択 `V`）を追加
 - ノード右クリックメニューで「クロールしない／クロールする」をトグルできるようにした
+- グラフのノード単一クリックで、ツリー側の該当行を展開してスクロール表示するようにした
+- ノード個別設定の作成（未作成時は作成ボタンのみ）と削除を追加
 
 ### 修正
 
 - Biome 2.5 向けに `biome.json` を移行し、`useSortedClasses` の class 並びを修正
 - `content.exclude_selectors` 指定時に Filter `exclude_selectors` を自動でパイプラインへ組み込むように修正
+- 既存ノード再取得 OFF でも保存リンクから BFS を続け、増やした `max_pages` 分の未訪問をクロールするように修正
+- ノード設定の保存を replace にし、編集可能でないキーがマージされて意図せぬ動作になる問題を修正
+- クロール時のノード設定マージで `content` 以外を無視するように修正
+- ノード設定のリセット先を空オブジェクトにし、デフォルト設定の丸コピーをやめた
 
 ## [0.10.0] - 2026-07-28
 

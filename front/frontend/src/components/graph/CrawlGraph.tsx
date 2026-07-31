@@ -57,6 +57,7 @@ export function CrawlGraph() {
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const workspaceDiffCache = useAppStore((s) => s.workspaceDiffCache);
 	const selectNode = useAppStore((s) => s.selectNode);
+	const requestTreeFocus = useAppStore((s) => s.requestTreeFocus);
 	const toggleNodeDetailExpand = useAppStore((s) => s.toggleNodeDetailExpand);
 	const clearNodeSelection = useAppStore((s) => s.clearNodeSelection);
 	const graphToolMode = useAppStore((s) => s.graphToolMode);
@@ -242,16 +243,18 @@ export function CrawlGraph() {
 	const onNodeClick = useCallback(
 		(e: React.MouseEvent, node: Node) => {
 			e.stopPropagation();
+			const additive = !e.shiftKey && (e.ctrlKey || e.metaKey);
+			const range = e.shiftKey;
 			useAppStore.setState({ _suppressSelectionSync: true });
-			selectNode(node.id, {
-				additive: !e.shiftKey && (e.ctrlKey || e.metaKey),
-				range: e.shiftKey,
-			});
+			selectNode(node.id, { additive, range });
+			if (!additive && !range) {
+				requestTreeFocus([node.id]);
+			}
 			queueMicrotask(() => {
 				useAppStore.setState({ _suppressSelectionSync: false });
 			});
 		},
-		[selectNode],
+		[selectNode, requestTreeFocus],
 	);
 
 	const onNodeDoubleClick = useCallback(

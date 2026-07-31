@@ -109,6 +109,9 @@ type CrawlConfig struct {
 	ExcludeURLs []string `yaml:"exclude_urls"`
 	// SkipScrapeURLs は fetch をスキップする正規化 URL 一覧（UI オーケストレーション用。exclude_urls とは別）。
 	SkipScrapeURLs []string `yaml:"skip_scrape_urls"`
+	// SkipScrapeLinkMap は SkipScrapeURLs の outbound リンク（正規化 URL → リンク一覧）。
+	// fetch スキップ時の BFS 展開に使う（YAML 設定ではなく実行時注入）。
+	SkipScrapeLinkMap map[string][]string `yaml:"skip_scrape_link_map"`
 	// AllowExternal は登録ドメイン外へのリンク追跡を許可するか。
 	AllowExternal bool `yaml:"allow_external_links"`
 	// AllowSubdomains はサブドメインへの追跡を許可するか。

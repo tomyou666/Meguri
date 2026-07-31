@@ -54,6 +54,7 @@ export function NodeResultPanel({
 	className,
 }: NodeResultPanelProps) {
 	const persistNodeSettings = useAppStore((s) => s.persistNodeSettings);
+	const deleteNodeSettings = useAppStore((s) => s.deleteNodeSettings);
 	const appDefaults = useAppStore((s) => s.appDefaults);
 	const updateNodeResult = useAppStore((s) => s.updateNodeResult);
 	const showMaximizedNodeResult = useAppStore((s) => s.showMaximizedNodeResult);
@@ -63,6 +64,7 @@ export function NodeResultPanel({
 		initialTab ?? formats[0] ?? 'markdown',
 	);
 	const [showNodeSettings, setShowNodeSettings] = useState(false);
+	const [creatingNodeSettings, setCreatingNodeSettings] = useState(false);
 	const [editing, setEditing] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [draft, setDraft] = useState('');
@@ -75,6 +77,14 @@ export function NodeResultPanel({
 	const displayResult = result ?? node?.lastResult ?? null;
 	const showPdfTab = isPdfResourceResult(displayResult);
 	const isMaximized = panelMode === 'maximized';
+	const nodeSettings = node?.nodeSettings ?? {};
+	const hasNodeSettings = Object.keys(nodeSettings).length > 0;
+	const showNodeSettingsEditor = hasNodeSettings || creatingNodeSettings;
+
+	const closeNodeSettingsPanel = () => {
+		setShowNodeSettings(false);
+		setCreatingNodeSettings(false);
+	};
 
 	const beginEdit = () => {
 		if (readonly || !displayResult || !isEditableFormat(tab)) return;
@@ -179,7 +189,7 @@ export function NodeResultPanel({
 			value={tab}
 			onValueChange={(v) => {
 				setTab(v as ContentFormat);
-				setShowNodeSettings(false);
+				closeNodeSettingsPanel();
 				setEditing(false);
 				setDraft('');
 			}}
@@ -238,7 +248,14 @@ export function NodeResultPanel({
 								variant={showNodeSettings ? 'secondary' : 'ghost'}
 								size='icon-xs'
 								aria-label={messages.right.nodeSettings}
-								onClick={() => setShowNodeSettings((v) => !v)}
+								onClick={() => {
+									if (showNodeSettings) {
+										closeNodeSettingsPanel();
+									} else {
+										setShowNodeSettings(true);
+										setCreatingNodeSettings(false);
+									}
+								}}
 							>
 								<Settings className='size-3.5' />
 							</Button>
@@ -248,16 +265,37 @@ export function NodeResultPanel({
 			</div>
 			{!readonly && showNodeSettings && node ? (
 				<ScrollArea className='min-h-0 flex-1'>
-					<ConfigEditor
-						layer='node'
-						settings={node.nodeSettings ?? {}}
-						defaults={appDefaults}
-						compact
-						showPdfTab={showPdfTab}
-						showRequestTab={false}
-						showCrawlTab={false}
-						onSave={(settings) => persistNodeSettings(node.id, settings)}
-					/>
+					{showNodeSettingsEditor ? (
+						<ConfigEditor
+							layer='node'
+							settings={hasNodeSettings ? nodeSettings : {}}
+							defaults={appDefaults}
+							compact
+							showPdfTab={showPdfTab}
+							showRequestTab={false}
+							showCrawlTab={false}
+							onSave={async (settings) => {
+								const ok = await persistNodeSettings(node.id, settings);
+								if (ok) setCreatingNodeSettings(false);
+								return ok;
+							}}
+							onDelete={
+								hasNodeSettings
+									? async () => {
+											const ok = await deleteNodeSettings(node.id);
+											if (ok) setCreatingNodeSettings(false);
+											return ok;
+										}
+									: undefined
+							}
+						/>
+					) : (
+						<div className='flex justify-center py-6'>
+							<Button size='sm' onClick={() => setCreatingNodeSettings(true)}>
+								{messages.right.createNodeSettings}
+							</Button>
+						</div>
+					)}
 				</ScrollArea>
 			) : isEditingContent ? (
 				<div className='flex min-h-0 flex-1 flex-col overflow-hidden'>

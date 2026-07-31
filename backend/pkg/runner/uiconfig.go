@@ -47,3 +47,8 @@ func ParseUIConfig(raw json.RawMessage) (*model.Config, error) {
 func DeriveContentFormats(cfg *model.Config) {
 	defaultUIConfigurator.DeriveContentFormats(cfg)
 }
+
+// FilterNodeUIConfigLayer はノード設定レイヤから content（formats 除く）のみを残す。
+func FilterNodeUIConfigLayer(layer json.RawMessage) (json.RawMessage, error) {
+	return usecase.FilterNodeUIConfigLayer(layer)
+}

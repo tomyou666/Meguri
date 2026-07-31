@@ -84,3 +84,25 @@ func TestMergeUIConfigLayers(t *testing.T) {
 		assert.Equal(t, "a=1", cfg.Plugins.Stealth.HTTP.Cookie)
 	})
 }
+
+// TestFilterNodeUIConfigLayer はノード設定から content 以外を除去することを検証する。
+func TestFilterNodeUIConfigLayer(t *testing.T) {
+	t.Run("正常系: content のみ残し formats を落とす", func(t *testing.T) {
+		in := json.RawMessage(`{"request":{"timeout":"10s"},"content":{"formats":["markdown"],"selector":"main"},"crawl":{"max_depth":2}}`)
+		out, err := usecase.FilterNodeUIConfigLayer(in)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"content":{"selector":"main"}}`, string(out))
+	})
+
+	t.Run("正常系: content が無い場合は空オブジェクト", func(t *testing.T) {
+		out, err := usecase.FilterNodeUIConfigLayer(json.RawMessage(`{"request":{"timeout":"1s"}}`))
+		require.NoError(t, err)
+		assert.JSONEq(t, `{}`, string(out))
+	})
+
+	t.Run("正常系: formats のみの content は空オブジェクト", func(t *testing.T) {
+		out, err := usecase.FilterNodeUIConfigLayer(json.RawMessage(`{"content":{"formats":["html"]}}`))
+		require.NoError(t, err)
+		assert.JSONEq(t, `{}`, string(out))
+	})
+}

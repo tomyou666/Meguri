@@ -93,6 +93,39 @@ func (s *CrawlPersistService) AppendNodeResult(ctx context.Context, req model.Ap
 	return s.repo.AppendNodeResult(ctx, row)
 }
 
+// BuildSkipScrapeLinkMap は skip scrape 対象 URL の最新成功結果から outbound リンクマップを返す。
+//
+// skipURLs が空なら nil。結果に links が無い URL はマップに含めない。
+func (s *CrawlPersistService) BuildSkipScrapeLinkMap(
+	ctx context.Context,
+	workspaceID string,
+	skipURLs []string,
+) (map[string][]string, error) {
+	if len(skipURLs) == 0 {
+		return nil, nil
+	}
+	want := make(map[string]struct{}, len(skipURLs))
+	for _, u := range skipURLs {
+		want[u] = struct{}{}
+	}
+	rows, err := s.repo.GetNodeResults(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]string)
+	for _, row := range latestSuccessByNode(rows) {
+		if _, ok := want[row.URL]; !ok {
+			continue
+		}
+		links := linksFromRow(row)
+		if len(links) == 0 {
+			continue
+		}
+		out[row.URL] = links
+	}
+	return out, nil
+}
+
 // NowISO は現在時刻 ISO 文字列。
 func NowISO() string {
 	return time.Now().UTC().Format(time.RFC3339)

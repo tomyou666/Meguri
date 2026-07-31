@@ -574,6 +574,43 @@ func (st *crawlState) skipScrapeURLs() []string {
 	return urls
 }
 
+// mergeSkipScrapeLinkMap は DB マップに LastResult.Links を不足分だけ足す。
+func (st *crawlState) mergeSkipScrapeLinkMap(fromDB map[string][]string, skipURLs []string) map[string][]string {
+	if len(skipURLs) == 0 {
+		return nil
+	}
+	want := make(map[string]struct{}, len(skipURLs))
+	for _, u := range skipURLs {
+		want[u] = struct{}{}
+	}
+	out := make(map[string][]string)
+	for k, v := range fromDB {
+		if _, ok := want[k]; !ok {
+			continue
+		}
+		if len(v) == 0 {
+			continue
+		}
+		out[k] = append([]string(nil), v...)
+	}
+	for _, n := range st.nodeByID {
+		if _, ok := want[n.URLNormalized]; !ok {
+			continue
+		}
+		if _, exists := out[n.URLNormalized]; exists {
+			continue
+		}
+		if n.LastResult == nil || len(n.LastResult.Links) == 0 {
+			continue
+		}
+		out[n.URLNormalized] = append([]string(nil), n.LastResult.Links...)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
 // linkSkipReason は子 URL が素材化済みのときスキップ理由を返す。未登録なら空文字。
 func (st *crawlState) linkSkipReason(childKey string) string {
 	if _, ok := st.initialURLs[childKey]; ok {
@@ -616,7 +653,11 @@ func (st *crawlState) mergedConfig(mode int32, node model.GraphNodeDTO) (*runner
 	layers := []json.RawMessage{st.appDefaults}
 	if mode != 2 {
 		layers = append(layers, st.wsSettings)
-		layers = append(layers, node.NodeSettings)
+		nodeLayer, err := runner.FilterNodeUIConfigLayer(node.NodeSettings)
+		if err != nil {
+			return nil, err
+		}
+		layers = append(layers, nodeLayer)
 	}
 	merged, err := runner.MergeUIConfigLayers(layers...)
 	if err != nil {
@@ -679,7 +720,23 @@ func (s *ScraperService) runMainBFS(
 		return nil, mainReached, err
 	}
 	cfg.Crawl.Enabled = true
-	cfg.Crawl.SkipScrapeURLs = st.skipScrapeURLs()
+	skipURLs := st.skipScrapeURLs()
+	cfg.Crawl.SkipScrapeURLs = skipURLs
+	if len(skipURLs) > 0 {
+		var fromDB map[string][]string
+		if s.persist != nil {
+			m, err := s.persist.BuildSkipScrapeLinkMap(ctx, req.WorkspaceID, skipURLs)
+			if err != nil {
+				slog.WarnContext(ctx, "skip scrape link map load failed",
+					"workspaceId", req.WorkspaceID,
+					"err", err.Error(),
+				)
+			} else {
+				fromDB = m
+			}
+		}
+		cfg.Crawl.SkipScrapeLinkMap = st.mergeSkipScrapeLinkMap(fromDB, skipURLs)
+	}
 
 	progress := func(ev runner.ProgressEvent) {
 		switch ev.Kind {

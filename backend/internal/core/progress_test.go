@@ -105,6 +105,7 @@ func TestCrawlerProgress(t *testing.T) {
 	})
 
 	t.Run("正常系: skip_scrape_urls は取得せず already_success でスキップされる", func(t *testing.T) {
+		// 子 URL を skip_scrape に入れ、enqueue 後に fetch だけスキップする。
 		cfg := baseConfig()
 		cfg.Crawl.Enabled = true
 		cfg.Crawl.MaxDepth = 2
@@ -151,6 +152,159 @@ func TestCrawlerProgress(t *testing.T) {
 		for _, u := range collected {
 			assert.NotContains(t, u, "/docs/page-a.html", "skip scrape URLs must not be fetched")
 		}
+	})
+
+	t.Run("正常系: skip_scrape + link map で未訪問を max_pages 枠内に展開する", func(t *testing.T) {
+		// シードは再取得せず、保存リンクから page-a/b だけ fetch する。
+		seedURL := srv.URL + "/links_with_pdf.html"
+		pageA := srv.URL + "/docs/page-a.html"
+		pageB := srv.URL + "/docs/page-b.html"
+
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = true
+		cfg.Crawl.MaxDepth = 2
+		cfg.Crawl.MaxPages = 3
+		cfg.Crawl.MaxConcurrency = 1
+		cfg.Crawl.SkipScrapeURLs = []string{seedURL}
+		cfg.Crawl.SkipScrapeLinkMap = map[string][]string{
+			seedURL: {pageA, pageB},
+		}
+
+		var mu sync.Mutex
+		var collected []string
+		var events []core.ProgressEvent
+		sink := func(r *model.Result) {
+			mu.Lock()
+			defer mu.Unlock()
+			collected = append(collected, r.URL.String())
+		}
+		progress := func(ev core.ProgressEvent) {
+			mu.Lock()
+			defer mu.Unlock()
+			events = append(events, ev)
+		}
+
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), nil, sink, progress)
+
+		seed, err := url.Parse(seedURL)
+		require.NoError(t, err)
+
+		stats, err := c.Run(context.Background(), []*url.URL{seed})
+		require.NoError(t, err)
+		require.NotNil(t, stats)
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		assert.NotContains(t, collected, seedURL)
+		assert.Contains(t, collected, pageA)
+		assert.Contains(t, collected, pageB)
+
+		var seedStarted bool
+		var seedSkipped bool
+		var discoveredA, discoveredB bool
+		for _, ev := range events {
+			if ev.URL == seedURL && ev.Kind == core.ProgressStarted {
+				seedStarted = true
+			}
+			if ev.URL == seedURL && ev.Kind == core.ProgressSkipped && ev.SkipReason == "already_success" {
+				seedSkipped = true
+			}
+			if ev.Kind == core.ProgressLinkDiscovered && ev.URL == pageA {
+				discoveredA = true
+			}
+			if ev.Kind == core.ProgressLinkDiscovered && ev.URL == pageB {
+				discoveredB = true
+			}
+		}
+		assert.False(t, seedStarted, "skip scrape seed must not emit Started")
+		assert.True(t, seedSkipped, "skip scrape seed must emit already_success")
+		assert.True(t, discoveredA && discoveredB, "cached links must emit LinkDiscovered")
+	})
+
+	t.Run("正常系: skip_scrape で枠が埋まると link map の子も max_pages で落ちる", func(t *testing.T) {
+		seedURL := srv.URL + "/links_with_pdf.html"
+		pageA := srv.URL + "/docs/page-a.html"
+
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = true
+		cfg.Crawl.MaxDepth = 2
+		cfg.Crawl.MaxPages = 1
+		cfg.Crawl.MaxConcurrency = 1
+		cfg.Crawl.SkipScrapeURLs = []string{seedURL}
+		cfg.Crawl.SkipScrapeLinkMap = map[string][]string{
+			seedURL: {pageA},
+		}
+
+		var mu sync.Mutex
+		var collected []string
+		var skipped []core.ProgressEvent
+		sink := func(r *model.Result) {
+			mu.Lock()
+			defer mu.Unlock()
+			collected = append(collected, r.URL.String())
+		}
+		progress := func(ev core.ProgressEvent) {
+			if ev.Kind != core.ProgressSkipped {
+				return
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			skipped = append(skipped, ev)
+		}
+
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), nil, sink, progress)
+
+		seed, err := url.Parse(seedURL)
+		require.NoError(t, err)
+
+		_, err = c.Run(context.Background(), []*url.URL{seed})
+		require.NoError(t, err)
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		assert.Empty(t, collected, "no room left after seed slot")
+		foundMaxPages := false
+		for _, ev := range skipped {
+			if ev.SkipReason == "max_pages" && ev.URL == pageA {
+				foundMaxPages = true
+			}
+		}
+		assert.True(t, foundMaxPages, "child should be skipped with max_pages")
+	})
+
+	t.Run("正常系: skip_scrape で link map 無しなら子を展開しない", func(t *testing.T) {
+		seedURL := srv.URL + "/links_with_pdf.html"
+
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = true
+		cfg.Crawl.MaxDepth = 2
+		cfg.Crawl.MaxPages = 10
+		cfg.Crawl.SkipScrapeURLs = []string{seedURL}
+
+		var mu sync.Mutex
+		var collected []string
+		sink := func(r *model.Result) {
+			mu.Lock()
+			defer mu.Unlock()
+			collected = append(collected, r.URL.String())
+		}
+
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), nil, sink, nil)
+
+		seed, err := url.Parse(seedURL)
+		require.NoError(t, err)
+
+		_, err = c.Run(context.Background(), []*url.URL{seed})
+		require.NoError(t, err)
+
+		mu.Lock()
+		defer mu.Unlock()
+		assert.Empty(t, collected, "without link map, no children are fetched")
 	})
 
 	t.Run("正常系: max_depth でスキップされた URL には linkDiscovered を出さない", func(t *testing.T) {
