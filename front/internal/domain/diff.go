@@ -67,7 +67,7 @@ func (s *DiffService) GetWorkspaceDiff(ctx context.Context, workspaceID string) 
 		}
 
 		baseFetch := fetchState(base)
-		curFetch := fetchState(latest[node.ID], node.Status)
+		curFetch := fetchState(latest[node.ID])
 		if baseFetch != curFetch {
 			kinds = append(kinds, "fetch")
 			out.Summary.Fetch++
@@ -91,11 +91,9 @@ func (s *DiffService) GetNodeDiffDetail(ctx context.Context, workspaceID, nodeID
 		return model.NodeDiffDetailDTO{NodeID: nodeID}, err
 	}
 	out := model.NodeDiffDetailDTO{NodeID: nodeID}
-	var nodeStatus string
 	for _, node := range dto.Nodes {
 		if node.ID == nodeID {
 			out.URL = node.URLNormalized
-			nodeStatus = node.Status
 			break
 		}
 	}
@@ -140,7 +138,7 @@ func (s *DiffService) GetNodeDiffDetail(ctx context.Context, workspaceID, nodeID
 	}
 
 	baseFetch := fetchState(base)
-	curFetch := fetchState(latest[nodeID], nodeStatus)
+	curFetch := fetchState(latest[nodeID])
 	if baseFetch != curFetch {
 		kinds = append(kinds, "fetch")
 		out.Fetch = &model.DiffPairDTO{Old: baseFetch, New: curFetch}
@@ -187,15 +185,16 @@ func canonicalLinks(links []string) string {
 	return string(b)
 }
 
-func fetchState(r model.NodeResult, nodeStatus ...string) string {
+// fetchState は結果行から取得状態を返す。
+// 結果行があれば error / success。結果なし（idle / skipped 含む）は none。
+// SaveResultsSnapshot は成功結果のみコピーするため、結果なし skipped を別状態にすると
+// 確認済み後も none≠skipped の fetch 差分が残る。
+func fetchState(r model.NodeResult) string {
 	if model.StrVal(r.ID) != "" {
 		if r.Error != nil && *r.Error != "" {
 			return "error"
 		}
 		return "success"
-	}
-	if len(nodeStatus) > 0 && nodeStatus[0] == "skipped" {
-		return "skipped"
 	}
 	return "none"
 }

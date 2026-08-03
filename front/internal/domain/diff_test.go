@@ -205,4 +205,40 @@ func TestDiffService(t *testing.T) {
 		assert.Equal(t, "success", detail.Fetch.Old)
 		assert.Equal(t, "error", detail.Fetch.New)
 	})
+
+	t.Run("fetch: 結果なし skipped は none とみなし差分なし", func(t *testing.T) {
+		ctx, store, _, diffSvc := setupDiffTestStore(t)
+		wsID := "ws-fetch-skipped"
+		bundle := model.WorkspaceBundle{
+			Workspace: model.Workspace{
+				ID:                   model.StrPtr(wsID),
+				Name:                 "DiffSkipped",
+				SeedURL:              "https://example.com",
+				SettingsJSON:         `{}`,
+				ExcludeUrlsJSON:      `[]`,
+				GraphLayoutDirection: model.StrPtr("LR"),
+				BaselineRunID:        model.StrPtr(baselineRun),
+				CreatedAt:            "2026-01-01T00:00:00Z",
+				UpdatedAt:            "2026-01-01T00:00:00Z",
+			},
+			Nodes: []model.GraphNode{
+				{
+					WorkspaceID: wsID, ID: "n-skip", URLNormalized: "https://example.com/skip",
+					Label: "skip", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("skipped"),
+					CrawlExclude: 1,
+				},
+			},
+		}
+		require.NoError(t, store.SaveWorkspaceBundle(ctx, bundle))
+		require.NoError(t, store.BeginCrawlRun(ctx, model.CrawlRun{
+			ID: model.StrPtr(baselineRun), WorkspaceID: wsID, Mode: 1,
+			Status: model.StrPtr("completed"), StartedAt: "2026-01-01T00:00:00Z",
+		}))
+
+		diff, err := diffSvc.GetWorkspaceDiff(ctx, wsID)
+		require.NoError(t, err)
+		assert.False(t, diff.HasDiff)
+		assert.Equal(t, 0, diff.Summary.Fetch)
+	})
 }

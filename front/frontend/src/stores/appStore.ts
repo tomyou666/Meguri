@@ -1677,72 +1677,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 		if (!ws) return;
 		set({ isUpdatingBaseline: true });
 		try {
-			// #region agent log
-			const before = get().workspaceDiffCache[ws.id];
-			const skippedNodes = ws.nodes
-				.filter((n) => n.status === 'skipped' || n.crawlExclude)
-				.map((n) => ({
-					id: n.id,
-					status: n.status,
-					crawlExclude: n.crawlExclude,
-				}));
-			fetch('http://127.0.0.1:7301/ingest/43558603-7ca2-4169-9303-e259981bf70b', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-Debug-Session-Id': '2ff6e4',
-				},
-				body: JSON.stringify({
-					sessionId: '2ff6e4',
-					runId: 'pre-fix',
-					hypothesisId: 'A',
-					location: 'appStore.ts:updateBaselineToCurrent:before',
-					message: 'mark reviewed start',
-					data: {
-						workspaceId: ws.id,
-						beforeHasDiff: before?.hasDiff ?? null,
-						beforeFetch: before?.summary?.fetch ?? null,
-						beforeNodes: before?.nodes?.length ?? null,
-						skippedOrExclude: skippedNodes,
-					},
-					timestamp: Date.now(),
-				}),
-			}).catch(() => {});
-			// #endregion
 			const baselineRunId = await scraperPort.saveResultsSnapshot(ws.id);
 			set((s) => ({
 				workspaces: s.workspaces.map((w) =>
 					w.id === ws.id ? { ...w, baselineRunId } : w,
 				),
 			}));
-			const after = await get().fetchWorkspaceDiff(ws.id);
-			// #region agent log
-			fetch('http://127.0.0.1:7301/ingest/43558603-7ca2-4169-9303-e259981bf70b', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-Debug-Session-Id': '2ff6e4',
-				},
-				body: JSON.stringify({
-					sessionId: '2ff6e4',
-					runId: 'pre-fix',
-					hypothesisId: 'E',
-					location: 'appStore.ts:updateBaselineToCurrent:after',
-					message: 'mark reviewed after diff',
-					data: {
-						workspaceId: ws.id,
-						baselineRunId,
-						afterHasDiff: after.hasDiff,
-						afterFetch: after.summary.fetch,
-						afterNodes: after.nodes.map((n) => ({
-							nodeId: n.nodeId,
-							kinds: n.kinds,
-						})),
-					},
-					timestamp: Date.now(),
-				}),
-			}).catch(() => {});
-			// #endregion
+			await get().fetchWorkspaceDiff(ws.id);
 			notifySuccess(messages.diff.baselineUpdated);
 		} catch (err) {
 			notifyError(messages.diff.baselineUpdateFailed, {
