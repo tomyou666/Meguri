@@ -4,6 +4,7 @@ import {
 	Menu,
 	PanelLeftClose,
 	PanelLeftOpen,
+	Pencil,
 	Plus,
 	Settings,
 	Trash2,
@@ -49,6 +50,9 @@ export function LeftSidebarContent() {
 	const openNewWorkspaceDialog = useAppStore((s) => s.openNewWorkspaceDialog);
 	const openDuplicateWorkspaceDialog = useAppStore(
 		(s) => s.openDuplicateWorkspaceDialog,
+	);
+	const openRenameWorkspaceDialog = useAppStore(
+		(s) => s.openRenameWorkspaceDialog,
 	);
 	const fetchWorkspaceDiff = useAppStore((s) => s.fetchWorkspaceDiff);
 	const openDiffSummary = useAppStore((s) => s.openDiffSummary);
@@ -136,6 +140,19 @@ export function LeftSidebarContent() {
 											<span className='ml-1 text-amber-500'>●</span>
 										)}
 									</button>
+									<ActionTooltip label={messages.sidebar.renameWorkspace}>
+										<Button
+											variant='ghost'
+											size='icon-xs'
+											aria-label={messages.sidebar.renameWorkspace}
+											onClick={(e) => {
+												e.stopPropagation();
+												openRenameWorkspaceDialog(ws.id);
+											}}
+										>
+											<Pencil className='size-3' />
+										</Button>
+									</ActionTooltip>
 									<ActionTooltip label={messages.sidebar.workspaceSettings}>
 										<Button
 											variant='ghost'

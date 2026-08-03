@@ -199,6 +199,7 @@ interface AppState {
 	showDeleteNodeDialog: boolean;
 	pendingDeleteWorkspaceId: string | null;
 	pendingDuplicateWorkspaceId: string | null;
+	pendingRenameWorkspaceId: string | null;
 	addNodeContextPosition: { x: number; y: number } | null;
 
 	_abortController: AbortController | null;
@@ -222,12 +223,15 @@ interface AppState {
 	closeDeleteWorkspaceDialog: () => void;
 	openDuplicateWorkspaceDialog: (id: string) => void;
 	closeDuplicateWorkspaceDialog: () => void;
+	openRenameWorkspaceDialog: (id: string) => void;
+	closeRenameWorkspaceDialog: () => void;
 	confirmDeleteWorkspace: () => Promise<void>;
 	confirmDuplicateWorkspace: (
 		name: string,
 		mode: 'full' | 'settings',
 		seedUrl?: string,
 	) => Promise<void>;
+	confirmRenameWorkspace: (name: string) => Promise<void>;
 	loadWorkspaceFromServer: (id: string) => Promise<void>;
 	selectNode: (
 		id: string | null,
@@ -353,6 +357,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	showDeleteNodeDialog: false,
 	pendingDeleteWorkspaceId: null,
 	pendingDuplicateWorkspaceId: null,
+	pendingRenameWorkspaceId: null,
 	addNodeContextPosition: null,
 	_abortController: null,
 	_activeRunId: null as string | null,
@@ -515,6 +520,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 		set({ pendingDuplicateWorkspaceId: id }),
 	closeDuplicateWorkspaceDialog: () =>
 		set({ pendingDuplicateWorkspaceId: null }),
+	openRenameWorkspaceDialog: (id) => set({ pendingRenameWorkspaceId: id }),
+	closeRenameWorkspaceDialog: () => set({ pendingRenameWorkspaceId: null }),
 
 	confirmDeleteWorkspace: async () => {
 		const id = get().pendingDeleteWorkspaceId;
@@ -572,6 +579,29 @@ export const useAppStore = create<AppState>((set, get) => ({
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			notifyError(messages.error.duplicateWorkspaceFailed, {
+				description: message,
+			});
+		}
+	},
+
+	confirmRenameWorkspace: async (name) => {
+		const id = get().pendingRenameWorkspaceId;
+		if (!id) return;
+		const trimmed = name.trim();
+		if (!trimmed) return;
+		const current = get().workspaces.find((w) => w.id === id);
+		if (!current) return;
+		const updated = { ...current, name: trimmed };
+		try {
+			await scraperPort.saveWorkspace(updated);
+			set((s) => ({
+				workspaces: s.workspaces.map((w) => (w.id === id ? updated : w)),
+				pendingRenameWorkspaceId: null,
+			}));
+			notifySuccess(messages.dialog.renameWorkspaceSuccess);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			notifyError(messages.error.renameWorkspaceFailed, {
 				description: message,
 			});
 		}
@@ -1647,13 +1677,72 @@ export const useAppStore = create<AppState>((set, get) => ({
 		if (!ws) return;
 		set({ isUpdatingBaseline: true });
 		try {
+			// #region agent log
+			const before = get().workspaceDiffCache[ws.id];
+			const skippedNodes = ws.nodes
+				.filter((n) => n.status === 'skipped' || n.crawlExclude)
+				.map((n) => ({
+					id: n.id,
+					status: n.status,
+					crawlExclude: n.crawlExclude,
+				}));
+			fetch('http://127.0.0.1:7301/ingest/43558603-7ca2-4169-9303-e259981bf70b', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-Debug-Session-Id': '2ff6e4',
+				},
+				body: JSON.stringify({
+					sessionId: '2ff6e4',
+					runId: 'pre-fix',
+					hypothesisId: 'A',
+					location: 'appStore.ts:updateBaselineToCurrent:before',
+					message: 'mark reviewed start',
+					data: {
+						workspaceId: ws.id,
+						beforeHasDiff: before?.hasDiff ?? null,
+						beforeFetch: before?.summary?.fetch ?? null,
+						beforeNodes: before?.nodes?.length ?? null,
+						skippedOrExclude: skippedNodes,
+					},
+					timestamp: Date.now(),
+				}),
+			}).catch(() => {});
+			// #endregion
 			const baselineRunId = await scraperPort.saveResultsSnapshot(ws.id);
 			set((s) => ({
 				workspaces: s.workspaces.map((w) =>
 					w.id === ws.id ? { ...w, baselineRunId } : w,
 				),
 			}));
-			await get().fetchWorkspaceDiff(ws.id);
+			const after = await get().fetchWorkspaceDiff(ws.id);
+			// #region agent log
+			fetch('http://127.0.0.1:7301/ingest/43558603-7ca2-4169-9303-e259981bf70b', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-Debug-Session-Id': '2ff6e4',
+				},
+				body: JSON.stringify({
+					sessionId: '2ff6e4',
+					runId: 'pre-fix',
+					hypothesisId: 'E',
+					location: 'appStore.ts:updateBaselineToCurrent:after',
+					message: 'mark reviewed after diff',
+					data: {
+						workspaceId: ws.id,
+						baselineRunId,
+						afterHasDiff: after.hasDiff,
+						afterFetch: after.summary.fetch,
+						afterNodes: after.nodes.map((n) => ({
+							nodeId: n.nodeId,
+							kinds: n.kinds,
+						})),
+					},
+					timestamp: Date.now(),
+				}),
+			}).catch(() => {});
+			// #endregion
 			notifySuccess(messages.diff.baselineUpdated);
 		} catch (err) {
 			notifyError(messages.diff.baselineUpdateFailed, {

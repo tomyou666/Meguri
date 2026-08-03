@@ -56,6 +56,14 @@ export function AppDialogs() {
 		(s) => s.confirmDuplicateWorkspace,
 	);
 
+	const pendingRenameWorkspaceId = useAppStore(
+		(s) => s.pendingRenameWorkspaceId,
+	);
+	const closeRenameWorkspaceDialog = useAppStore(
+		(s) => s.closeRenameWorkspaceDialog,
+	);
+	const confirmRenameWorkspace = useAppStore((s) => s.confirmRenameWorkspace);
+
 	const pendingDeleteWorkspace = workspaces.find(
 		(w) => w.id === pendingDeleteWorkspaceId,
 	);
@@ -68,6 +76,7 @@ export function AppDialogs() {
 		'full',
 	);
 	const [duplicateSeedUrl, setDuplicateSeedUrl] = useState('');
+	const [renameName, setRenameName] = useState('');
 
 	useEffect(() => {
 		if (!pendingDuplicateWorkspaceId) return;
@@ -77,10 +86,17 @@ export function AppDialogs() {
 		setDuplicateSeedUrl(source?.seedUrl ?? '');
 	}, [pendingDuplicateWorkspaceId, workspaces]);
 
+	useEffect(() => {
+		if (!pendingRenameWorkspaceId) return;
+		const source = workspaces.find((w) => w.id === pendingRenameWorkspaceId);
+		setRenameName(source?.name ?? '');
+	}, [pendingRenameWorkspaceId, workspaces]);
+
 	const mustShowNewWs = showNewWorkspaceDialog || workspaces.length === 0;
 	const duplicateConfirmDisabled =
 		!duplicateName.trim() ||
 		(duplicateMode === 'settings' && !duplicateSeedUrl.trim());
+	const renameConfirmDisabled = !renameName.trim();
 
 	return (
 		<>
@@ -282,6 +298,43 @@ export function AppDialogs() {
 							}
 						>
 							{messages.dialog.copy}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog
+				open={!!pendingRenameWorkspaceId}
+				onOpenChange={(open) => {
+					if (!open) closeRenameWorkspaceDialog();
+				}}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{messages.dialog.renameWorkspaceTitle}</DialogTitle>
+					</DialogHeader>
+					<div>
+						<Label>{messages.dialog.renameWorkspaceName}</Label>
+						<Input
+							className='mt-1'
+							value={renameName}
+							onChange={(e) => setRenameName(e.target.value)}
+						/>
+					</div>
+					<DialogFooter>
+						<Button
+							variant='outline'
+							size='sm'
+							onClick={closeRenameWorkspaceDialog}
+						>
+							{messages.dialog.cancel}
+						</Button>
+						<Button
+							size='sm'
+							disabled={renameConfirmDisabled}
+							onClick={() => void confirmRenameWorkspace(renameName)}
+						>
+							{messages.dialog.save}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
