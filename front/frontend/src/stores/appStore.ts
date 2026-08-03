@@ -230,7 +230,14 @@ interface AppState {
 	loadWorkspaceFromServer: (id: string) => Promise<void>;
 	selectNode: (
 		id: string | null,
-		opts?: { additive?: boolean; range?: boolean },
+		opts?: {
+			additive?: boolean;
+			range?: boolean;
+			/** ツリー追従要求を同一 set に載せる（グラフ単一クリック用） */
+			treeFocus?: boolean;
+			/** RF selection sync 抑制を同一 set に載せ、microtask で解除する */
+			suppressRfSync?: boolean;
+		},
 	) => void;
 	selectNodes: (ids: string[]) => void;
 	requestGraphFocus: (ids: string[]) => void;
@@ -641,6 +648,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 			node.lastResult
 				? node.lastResult
 				: null;
+		const wantTreeFocus =
+			opts?.treeFocus === true && !opts?.additive && !opts?.range;
+		const prevTreeFocus = get().treeFocusRequest;
 		set({
 			selectedNodeId: primary,
 			selectedNodeIds,
@@ -648,7 +658,21 @@ export const useAppStore = create<AppState>((set, get) => ({
 			loadedNodeResult: cached,
 			nodeResultLoadingNodeId: null,
 			resultPreview: null,
+			...(opts?.suppressRfSync ? { _suppressSelectionSync: true } : {}),
+			...(wantTreeFocus
+				? {
+						treeFocusRequest: {
+							ids: [id],
+							seq: (prevTreeFocus?.seq ?? 0) + 1,
+						},
+					}
+				: {}),
 		});
+		if (opts?.suppressRfSync) {
+			queueMicrotask(() => {
+				set({ _suppressSelectionSync: false });
+			});
+		}
 		if (selectedNodeIds.length === 1 && node?.status === 'success' && !cached) {
 			void get().fetchSelectedNodeResult();
 		}

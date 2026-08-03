@@ -7,9 +7,8 @@ import {
 	UnfoldVertical,
 	X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NodeContextMenuItems } from '@/components/graph/NodeContextMenuItems';
-import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,11 +17,6 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { messages } from '@/i18n/messages';
 import { hasChildNodes, isExcludedSubtree } from '@/lib/graph';
 import { nodeStatusUi } from '@/lib/nodeStatusUi';
@@ -69,7 +63,7 @@ type TreeRowProps = {
 	onMenuOpen: (id: string) => void;
 };
 
-function TreeRow({
+const TreeRow = memo(function TreeRow({
 	node,
 	depth,
 	hasVisibleChildren,
@@ -87,6 +81,9 @@ function TreeRow({
 }: TreeRowProps) {
 	const cfg = nodeStatusUi[node.status] ?? nodeStatusUi.idle;
 	const [menuOpen, setMenuOpen] = useState(false);
+	const expandLabel = expanded
+		? messages.graph.collapseSubtree
+		: messages.graph.expandSubtree;
 
 	return (
 		<div
@@ -102,12 +99,9 @@ function TreeRow({
 			{hasVisibleChildren ? (
 				<button
 					type='button'
+					title={expandLabel}
 					className='mt-0.5 flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted'
-					aria-label={
-						expanded
-							? messages.graph.collapseSubtree
-							: messages.graph.expandSubtree
-					}
+					aria-label={expandLabel}
 					onClick={(e) => {
 						e.stopPropagation();
 						onToggleExpand(node.id);
@@ -123,51 +117,44 @@ function TreeRow({
 				<span className='size-4 shrink-0' />
 			)}
 			<div className='min-w-0 flex-1 overflow-hidden'>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type='button'
-							className='flex w-full min-w-0 items-start gap-1 rounded-md px-1 py-0.5 text-left hover:bg-sidebar-accent/80'
-							onClick={(e) => onSelect(node.id, e)}
-						>
-							<span className='mt-0.5'>{cfg.icon}</span>
-							<span className='min-w-0 flex-1 overflow-hidden'>
-								<span
-									className={cn(
-										'block truncate font-medium text-xs',
-										cfg.textClass,
-									)}
-								>
-									{node.label}
-								</span>
-								<span className='mt-0.5 block truncate text-[10px] text-muted-foreground'>
-									{node.urlNormalized}
-								</span>
-							</span>
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side='top' className='max-w-sm break-all text-left'>
-						{node.urlNormalized}
-					</TooltipContent>
-				</Tooltip>
-			</div>
-			<ActionTooltip label={messages.nodeTree.copyUrl}>
-				<Button
-					variant='ghost'
-					size='icon-xs'
-					className={cn(
-						'mt-0.5 shrink-0 bg-sidebar opacity-0 hover:bg-muted focus-visible:opacity-100 group-hover:opacity-100',
-						(selected || isHit) && 'bg-sidebar-accent',
-					)}
-					aria-label={messages.nodeTree.copyUrl}
-					onClick={(e) => {
-						e.stopPropagation();
-						onCopy(node.urlNormalized);
-					}}
+				<button
+					type='button'
+					title={node.urlNormalized}
+					className='flex w-full min-w-0 items-start gap-1 rounded-md px-1 py-0.5 text-left hover:bg-sidebar-accent/80'
+					onClick={(e) => onSelect(node.id, e)}
 				>
-					<Copy className='size-3' />
-				</Button>
-			</ActionTooltip>
+					<span className='mt-0.5'>{cfg.icon}</span>
+					<span className='min-w-0 flex-1 overflow-hidden'>
+						<span
+							className={cn(
+								'block truncate font-medium text-xs',
+								cfg.textClass,
+							)}
+						>
+							{node.label}
+						</span>
+						<span className='mt-0.5 block truncate text-[10px] text-muted-foreground'>
+							{node.urlNormalized}
+						</span>
+					</span>
+				</button>
+			</div>
+			<Button
+				variant='ghost'
+				size='icon-xs'
+				title={messages.nodeTree.copyUrl}
+				className={cn(
+					'mt-0.5 shrink-0 bg-sidebar opacity-0 hover:bg-muted focus-visible:opacity-100 group-hover:opacity-100',
+					(selected || isHit) && 'bg-sidebar-accent',
+				)}
+				aria-label={messages.nodeTree.copyUrl}
+				onClick={(e) => {
+					e.stopPropagation();
+					onCopy(node.urlNormalized);
+				}}
+			>
+				<Copy className='size-3' />
+			</Button>
 			<DropdownMenu
 				open={menuOpen}
 				onOpenChange={(open) => {
@@ -207,7 +194,7 @@ function TreeRow({
 			</DropdownMenu>
 		</div>
 	);
-}
+});
 
 export function NodeTreePanel({ nodes, edges, seedUrl }: NodeTreePanelProps) {
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
@@ -341,26 +328,32 @@ export function NodeTreePanel({ nodes, edges, seedUrl }: NodeTreePanelProps) {
 		);
 	};
 
-	const onSelect = (id: string, e: React.MouseEvent) => {
-		const additive = !e.shiftKey && (e.ctrlKey || e.metaKey);
-		const range = e.shiftKey;
-		selectNode(id, { additive, range });
-		if (!additive && !range) {
-			requestGraphFocus([id]);
-		}
-	};
+	const onSelect = useCallback(
+		(id: string, e: React.MouseEvent) => {
+			const additive = !e.shiftKey && (e.ctrlKey || e.metaKey);
+			const range = e.shiftKey;
+			selectNode(id, { additive, range });
+			if (!additive && !range) {
+				requestGraphFocus([id]);
+			}
+		},
+		[selectNode, requestGraphFocus],
+	);
 
-	const onCopy = async (url: string) => {
+	const onCopy = useCallback(async (url: string) => {
 		try {
 			await navigator.clipboard.writeText(url);
 		} catch {
 			/* ignore */
 		}
-	};
+	}, []);
 
-	const onMenuOpen = (id: string) => {
-		selectNode(id);
-	};
+	const onMenuOpen = useCallback(
+		(id: string) => {
+			selectNode(id);
+		},
+		[selectNode],
+	);
 
 	const renderBranch = (parentId: string | null, depth: number) => {
 		const children = (byParent.get(parentId) ?? []).filter((n) =>
@@ -420,17 +413,16 @@ export function NodeTreePanel({ nodes, edges, seedUrl }: NodeTreePanelProps) {
 							aria-label={messages.nodeTree.searchPlaceholder}
 						/>
 						{query.length > 0 && (
-							<ActionTooltip label={messages.nodeTree.clearSearch}>
-								<Button
-									variant='ghost'
-									size='icon-xs'
-									className='absolute top-1/2 right-0.5 -translate-y-1/2'
-									aria-label={messages.nodeTree.clearSearch}
-									onClick={() => setQuery('')}
-								>
-									<X className='size-3' />
-								</Button>
-							</ActionTooltip>
+							<Button
+								variant='ghost'
+								size='icon-xs'
+								title={messages.nodeTree.clearSearch}
+								className='absolute top-1/2 right-0.5 -translate-y-1/2'
+								aria-label={messages.nodeTree.clearSearch}
+								onClick={() => setQuery('')}
+							>
+								<X className='size-3' />
+							</Button>
 						)}
 					</div>
 					{isFiltering && (
@@ -460,26 +452,24 @@ export function NodeTreePanel({ nodes, edges, seedUrl }: NodeTreePanelProps) {
 					})}
 				</div>
 				<div className='flex gap-1'>
-					<ActionTooltip label={messages.nodeTree.expandAll}>
-						<Button
-							variant='outline'
-							size='xs'
-							aria-label={messages.nodeTree.expandAll}
-							onClick={expandAll}
-						>
-							<UnfoldVertical className='size-3' />
-						</Button>
-					</ActionTooltip>
-					<ActionTooltip label={messages.nodeTree.collapseAll}>
-						<Button
-							variant='outline'
-							size='xs'
-							aria-label={messages.nodeTree.collapseAll}
-							onClick={collapseAll}
-						>
-							<FoldVertical className='size-3' />
-						</Button>
-					</ActionTooltip>
+					<Button
+						variant='outline'
+						size='xs'
+						title={messages.nodeTree.expandAll}
+						aria-label={messages.nodeTree.expandAll}
+						onClick={expandAll}
+					>
+						<UnfoldVertical className='size-3' />
+					</Button>
+					<Button
+						variant='outline'
+						size='xs'
+						title={messages.nodeTree.collapseAll}
+						aria-label={messages.nodeTree.collapseAll}
+						onClick={collapseAll}
+					>
+						<FoldVertical className='size-3' />
+					</Button>
 				</div>
 			</div>
 			<div ref={listRef} className='min-h-0 flex-1 overflow-auto px-0.5 pb-1'>

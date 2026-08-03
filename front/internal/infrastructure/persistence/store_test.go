@@ -18,6 +18,7 @@ func applyTestSchema(db *gorm.DB) error {
 		"000001_init.up.sql",
 		"000002_origin.up.sql",
 		"000005_node_result_manual_edit.up.sql",
+		"000006_node_results_drop_run_cascade.up.sql",
 	} {
 		path := filepath.Join("..", "..", "app", "migrations", name)
 		sqlBytes, err := os.ReadFile(path)
@@ -613,6 +614,94 @@ func TestGetNodeResultsByNodeIDs(t *testing.T) {
 		}
 		if out[1].NodeID != "n1" || model.StrVal(out[1].Markdown) != mdNew {
 			t.Fatalf("expected n1 newest next, got %+v", out[1])
+		}
+	})
+}
+
+// TestTrimCrawlRunsPreservesResults は crawl_runs 削除が node_results を消さないことを検証する。
+func TestTrimCrawlRunsPreservesResults(t *testing.T) {
+	t.Run("正常系: 古い crawl_runs を trim しても node_results は残る", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+		db, err := gorm.Open(sqlite.Open(sqlitedsn.DSN(dbPath)), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		ctx := context.Background()
+		store := NewStore(db)
+		wsID := "ws-trim"
+		bundle := model.WorkspaceBundle{
+			Workspace: model.Workspace{
+				ID:                   model.StrPtr(wsID),
+				Name:                 "Trim",
+				SeedURL:              "https://example.com",
+				SettingsJSON:         `{}`,
+				ExcludeUrlsJSON:      `[]`,
+				GraphLayoutDirection: model.StrPtr("LR"),
+				CreatedAt:            "2026-01-01T00:00:00Z",
+				UpdatedAt:            "2026-01-01T00:00:00Z",
+			},
+			Nodes: []model.GraphNode{
+				{
+					WorkspaceID: wsID, ID: "n-old", URLNormalized: "https://example.com/old",
+					Label: "old", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+			},
+		}
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("save ws: %v", err)
+		}
+
+		runs := []model.CrawlRun{
+			{ID: model.StrPtr("run-old"), WorkspaceID: wsID, Mode: 1, Status: model.StrPtr("completed"), StartedAt: "2026-01-01T00:00:00Z"},
+			{ID: model.StrPtr("run-new"), WorkspaceID: wsID, Mode: 1, Status: model.StrPtr("completed"), StartedAt: "2026-01-01T03:00:00Z"},
+		}
+		for _, run := range runs {
+			if err := store.q.CrawlRun.WithContext(ctx).Create(&run); err != nil {
+				t.Fatalf("create run %s: %v", model.StrVal(run.ID), err)
+			}
+		}
+
+		md := "# kept"
+		if err := store.AppendNodeResult(ctx, model.NodeResult{
+			ID: model.StrPtr("nr-old"), RunID: "run-old", WorkspaceID: wsID, NodeID: "n-old",
+			URL: "https://example.com/old", Markdown: &md, FetchedAt: "2026-01-01T00:00:01Z",
+		}); err != nil {
+			t.Fatalf("append old: %v", err)
+		}
+
+		// keep=1 → 古い run-old を削除しても CASCADE で結果が消えないこと
+		if err := store.TrimCrawlRuns(ctx, wsID, 1); err != nil {
+			t.Fatalf("trim: %v", err)
+		}
+
+		remaining, err := store.GetCrawlRuns(ctx, wsID)
+		if err != nil {
+			t.Fatalf("get runs: %v", err)
+		}
+		if len(remaining) != 1 || model.StrVal(remaining[0].ID) != "run-new" {
+			t.Fatalf("expected only run-new, got %+v", remaining)
+		}
+
+		results, err := store.GetNodeResults(ctx, wsID)
+		if err != nil {
+			t.Fatalf("get results: %v", err)
+		}
+		if len(results) != 1 {
+			t.Fatalf("expected 1 node_result preserved, got %d", len(results))
+		}
+		if results[0].RunID != "run-old" || model.StrVal(results[0].Markdown) != md {
+			t.Fatalf("unexpected preserved result: %+v", results[0])
 		}
 	})
 }

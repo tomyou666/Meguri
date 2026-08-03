@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { memo, type ReactNode } from 'react';
 import { NodeDetailSettings } from '@/components/graph/NodeDetailSettings';
-import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { messages } from '@/i18n/messages';
@@ -29,7 +28,6 @@ import type { NodeStatus } from '@/types/graph';
 export type UrlNodeData = {
 	label: string;
 	status: NodeStatus;
-	selected?: boolean;
 	detailExpanded?: boolean;
 	subtreeCollapsed?: boolean;
 	hasChildren?: boolean;
@@ -38,6 +36,20 @@ export type UrlNodeData = {
 	diffKinds?: DiffKind[];
 	url?: string;
 };
+
+export function urlNodeDataEqual(a: UrlNodeData, b: UrlNodeData): boolean {
+	return (
+		a.label === b.label &&
+		a.status === b.status &&
+		a.detailExpanded === b.detailExpanded &&
+		a.subtreeCollapsed === b.subtreeCollapsed &&
+		a.hasChildren === b.hasChildren &&
+		a.layoutDirection === b.layoutDirection &&
+		a.grayed === b.grayed &&
+		a.url === b.url &&
+		a.diffKinds?.join('\0') === b.diffKinds?.join('\0')
+	);
+}
 
 const diffKindConfig: Record<DiffKind, { icon: ReactNode; label: string }> = {
 	content: {
@@ -64,23 +76,22 @@ function NodeIconButton({
 	children: ReactNode;
 }) {
 	return (
-		<ActionTooltip label={title}>
-			<button
-				type='button'
-				className='nodrag nopan flex size-5 shrink-0 items-center justify-center rounded hover:bg-muted'
-				aria-label={title}
-				onClick={(e) => {
-					e.stopPropagation();
-					onClick();
-				}}
-			>
-				{children}
-			</button>
-		</ActionTooltip>
+		<button
+			type='button'
+			title={title}
+			className='nodrag nopan flex size-5 shrink-0 items-center justify-center rounded hover:bg-muted'
+			aria-label={title}
+			onClick={(e) => {
+				e.stopPropagation();
+				onClick();
+			}}
+		>
+			{children}
+		</button>
 	);
 }
 
-function UrlNodeComponent({ id, data }: NodeProps) {
+function UrlNodeComponent({ id, data, selected }: NodeProps) {
 	const d = data as UrlNodeData;
 	const cfg = nodeStatusUi[d.status] ?? nodeStatusUi.idle;
 	const handles = handlePositionsForDirection(d.layoutDirection ?? 'LR');
@@ -102,7 +113,7 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 				'box-border shrink-0 rounded-lg border-2 bg-card px-2 py-1.5 shadow-sm',
 				detailExpanded ? 'overflow-visible' : 'overflow-hidden',
 				cfg.border,
-				d.selected && 'ring-2 ring-ring',
+				selected && 'ring-2 ring-ring',
 				d.grayed && !detailExpanded && 'opacity-45 grayscale',
 			)}
 			style={{
@@ -162,26 +173,26 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 				{d.diffKinds && d.diffKinds.length > 0 && (
 					<div className='flex flex-wrap gap-0.5'>
 						{d.diffKinds.map((k) => {
-							const cfg = diffKindConfig[k];
+							const kindCfg = diffKindConfig[k];
 							return (
-								<ActionTooltip key={k} label={cfg.label}>
-									<button
-										type='button'
-										className='nodrag nopan inline-flex'
-										aria-label={cfg.label}
-										onClick={(e) => {
-											e.stopPropagation();
-											void openNodeDiff(id, k);
-										}}
+								<button
+									key={k}
+									type='button'
+									title={kindCfg.label}
+									className='nodrag nopan inline-flex'
+									aria-label={kindCfg.label}
+									onClick={(e) => {
+										e.stopPropagation();
+										void openNodeDiff(id, k);
+									}}
+								>
+									<Badge
+										variant='outline'
+										className='gap-0.5 px-1 py-0 text-[8px]'
 									>
-										<Badge
-											variant='outline'
-											className='gap-0.5 px-1 py-0 text-[8px]'
-										>
-											{cfg.icon}
-										</Badge>
-									</button>
-								</ActionTooltip>
+										{kindCfg.icon}
+									</Badge>
+								</button>
 							);
 						})}
 					</div>
@@ -204,4 +215,12 @@ function UrlNodeComponent({ id, data }: NodeProps) {
 	);
 }
 
-export const UrlNode = memo(UrlNodeComponent);
+function urlNodePropsEqual(prev: NodeProps, next: NodeProps): boolean {
+	return (
+		prev.id === next.id &&
+		prev.selected === next.selected &&
+		urlNodeDataEqual(prev.data as UrlNodeData, next.data as UrlNodeData)
+	);
+}
+
+export const UrlNode = memo(UrlNodeComponent, urlNodePropsEqual);

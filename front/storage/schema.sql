@@ -134,7 +134,7 @@ CREATE INDEX idx_crawl_runs_workspace_started ON crawl_runs(workspace_id, starte
 -- ノードごとに fetched_at 降順で最大 20 行をアプリ層で保持
 -- DeleteResults は「そのノードの最新 1 行のみ」削除
 --   id:            結果行 ID
---   run_id:        紐づく crawl_runs.id
+--   run_id:        紐づく crawl_runs.id（履歴 trim 用。FK CASCADE なし。存在検証はアプリ層）
 --   workspace_id:  所属ワークスペース ID
 --   node_id:       グラフノード ID
 --   url:           取得時点の URL（表示用）
@@ -166,7 +166,6 @@ CREATE TABLE node_results (
     fetched_at      TEXT NOT NULL,
     content_hash    TEXT,
     manually_edited INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (run_id) REFERENCES crawl_runs(id) ON DELETE CASCADE,
     FOREIGN KEY (workspace_id, node_id)
         REFERENCES graph_nodes(workspace_id, id) ON DELETE CASCADE,
     UNIQUE (run_id, node_id)

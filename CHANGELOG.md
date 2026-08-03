@@ -25,6 +25,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- mode4 連打時に `TrimCrawlRuns` が古い `crawl_runs` を消すと CASCADE で無関係ノードの `node_results` まで消えていたのを修正
+  - `node_results.run_id` → `crawl_runs` の `ON DELETE CASCADE` を外すマイグレーションを追加した
+- グラフノード選択時の再レンダーを抑え、ノード数が多いときのクリック FPS を改善した
+  - ノード上の Radix Tooltip をネイティブ `title` に置換した
+  - `data.selected` 二重持ちをやめ、`memo` で React Flow の `width`/`height` 計測ノイズを無視するようにした
+- ノードツリー選択時の再レンダーを抑え、クリック FPS を改善した
+  - `TreeRow` を `memo` 化し、行内 Tooltip をネイティブ `title` に置換した
+  - グラフクリックの選択・ツリー追従・RF sync 抑制を同一 `set` にまとめた
 - 再取得 OFF 時の既存 success 展開を高速化した
   - skip scrape ジョブでは `request_delay` を待たないようにした
   - `SkipScrapeURLs` の enqueue では robots 判定を省略するようにした

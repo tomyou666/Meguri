@@ -31,25 +31,10 @@ import type { WorkspaceDiff } from '@/types/adapter';
 import { GRAPH_MIN_ZOOM, GraphCanvasControls } from './GraphCanvasControls';
 import { GraphSelectionSync } from './GraphSelectionSync';
 import { GraphWorkspaceFitView } from './GraphWorkspaceFitView';
-import { UrlNode, type UrlNodeData } from './UrlNode';
+import { UrlNode, type UrlNodeData, urlNodeDataEqual } from './UrlNode';
 
 const nodeTypes = { urlNode: UrlNode };
 const graphFitViewOptions = { padding: 0.2, minZoom: GRAPH_MIN_ZOOM };
-
-function flowNodeDataEqual(a: UrlNodeData, b: UrlNodeData): boolean {
-	return (
-		a.label === b.label &&
-		a.status === b.status &&
-		a.selected === b.selected &&
-		a.detailExpanded === b.detailExpanded &&
-		a.subtreeCollapsed === b.subtreeCollapsed &&
-		a.hasChildren === b.hasChildren &&
-		a.layoutDirection === b.layoutDirection &&
-		a.grayed === b.grayed &&
-		a.url === b.url &&
-		a.diffKinds?.join('\0') === b.diffKinds?.join('\0')
-	);
-}
 
 export function CrawlGraph() {
 	const proOptions = { hideAttribution: true };
@@ -57,7 +42,6 @@ export function CrawlGraph() {
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const workspaceDiffCache = useAppStore((s) => s.workspaceDiffCache);
 	const selectNode = useAppStore((s) => s.selectNode);
-	const requestTreeFocus = useAppStore((s) => s.requestTreeFocus);
 	const toggleNodeDetailExpand = useAppStore((s) => s.toggleNodeDetailExpand);
 	const clearNodeSelection = useAppStore((s) => s.clearNodeSelection);
 	const graphToolMode = useAppStore((s) => s.graphToolMode);
@@ -120,7 +104,6 @@ export function CrawlGraph() {
 				const data: UrlNodeData = {
 					label: n.label,
 					status: n.status,
-					selected,
 					detailExpanded: (ws.expandedDetailNodeIds ?? []).includes(n.id),
 					subtreeCollapsed: collapsedRoots.includes(n.id),
 					hasChildren: hasChildNodes(n.id, ws.edges),
@@ -138,7 +121,7 @@ export function CrawlGraph() {
 					prev.selected === selected &&
 					prev.sourcePosition === handles.source &&
 					prev.targetPosition === handles.target &&
-					flowNodeDataEqual(prev.data, data)
+					urlNodeDataEqual(prev.data, data)
 				) {
 					nextById.set(n.id, prev);
 					return prev;
@@ -149,7 +132,7 @@ export function CrawlGraph() {
 					prev.selected === selected &&
 					prev.sourcePosition === handles.source &&
 					prev.targetPosition === handles.target &&
-					flowNodeDataEqual(prev.data, data)
+					urlNodeDataEqual(prev.data, data)
 				) {
 					const reused: Node<UrlNodeData> = { ...prev, position: n.position };
 					nextById.set(n.id, reused);
@@ -245,16 +228,14 @@ export function CrawlGraph() {
 			e.stopPropagation();
 			const additive = !e.shiftKey && (e.ctrlKey || e.metaKey);
 			const range = e.shiftKey;
-			useAppStore.setState({ _suppressSelectionSync: true });
-			selectNode(node.id, { additive, range });
-			if (!additive && !range) {
-				requestTreeFocus([node.id]);
-			}
-			queueMicrotask(() => {
-				useAppStore.setState({ _suppressSelectionSync: false });
+			selectNode(node.id, {
+				additive,
+				range,
+				treeFocus: !additive && !range,
+				suppressRfSync: true,
 			});
 		},
-		[selectNode, requestTreeFocus],
+		[selectNode],
 	);
 
 	const onNodeDoubleClick = useCallback(
