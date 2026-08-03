@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
+- `.crawlproj` 保存時に最新成功のクロール結果を含められるようにした（開くと結果も復元）
 - 左サイドバーでワークスペース名を変更できる編集ダイアログを追加
 - エクスポート順ツリーにラベル / URL 検索を追加
 - `content.include_tags` 用 Filter `include_tags` を追加し、指定時にパイプラインへ自動組み込みするようにした

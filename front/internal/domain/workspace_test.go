@@ -177,3 +177,110 @@ func TestWorkspaceServiceDuplicate(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+// TestWorkspaceServiceExportImportResults は結果付き .crawlproj 相当の Export/Import を検証する。
+func TestWorkspaceServiceExportImportResults(t *testing.T) {
+	t.Run("正常系: includeResults で最新成功のみ載せ Import 後 Load で lastResult が復元される", func(t *testing.T) {
+		ctx, store, svc := setupWorkspaceTestService(t)
+		wsID := "ws-src"
+		seedDuplicateSource(t, ctx, store, wsID)
+
+		require.NoError(t, store.BeginCrawlRun(ctx, model.CrawlRun{
+			ID: model.StrPtr("run-1"), WorkspaceID: wsID, Mode: 1,
+			Status: model.StrPtr("completed"), StartedAt: "2026-01-01T01:00:00Z",
+			FinishedAt: model.StrPtr("2026-01-01T01:01:00Z"),
+		}))
+		md := "# ok"
+		html := "<p>ok</p>"
+		raw := "<html>ok</html>"
+		errMsg := "fail"
+		require.NoError(t, store.AppendNodeResult(ctx, model.NodeResult{
+			ID: model.StrPtr("r-ok"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n1",
+			URL: "https://example.com/", Markdown: &md, HTML: &html, RawHTML: &raw,
+			FetchedAt: "2026-01-01T01:00:30Z",
+		}))
+		require.NoError(t, store.AppendNodeResult(ctx, model.NodeResult{
+			ID: model.StrPtr("r-fail"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n2",
+			URL: "https://example.com/a", Error: &errMsg,
+			FetchedAt: "2026-01-01T01:00:40Z",
+		}))
+
+		exported, err := svc.ExportBundle(ctx, wsID, true)
+		require.NoError(t, err)
+		require.Len(t, exported.Results, 1)
+		assert.Equal(t, "n1", exported.Results[0].NodeID)
+
+		newID, err := svc.ImportBundle(ctx, *exported)
+		require.NoError(t, err)
+
+		loaded, err := svc.Load(ctx, newID)
+		require.NoError(t, err)
+		require.NotNil(t, loaded)
+		require.Len(t, loaded.Nodes, 2)
+
+		var withResult, withoutResult int
+		for _, n := range loaded.Nodes {
+			if n.LastResult != nil {
+				withResult++
+				assert.Equal(t, md, n.LastResult.Markdown)
+				assert.Equal(t, html, n.LastResult.HTML)
+				assert.Equal(t, raw, n.LastResult.RawHTML)
+			} else {
+				withoutResult++
+			}
+		}
+		assert.Equal(t, 1, withResult)
+		assert.Equal(t, 1, withoutResult)
+	})
+
+	t.Run("正常系: includeResults=false では Results が空", func(t *testing.T) {
+		ctx, store, svc := setupWorkspaceTestService(t)
+		wsID := "ws-src"
+		seedDuplicateSource(t, ctx, store, wsID)
+		require.NoError(t, store.BeginCrawlRun(ctx, model.CrawlRun{
+			ID: model.StrPtr("run-1"), WorkspaceID: wsID, Mode: 1,
+			Status: model.StrPtr("completed"), StartedAt: "2026-01-01T01:00:00Z",
+		}))
+		md := "# ok"
+		require.NoError(t, store.AppendNodeResult(ctx, model.NodeResult{
+			ID: model.StrPtr("r-ok"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n1",
+			URL: "https://example.com/", Markdown: &md, FetchedAt: "2026-01-01T01:00:30Z",
+		}))
+
+		exported, err := svc.ExportBundle(ctx, wsID, false)
+		require.NoError(t, err)
+		assert.Empty(t, exported.Results)
+	})
+
+	t.Run("異常系: 結果挿入失敗時は補償削除で WS を残さない", func(t *testing.T) {
+		// 同一 node_id の成功結果を2件載せ、合成 run 上で UNIQUE(run_id, node_id) 衝突させる。
+		ctx, store, svc := setupWorkspaceTestService(t)
+		wsID := "ws-src"
+		seedDuplicateSource(t, ctx, store, wsID)
+
+		md := "# ok"
+		bundle, err := svc.ExportBundle(ctx, wsID, false)
+		require.NoError(t, err)
+		bundle.Results = []model.NodeResult{
+			{
+				ID: model.StrPtr("r1"), RunID: "old-run", WorkspaceID: wsID, NodeID: "n1",
+				URL: "https://example.com/", Markdown: &md, FetchedAt: "2026-01-01T01:00:00Z",
+			},
+			{
+				ID: model.StrPtr("r2"), RunID: "old-run", WorkspaceID: wsID, NodeID: "n1",
+				URL: "https://example.com/", Markdown: &md, FetchedAt: "2026-01-01T02:00:00Z",
+			},
+		}
+
+		before, err := store.ListWorkspaces(ctx)
+		require.NoError(t, err)
+
+		newID, err := svc.ImportBundle(ctx, *bundle)
+		require.Error(t, err)
+		assert.Empty(t, newID)
+
+		after, err := store.ListWorkspaces(ctx)
+		require.NoError(t, err)
+		assert.Len(t, after, len(before))
+	})
+}

@@ -50,6 +50,11 @@ func Export(bundle model.WorkspaceBundle) ([]byte, error) {
 	if err := writeJSON(w, "ui_state.json", ui); err != nil {
 		return nil, err
 	}
+	if len(bundle.Results) > 0 {
+		if err := writeJSON(w, "results.json", bundle.Results); err != nil {
+			return nil, err
+		}
+	}
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
@@ -98,6 +103,13 @@ func Import(data []byte) (model.WorkspaceBundle, error) {
 			return model.WorkspaceBundle{}, err
 		}
 		bundle.UIState = &ui
+	}
+	if b, ok := files["results.json"]; ok {
+		var results []model.NodeResult
+		if err := json.Unmarshal(b, &results); err != nil {
+			return model.WorkspaceBundle{}, fmt.Errorf("results: %w", err)
+		}
+		bundle.Results = results
 	}
 	return bundle, nil
 }

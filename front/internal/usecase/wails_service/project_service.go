@@ -48,8 +48,10 @@ func (s *ProjectService) OpenScrb() (model.OpenScrbResponse, error) {
 	return model.OpenScrbResponse{WorkspaceID: id}, nil
 }
 
-// SaveScrb はアクティブ WS を .scrb に保存する。
-func (s *ProjectService) SaveScrb(workspaceID string) error {
+// SaveScrb はアクティブ WS を .crawlproj に保存する。
+//
+// includeResults が true のとき最新成功の node_results も ZIP に含める。
+func (s *ProjectService) SaveScrb(workspaceID string, includeResults bool) error {
 	if s.app == nil {
 		return fmt.Errorf("app not initialized")
 	}
@@ -68,7 +70,7 @@ func (s *ProjectService) SaveScrb(workspaceID string) error {
 	if err != nil || path == "" {
 		return err
 	}
-	return s.projects.ExportToPath(s.ctx(), workspaceID, path)
+	return s.projects.ExportToPath(s.ctx(), workspaceID, path, includeResults)
 }
 
 func (s *ProjectService) ctx() context.Context { return context.Background() }

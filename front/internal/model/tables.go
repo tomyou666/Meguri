@@ -6,6 +6,8 @@ type WorkspaceBundle struct {
 	Nodes     []GraphNode
 	Edges     []GraphEdge
 	UIState   *GraphUIState
+	// Results は .crawlproj 交換用の最新成功結果（永続 Save では使わない）。
+	Results []NodeResult
 }
 
 // WorkspaceListItem は WS 一覧用。

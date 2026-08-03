@@ -8,8 +8,19 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { ConfigEditor } from '@/components/settings/ConfigEditor';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
 	Dialog,
 	DialogContent,
@@ -24,6 +35,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
 import { messages } from '@/i18n/messages';
 import { openExternalBrowserUrl } from '@/lib/externalLinkDelegation';
 import { getFeedbackUrl } from '@/lib/feedbackUrl';
@@ -47,6 +59,8 @@ export function MenuBar({
 	const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
 	const loadWorkspace = useAppStore((s) => s.loadWorkspaceFromServer);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+	const [includeResults, setIncludeResults] = useState(true);
 	const [checkingUpdates, setCheckingUpdates] = useState(false);
 	const feedbackUrl = getFeedbackUrl();
 
@@ -63,13 +77,23 @@ export function MenuBar({
 		}
 	};
 
-	const handleSaveScrb = async () => {
+	const openSaveConfirm = () => {
 		if (!activeWorkspaceId) {
-			notifyError('ワークスペースが選択されていません');
+			notifyError(messages.menu.noWorkspaceSelected);
 			return;
 		}
+		setIncludeResults(true);
+		setSaveConfirmOpen(true);
+	};
+
+	const handleSaveScrb = async () => {
+		if (!activeWorkspaceId) {
+			notifyError(messages.menu.noWorkspaceSelected);
+			return;
+		}
+		setSaveConfirmOpen(false);
 		try {
-			await ProjectService.SaveScrb(activeWorkspaceId);
+			await ProjectService.SaveScrb(activeWorkspaceId, includeResults);
 		} catch (e) {
 			const errMessage = e instanceof Error ? e.message : String(e);
 			if (errMessage.includes('cancelled by user')) return;
@@ -136,7 +160,7 @@ export function MenuBar({
 						<DropdownMenuItem
 							className='gap-2 px-2 py-1.5 text-xs'
 							disabled={!activeWorkspaceId}
-							onClick={() => void handleSaveScrb()}
+							onClick={openSaveConfirm}
 						>
 							<Save className='size-3.5 text-muted-foreground' />
 							{messages.menu.saveScrb}
@@ -207,6 +231,38 @@ export function MenuBar({
 					</Button>
 				) : null}
 			</div>
+
+			<AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							{messages.menu.saveScrbConfirmTitle}
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							{messages.menu.saveScrbConfirmDescription}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<div className='flex items-center gap-2 px-1'>
+						<Checkbox
+							id='save-scrb-include-results'
+							checked={includeResults}
+							onCheckedChange={(checked) => setIncludeResults(checked === true)}
+						/>
+						<Label
+							htmlFor='save-scrb-include-results'
+							className='font-normal text-sm'
+						>
+							{messages.menu.saveScrbIncludeResults}
+						</Label>
+					</div>
+					<AlertDialogFooter>
+						<AlertDialogCancel>{messages.dialog.cancel}</AlertDialogCancel>
+						<AlertDialogAction onClick={() => void handleSaveScrb()}>
+							{messages.dialog.save}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			<Dialog
 				open={settingsOpen}

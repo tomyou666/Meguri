@@ -30,6 +30,11 @@ export const messages = {
 		file: 'ファイル',
 		openScrb: '開く (.crawlproj)',
 		saveScrb: '保存 (.crawlproj)',
+		saveScrbConfirmTitle: 'プロジェクトを保存',
+		saveScrbConfirmDescription:
+			'ワークスペースを .crawlproj ファイルとして保存します。',
+		saveScrbIncludeResults: 'クロール結果（最新成功）も含める',
+		noWorkspaceSelected: 'ワークスペースが選択されていません',
 		openFileMenu: 'ファイルメニューを開く',
 		settings: '設定',
 		appDefaults: 'デフォルト設定',

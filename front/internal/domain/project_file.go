@@ -32,8 +32,10 @@ func (s *ProjectFileService) ImportFromPath(ctx context.Context, path string) (s
 }
 
 // ExportToPath は WS を .crawlproj に書き出す。
-func (s *ProjectFileService) ExportToPath(ctx context.Context, workspaceID, path string) error {
-	bundle, err := s.ws.ExportBundle(ctx, workspaceID)
+//
+// includeResults が true のとき最新成功の node_results も ZIP に含める。
+func (s *ProjectFileService) ExportToPath(ctx context.Context, workspaceID, path string, includeResults bool) error {
+	bundle, err := s.ws.ExportBundle(ctx, workspaceID, includeResults)
 	if err != nil {
 		return err
 	}
@@ -45,8 +47,10 @@ func (s *ProjectFileService) ExportToPath(ctx context.Context, workspaceID, path
 }
 
 // ExportBytes は WS を .crawlproj バイト列にする。
-func (s *ProjectFileService) ExportBytes(ctx context.Context, workspaceID string) ([]byte, error) {
-	bundle, err := s.ws.ExportBundle(ctx, workspaceID)
+//
+// includeResults が true のとき最新成功の node_results も ZIP に含める。
+func (s *ProjectFileService) ExportBytes(ctx context.Context, workspaceID string, includeResults bool) ([]byte, error) {
+	bundle, err := s.ws.ExportBundle(ctx, workspaceID, includeResults)
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -213,6 +214,11 @@ func (s *WorkspaceService) Duplicate(ctx context.Context, req model.DuplicateWor
 }
 
 // ImportBundle は新規 ID で WS をインポートする。
+//
+// bundle.Results がある場合は合成 crawl_run（status=completed）1本を作り、
+// node_id を remap して結果行を挿入する。
+// グラフ保存後に run／結果の挿入が失敗した場合は補償として WS を削除する。
+// 補償削除も失敗したときは errors.Join で元エラーと削除エラーを返す。
 func (s *WorkspaceService) ImportBundle(ctx context.Context, bundle model.WorkspaceBundle) (string, error) {
 	wsID := genID()
 	bundle.Workspace.ID = model.StrPtr(wsID)
@@ -236,18 +242,80 @@ func (s *WorkspaceService) ImportBundle(ctx context.Context, bundle model.Worksp
 	if bundle.UIState != nil {
 		bundle.UIState.WorkspaceID = model.StrPtr(wsID)
 	}
+	results := bundle.Results
+	bundle.Results = nil
 	if err := s.repo.SaveWorkspaceBundle(ctx, bundle); err != nil {
+		return "", err
+	}
+	if len(results) == 0 {
+		return wsID, nil
+	}
+	if err := s.importBundleResults(ctx, wsID, idMap, results); err != nil {
+		if delErr := s.repo.DeleteWorkspace(ctx, wsID); delErr != nil {
+			return "", errors.Join(err, delErr)
+		}
 		return "", err
 	}
 	return wsID, nil
 }
 
-// ExportBundle はエクスポート用バンドルを返す（baseline / results なし）。
-func (s *WorkspaceService) ExportBundle(ctx context.Context, id string) (*model.WorkspaceBundle, error) {
+// importBundleResults は合成 crawl_run と結果行を挿入する。
+func (s *WorkspaceService) importBundleResults(
+	ctx context.Context,
+	wsID string,
+	idMap map[string]string,
+	results []model.NodeResult,
+) error {
+	runID := genID()
+	now := time.Now().UTC().Format(time.RFC3339)
+	if err := s.repo.BeginCrawlRun(ctx, model.CrawlRun{
+		ID: model.StrPtr(runID), WorkspaceID: wsID, Mode: 1,
+		Status: model.StrPtr("completed"), StartedAt: now, FinishedAt: &now,
+	}); err != nil {
+		return err
+	}
+	for _, source := range results {
+		newNodeID, ok := idMap[source.NodeID]
+		if !ok {
+			continue
+		}
+		row := source
+		row.ID = model.StrPtr(genID())
+		row.RunID = runID
+		row.WorkspaceID = wsID
+		row.NodeID = newNodeID
+		if err := s.repo.AppendNodeResult(ctx, row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ExportBundle はエクスポート用バンドルを返す（baseline なし）。
+//
+// includeResults が true のとき、ノードごとの最新成功結果を bundle.Results に載せる。
+// false のときは結果を含めない（従来どおり）。
+func (s *WorkspaceService) ExportBundle(ctx context.Context, id string, includeResults bool) (*model.WorkspaceBundle, error) {
 	bundle, err := s.repo.LoadWorkspaceBundle(ctx, id)
 	if err != nil || bundle == nil {
 		return nil, fmt.Errorf("workspace not found")
 	}
 	bundle.Workspace.BaselineRunID = nil
+	if !includeResults {
+		return bundle, nil
+	}
+	rows, err := s.repo.GetNodeResults(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	byNode := latestSuccessByNode(rows)
+	if len(byNode) == 0 {
+		return bundle, nil
+	}
+	results := make([]model.NodeResult, 0, len(byNode))
+	for _, row := range byNode {
+		results = append(results, row)
+	}
+	bundle.Results = results
 	return bundle, nil
 }

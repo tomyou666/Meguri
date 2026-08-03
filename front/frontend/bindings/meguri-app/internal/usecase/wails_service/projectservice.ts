@@ -27,10 +27,12 @@ export function OpenScrb(): $CancellablePromise<model$0.OpenScrbResponse> {
 }
 
 /**
- * SaveScrb はアクティブ WS を .scrb に保存する。
+ * SaveScrb はアクティブ WS を .crawlproj に保存する。
+ * 
+ * includeResults が true のとき最新成功の node_results も ZIP に含める。
  */
-export function SaveScrb(workspaceID: string): $CancellablePromise<void> {
-    return $Call.ByID(3180281898, workspaceID);
+export function SaveScrb(workspaceID: string, includeResults: boolean): $CancellablePromise<void> {
+    return $Call.ByID(3180281898, workspaceID, includeResults);
 }
 
 /**
