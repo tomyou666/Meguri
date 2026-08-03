@@ -78,6 +78,23 @@ func TestCrawlState(t *testing.T) {
 		_, hasC := got["https://example.com/c"]
 		assert.False(t, hasC, "no links means omitted from map")
 	})
+
+	t.Run("正常系: noteLinkSkipped は件数だけ増やし UI emit なしでも集計できる", func(t *testing.T) {
+		s := &ScraperService{}
+		st := newCrawlState(model.StartCrawlRequest{})
+		s.noteLinkSkipped(st)
+		s.noteLinkSkipped(st)
+		assert.Equal(t, 2, st.linkSkippedCount)
+	})
+
+	t.Run("正常系: emitLinkSkipped も件数を加算する", func(t *testing.T) {
+		// app 未設定のため Event.Emit は走らないが、集計は進む。
+		s := &ScraperService{}
+		st := newCrawlState(model.StartCrawlRequest{})
+		req := model.StartCrawlRequest{WorkspaceID: "ws", RunID: "run"}
+		s.emitLinkSkipped(req, st, "https://example.com/p", "https://example.com/c", "duplicate_in_run")
+		assert.Equal(t, 1, st.linkSkippedCount)
+	})
 }
 
 // TestShouldSuppressNodeSkipped は到達済みノードへの nodeSkipped 抑止判定を検証する。

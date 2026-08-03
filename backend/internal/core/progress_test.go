@@ -2,9 +2,12 @@ package core_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -395,6 +398,108 @@ func TestCrawlerProgress(t *testing.T) {
 			dupSkipCount++
 		}
 		assert.Greater(t, dupSkipCount, 0, "deep path should produce duplicate skip for page-a")
+	})
+
+	t.Run("正常系: skip_scrape ジョブは request_delay を待たない", func(t *testing.T) {
+		// 3 URL すべて skip。delay 500ms を毎ジョブ待つと 1.5s 超えるため、未適用なら大幅に短い。
+		seedURL := srv.URL + "/links_with_pdf.html"
+		pageA := srv.URL + "/docs/page-a.html"
+		pageB := srv.URL + "/docs/page-b.html"
+
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = true
+		cfg.Crawl.MaxDepth = 2
+		cfg.Crawl.MaxPages = 3
+		cfg.Crawl.MaxConcurrency = 1
+		cfg.Crawl.RequestDelay = 500 * time.Millisecond
+		cfg.Crawl.SkipScrapeURLs = []string{seedURL, pageA, pageB}
+		cfg.Crawl.SkipScrapeLinkMap = map[string][]string{
+			seedURL: {pageA, pageB},
+		}
+
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), nil, nil, nil)
+
+		seed, err := url.Parse(seedURL)
+		require.NoError(t, err)
+
+		start := time.Now()
+		_, err = c.Run(context.Background(), []*url.URL{seed})
+		elapsed := time.Since(start)
+		require.NoError(t, err)
+		assert.Less(t, elapsed, 800*time.Millisecond,
+			"skip scrape jobs must not wait request_delay (elapsed=%s)", elapsed)
+	})
+
+	t.Run("正常系: SkipScrapeURLs の enqueue では robots を呼ばない", func(t *testing.T) {
+		// シードと子を両方 skip。enqueue はするが robots は不要。
+		seedURL := srv.URL + "/links_with_pdf.html"
+		pageA := srv.URL + "/docs/page-a.html"
+
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = true
+		cfg.Crawl.MaxDepth = 2
+		cfg.Crawl.MaxPages = 10
+		cfg.Crawl.MaxConcurrency = 1
+		cfg.Crawl.RespectRobotsTxt = true
+		cfg.Crawl.SkipScrapeURLs = []string{seedURL, pageA}
+		cfg.Crawl.SkipScrapeLinkMap = map[string][]string{
+			seedURL: {pageA},
+		}
+
+		robots := &countingRobots{}
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), robots, nil, nil)
+
+		seed, err := url.Parse(seedURL)
+		require.NoError(t, err)
+
+		_, err = c.Run(context.Background(), []*url.URL{seed})
+		require.NoError(t, err)
+		assert.Equal(t, int64(0), robots.calls.Load(),
+			"skip scrape URLs must not call robots.Allowed")
+	})
+
+	t.Run("正常系: skip 展開の未取得子は robots 判定する", func(t *testing.T) {
+		// シードだけ skip。葉ページの子は 1 回だけ robots。
+		mux := http.NewServeMux()
+		mux.HandleFunc("/seed.html", func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write([]byte(`<html><body>seed</body></html>`))
+		})
+		mux.HandleFunc("/leaf.html", func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write([]byte(`<html><body>leaf</body></html>`))
+		})
+		ts := httptest.NewServer(mux)
+		defer ts.Close()
+
+		seedURL := ts.URL + "/seed.html"
+		leafURL := ts.URL + "/leaf.html"
+
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = true
+		cfg.Crawl.MaxDepth = 2
+		cfg.Crawl.MaxPages = 10
+		cfg.Crawl.MaxConcurrency = 1
+		cfg.Crawl.RespectRobotsTxt = true
+		cfg.Crawl.AllowExternal = false
+		cfg.Crawl.SkipScrapeURLs = []string{seedURL}
+		cfg.Crawl.SkipScrapeLinkMap = map[string][]string{
+			seedURL: {leafURL},
+		}
+
+		robots := &countingRobots{}
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), robots, nil, nil)
+
+		seed, err := url.Parse(seedURL)
+		require.NoError(t, err)
+
+		_, err = c.Run(context.Background(), []*url.URL{seed})
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), robots.calls.Load(),
+			"non-skip child must call robots.Allowed once")
 	})
 
 	t.Run("正常系: クロール無効時も sink に結果が渡される", func(t *testing.T) {

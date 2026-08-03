@@ -632,14 +632,20 @@ func shouldSuppressNodeSkipped(mainReached map[string]struct{}, nodeID string) b
 	return ok
 }
 
+// noteLinkSkipped はリンクスキップ件数を加算する（UI へは出さない）。
+func (s *ScraperService) noteLinkSkipped(st *crawlState) {
+	st.mu.Lock()
+	st.linkSkippedCount++
+	st.mu.Unlock()
+}
+
+// emitLinkSkipped はリンクスキップを集計し UI へ通知する。
 func (s *ScraperService) emitLinkSkipped(
 	req model.StartCrawlRequest,
 	st *crawlState,
 	parentURL, childURL, reason string,
 ) {
-	st.mu.Lock()
-	st.linkSkippedCount++
-	st.mu.Unlock()
+	s.noteLinkSkipped(st)
 	s.emit(topicLinkSkipped, model.CrawlEventPayload{
 		WorkspaceID: req.WorkspaceID,
 		RunID:       req.RunID,
@@ -751,6 +757,11 @@ func (s *ScraperService) runMainBFS(
 			childKey := st.crawlURLKey(ev.URL)
 			if reason := st.linkSkipReason(childKey); reason != "" {
 				st.mu.Unlock()
+				// 既存グラフ上の再発見は集計のみ（UI 連打を避ける）。
+				if reason == "duplicate_existing" {
+					s.noteLinkSkipped(st)
+					return
+				}
 				s.emitLinkSkipped(req, st, parentKey, childKey, reason)
 				return
 			}
@@ -822,7 +833,8 @@ func (s *ScraperService) runMainBFS(
 				s.emitLinkSkipped(req, st, ev.ParentURL, urlKey, "duplicate_in_run")
 				return
 			case "already_success":
-				s.emitLinkSkipped(req, st, ev.ParentURL, urlKey, "duplicate_existing")
+				// 再取得 OFF の既存 success は集計のみ（UI 連打を避ける）。
+				s.noteLinkSkipped(st)
 				return
 			}
 			nodeID, _ := st.resolveNodeID(ev.URL, false)

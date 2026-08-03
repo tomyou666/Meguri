@@ -25,6 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- 再取得 OFF 時の既存 success 展開を高速化した
+  - skip scrape ジョブでは `request_delay` を待たないようにした
+  - `SkipScrapeURLs` の enqueue では robots 判定を省略するようにした
+  - 既存向け `already_success` / `duplicate_existing` の linkSkipped UI 連打を抑え、集計のみ残すようにした
+  - リンク発見ログを Debug に下げた
 - chromium 取得で Navigate・待機・HTML 取得を同一 `chromedp.Run` にまとめ、`waitCtx` cancel 後の別 Run によるタブデッドロックを解消した
   - HTML 取得を `OuterHTML` から `Evaluate(document.documentElement.outerHTML)` に変更
   - リクエスト期限切れが `context canceled` に化ける問題を `preferRequestContextError` で修正

@@ -320,7 +320,9 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 		pending++
 		stateMu.Unlock()
 
-		if c.cfg.Crawl.RespectRobotsTxt && c.robots != nil {
+		// skip scrape 対象は fetch しないため robots 再判定を省略する。
+		_, skipScrape := c.skipScrapeURLs[key]
+		if !skipScrape && c.cfg.Crawl.RespectRobotsTxt && c.robots != nil {
 			ua := c.cfg.Plugins.Stealth.HTTP.EffectiveUserAgent()
 			if !c.robots.Allowed(ctx, normalized, ua) {
 				stateMu.Lock()
@@ -352,7 +354,8 @@ func (c *Crawler) Run(ctx context.Context, seeds []*url.URL) (*CrawlStats, error
 					return
 				}
 				ok, skipped := c.runOne(ctx, j, enqueue)
-				if c.cfg.Crawl.RequestDelay > 0 {
+				// already_success など fetch スキップ後は delay しない（再取得 OFF の高速化）。
+				if !skipped && c.cfg.Crawl.RequestDelay > 0 {
 					select {
 					case <-ctx.Done():
 					case <-time.After(c.cfg.Crawl.RequestDelay):
@@ -470,7 +473,7 @@ func (c *Crawler) tryEnqueueDiscovered(
 	enqueue func(*url.URL, int, string) bool,
 ) {
 	normalizedLink := normalizeURL(link)
-	slog.Info("crawl link discovered",
+	slog.Debug("crawl link discovered",
 		"raw", link.String(),
 		"normalized", normalizedLink.String(),
 		"depth", depth,
@@ -487,7 +490,8 @@ func (c *Crawler) tryEnqueueDiscovered(
 }
 
 // skipReason はネットワーク不要の訪問不可理由を返す。訪問可能なら空文字。
-// robots.txt 判定は含まない（enqueue 側で max_pages 予約後に lock 外で行う）。
+// robots.txt 判定は含まない（enqueue 側で max_pages 予約後に lock 外で行う。
+// SkipScrapeURLs は robots 省略）。
 // SkipScrapeURLs は enqueue 対象（枠消費）とし、fetch スキップは runOne 側で行う。
 func (c *Crawler) skipReason(u *url.URL, depth int, base *url.URL) string {
 	if u.Scheme != "http" && u.Scheme != "https" {
