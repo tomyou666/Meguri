@@ -3,6 +3,7 @@ import {
 	ChevronDown,
 	FileDown,
 	ListChecks,
+	Loader2,
 	Pause,
 	Play,
 	Square,
@@ -43,6 +44,7 @@ export function ControlBar() {
 	const ws = useAppStore((s) => s.getActiveWorkspace());
 	const workspaceDiffCache = useAppStore((s) => s.workspaceDiffCache);
 	const updateBaselineToCurrent = useAppStore((s) => s.updateBaselineToCurrent);
+	const isUpdatingBaseline = useAppStore((s) => s.isUpdatingBaseline);
 	const openExportWindow = useAppStore((s) => s.openExportWindow);
 	const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
 	const [modeMenuOpen, setModeMenuOpen] = useState(false);
@@ -137,9 +139,15 @@ export function ControlBar() {
 						variant='outline'
 						className='border-amber-500 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700'
 						aria-label={messages.diff.markReviewedAria(diffCount)}
+						aria-busy={isUpdatingBaseline}
+						disabled={isUpdatingBaseline}
 						onClick={() => void updateBaselineToCurrent()}
 					>
-						<CheckCheck className='size-3.5' />
+						{isUpdatingBaseline ? (
+							<Loader2 className='size-3.5 animate-spin' />
+						) : (
+							<CheckCheck className='size-3.5' />
+						)}
 						{messages.diff.markReviewed}
 					</Button>
 				)}

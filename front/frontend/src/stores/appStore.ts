@@ -187,6 +187,7 @@ interface AppState {
 	workspaceDiffCache: Record<string, WorkspaceDiff>;
 	diffSummaryOpen: boolean;
 	diffSummaryWorkspaceId: string | null;
+	isUpdatingBaseline: boolean;
 	runMode: RunMode;
 	rescrapeExisting: boolean;
 	crawlStatus: CrawlRunStatus;
@@ -340,6 +341,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	workspaceDiffCache: {},
 	diffSummaryOpen: false,
 	diffSummaryWorkspaceId: null,
+	isUpdatingBaseline: false,
 	runMode: getRunModePreference(1),
 	rescrapeExisting: getRescrapeExistingPreference(false),
 	crawlStatus: 'idle',
@@ -1640,8 +1642,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 	},
 
 	updateBaselineToCurrent: async () => {
+		if (get().isUpdatingBaseline) return;
 		const ws = get().getActiveWorkspace();
 		if (!ws) return;
+		set({ isUpdatingBaseline: true });
 		try {
 			const baselineRunId = await scraperPort.saveResultsSnapshot(ws.id);
 			set((s) => ({
@@ -1655,6 +1659,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 			notifyError(messages.diff.baselineUpdateFailed, {
 				description: err instanceof Error ? err.message : String(err),
 			});
+		} finally {
+			set({ isUpdatingBaseline: false });
 		}
 	},
 

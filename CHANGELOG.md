@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- 「変更を確認済みにする」実行中のローディング表示と二重実行防止を追加した
 - mode4 連打時に `TrimCrawlRuns` が古い `crawl_runs` を消すと CASCADE で無関係ノードの `node_results` まで消えていたのを修正
   - `node_results.run_id` → `crawl_runs` の `ON DELETE CASCADE` を外すマイグレーションを追加した
 - グラフノード選択時の再レンダーを抑え、ノード数が多いときのクリック FPS を改善した

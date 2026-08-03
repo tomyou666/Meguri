@@ -1,4 +1,4 @@
-import { CheckCheck } from 'lucide-react';
+import { CheckCheck, Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
 	filterNodesByKind,
@@ -29,6 +29,7 @@ export function DiffSummarySheet() {
 	const workspaceDiffCache = useAppStore((s) => s.workspaceDiffCache);
 	const openNodeDiff = useAppStore((s) => s.openNodeDiff);
 	const updateBaselineToCurrent = useAppStore((s) => s.updateBaselineToCurrent);
+	const isUpdatingBaseline = useAppStore((s) => s.isUpdatingBaseline);
 
 	const [filter, setFilter] = useState<FilterKind>('all');
 
@@ -71,12 +72,18 @@ export function DiffSummarySheet() {
 							size='sm'
 							variant='outline'
 							className='mt-2 w-full border-amber-500 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700'
+							aria-busy={isUpdatingBaseline}
+							disabled={isUpdatingBaseline}
 							onClick={async () => {
 								await updateBaselineToCurrent();
 								setDiffSummaryOpen(false);
 							}}
 						>
-							<CheckCheck className='size-3.5' />
+							{isUpdatingBaseline ? (
+								<Loader2 className='size-3.5 animate-spin' />
+							) : (
+								<CheckCheck className='size-3.5' />
+							)}
 							{messages.diff.markReviewed}
 						</Button>
 					)}
