@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-04
+
 ### 追加
 
 - `.crawlproj` 保存時に最新成功のクロール結果を含められるようにした（開くと結果も復元）
