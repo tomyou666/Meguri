@@ -1,15 +1,23 @@
-import { X } from 'lucide-react';
-import { type KeyboardEvent, useRef, useState } from 'react';
+import { Copy, X } from 'lucide-react';
+import {
+	type ClipboardEvent,
+	type KeyboardEvent,
+	useRef,
+	useState,
+} from 'react';
 import { tagListInputClassName } from '@/components/settings/configFormUtils';
 import {
-	addToken,
-	normalizeToken,
+	addTokens,
 	removeLastToken,
 	removeTokenAt,
+	tokensToCopyText,
 } from '@/components/settings/tagListInputUtils';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { messages } from '@/i18n/messages';
+import { notifyError, notifySuccess } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 
 type TagListInputProps = {
@@ -31,20 +39,41 @@ export function TagListInput({
 }: TagListInputProps) {
 	const [draft, setDraft] = useState('');
 	const inputRef = useRef<HTMLInputElement>(null);
+	const m = messages.settings.tagList;
 
 	const commitDraft = () => {
-		const token = normalizeToken(draft);
-		if (!token) {
+		if (!draft.trim()) {
 			setDraft('');
 			return;
 		}
-		const next = addToken(values, token);
+		const next = addTokens(values, draft);
 		if (next !== values) onChange(next);
 		setDraft('');
 	};
 
+	const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
+		const text = e.clipboardData.getData('text');
+		if (!/[\n\r]/.test(text)) return;
+
+		e.preventDefault();
+		const next = addTokens(values, draft + text);
+		if (next !== values) onChange(next);
+		setDraft('');
+	};
+
+	const handleCopy = async () => {
+		try {
+			await navigator.clipboard.writeText(tokensToCopyText(values));
+			notifySuccess(m.copied);
+		} catch (err) {
+			notifyError(m.copyFailed, {
+				description: err instanceof Error ? err.message : String(err),
+			});
+		}
+	};
+
 	const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-		if (e.key === 'Enter' || e.key === ',') {
+		if (e.key === 'Enter') {
 			e.preventDefault();
 			commitDraft();
 			return;
@@ -97,7 +126,25 @@ export function TagListInput({
 				)}
 				onChange={(e) => setDraft(e.target.value)}
 				onKeyDown={handleKeyDown}
+				onPaste={handlePaste}
 			/>
+			{values.length > 0 && (
+				<ActionTooltip label={m.copy}>
+					<Button
+						type='button'
+						variant='ghost'
+						size='icon-xs'
+						className='shrink-0'
+						aria-label={m.copy}
+						onClick={(e) => {
+							e.stopPropagation();
+							void handleCopy();
+						}}
+					>
+						<Copy className={compact ? 'size-2.5' : 'size-3.5'} />
+					</Button>
+				</ActionTooltip>
+			)}
 		</div>
 	);
 }

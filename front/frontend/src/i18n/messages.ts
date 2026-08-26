@@ -275,6 +275,9 @@ export const messages = {
 		tagList: {
 			placeholder: '追加…',
 			remove: (value: string) => `${value} を削除`,
+			copy: 'コピー',
+			copied: 'クリップボードにコピーしました',
+			copyFailed: 'コピーに失敗しました',
 		},
 		localePresets: {
 			unset: '未設定',

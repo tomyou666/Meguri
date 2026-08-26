@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+### 追加
+
+- 設定の複数値入力で改行貼り付けによる一括追加とコピーを追加
+
 ### 修正
 
 - 脆弱性解消
