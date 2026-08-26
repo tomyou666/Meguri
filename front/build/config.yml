@@ -1,6 +1,6 @@
 # This file contains the configuration for this project.
-# When you update `info` or `fileAssociations`, run `wails3 task common:update:build-assets` to update the assets.
-# Note that this will overwrite any changes you have made to the assets.
+# When you update `info` or `fileAssociations`, run `go tool wails3 task common:update:build-assets` to update the assets.
+# Note that this will overwrite any changes you have made to the assets (re-apply `go tool wails3` in generated Taskfiles).
 version: '3'
 
 # This information is used to generate the build assets.
@@ -60,13 +60,13 @@ dev_mode:
       - "*.ts" # The frontend directory will be excluded entirely by the setting above.
     git_ignore: true
   executes:
-    - cmd: wails3 build DEV=true
+    - cmd: go tool wails3 build DEV=true
       type: blocking
       dir: front
-    - cmd: wails3 task common:dev:frontend
+    - cmd: go tool wails3 task common:dev:frontend
       type: background
       dir: front
-    - cmd: wails3 task run
+    - cmd: go tool wails3 task run
       type: primary
       dir: front
 

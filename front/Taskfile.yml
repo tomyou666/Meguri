@@ -1,5 +1,8 @@
 version: '3'
 
+# Invoke Wails via `go tool wails3` (front/go.mod tool). Do not use a PATH-installed wails3.
+# After `go tool wails3 task common:update:build-assets`, restore that prefix in generated Taskfiles.
+
 vars:
   APP_NAME: "meguri"
   BIN_DIR: "bin"
@@ -33,7 +36,7 @@ tasks:
   dev:
     summary: Runs the application in development mode
     cmds:
-      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+      - go tool wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
 
   setup:docker:
     summary: Builds Docker image for cross-compilation (~800MB download)

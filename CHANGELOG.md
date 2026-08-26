@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+### 修正
+
+- 脆弱性解消
+- goのバージョンを1.26.6に変更
+
 ## [0.11.0] - 2026-08-04
 
 ### 追加

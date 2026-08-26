@@ -145,9 +145,9 @@ go run ./tools/changelog-extract 1.0.0
 
 見出し形式: `## [X.Y.Z]` または `## [X.Y.Z] - YYYY-MM-DD`。カテゴリは `### 追加` / `### 変更` / `### 修正` / `### 削除` / `### セキュリティ`（日本語、Keep a Changelog 準拠）。
 
-CI の処理概要: tag 抽出 → `version-mng` → `front/frontend/.env` 生成（`VITE_FEEDBACK_URL`） → `wails3 task windows:package-universal INSTALL_SCOPE=user APP_VERSION=<版>` → arch 別 zip 作成 → `go run ./tools/sign-release ./front/bin` → `changelog-extract` → Release 公開（`SHA256SUMS.sig` は Secret 設定時のみ追加アップロード）
+CI の処理概要: tag 抽出 → `version-mng` → `front/frontend/.env` 生成（`VITE_FEEDBACK_URL`） → `go tool wails3 task windows:package-universal INSTALL_SCOPE=user APP_VERSION=<版>` → arch 別 zip 作成 → `go run ./tools/sign-release ./front/bin` → `changelog-extract` → Release 公開（`SHA256SUMS.sig` は Secret 設定時のみ追加アップロード）
 
-フロント依存は `wails3 task` 内の `npm install` で解決する（workflow 側の `npm ci` は重複のため行わない）。`setup-go` / `setup-node` の組み込みキャッシュに加え、`wails3` CLI バイナリもキャッシュする。初回 Release はモジュール取得で長め、2 回目以降は短縮される。
+フロント依存は `go tool wails3 task` 内の `npm install` で解決する（workflow 側の `npm ci` は重複のため行わない）。`wails3` は `front/go.mod` の `tool` から `go tool` で起動する。
 
 ---
 
@@ -162,7 +162,7 @@ copy frontend\.env.example frontend\.env
 ```
 
 ```powershell
-wails3 task windows:package-universal INSTALL_SCOPE=user APP_VERSION=1.0.0
+go tool wails3 task windows:package-universal INSTALL_SCOPE=user APP_VERSION=1.0.0
 ```
 
 出力:

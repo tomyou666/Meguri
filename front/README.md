@@ -85,7 +85,7 @@ Go の Wails 公開 API から、フロント用の型安全 TS モジュール�
 
 | 項目 | 内容 |
 |------|------|
-| コマンド | `make bindings`（`wails3 generate bindings -ts`） |
+| コマンド | `make bindings`（`go tool wails3 generate bindings -ts`） |
 | 実行タイミング | `usecase/wails_service` のメソッド追加・変更、`internal/model` の DTO 変更後 |
 
 ### 生成されるファイル（手編集禁止）
