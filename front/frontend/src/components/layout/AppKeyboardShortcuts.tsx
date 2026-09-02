@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import {
-	isGraphShortcutTarget,
+	isPrimaryModifier,
 	isTextInputElement,
 	shouldDeferToNativeTextEditing,
 } from '@/lib/keyboardShortcutGuards';
@@ -11,34 +11,34 @@ export function AppKeyboardShortcuts() {
 		const onKeyDown = (e: KeyboardEvent) => {
 			const store = useAppStore.getState();
 			const target = e.target;
+			const mod = isPrimaryModifier(e);
 
-			if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+			if (mod && e.key === 'z' && !e.shiftKey) {
 				if (isTextInputElement(target)) return;
 				e.preventDefault();
 				store.undo();
 				return;
 			}
-			if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+			if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
 				if (isTextInputElement(target)) return;
 				e.preventDefault();
 				store.redo();
 				return;
 			}
-			if (e.ctrlKey && e.key === 'c') {
+			if (mod && e.key === 'c') {
 				if (shouldDeferToNativeTextEditing(target)) return;
 				e.preventDefault();
 				store.copySelectedNodes();
 				return;
 			}
-			if (e.ctrlKey && e.key === 'v') {
+			if (mod && e.key === 'v') {
 				if (shouldDeferToNativeTextEditing(target)) return;
 				e.preventDefault();
 				store.pasteNodes();
 				return;
 			}
-			if (e.ctrlKey && e.key === 'a') {
+			if (mod && e.key === 'a') {
 				if (shouldDeferToNativeTextEditing(target)) return;
-				if (!isGraphShortcutTarget(target)) return;
 				e.preventDefault();
 				store.selectAllNodes();
 				return;
@@ -48,25 +48,14 @@ export function AppKeyboardShortcuts() {
 				store.deleteSelectedNodes();
 				return;
 			}
-			// ツール切替は入力中のみ除外。React Flow クリック後も focus が BODY のままのため
-			// isGraphShortcutTarget では発火できない。
-			if (
-				(e.key === 'h' || e.key === 'H') &&
-				!e.ctrlKey &&
-				!e.metaKey &&
-				!e.altKey
-			) {
+			// ツール切替は入力中のみ除外。React Flow クリック後も focus が BODY のまま。
+			if ((e.key === 'h' || e.key === 'H') && !mod && !e.altKey) {
 				if (isTextInputElement(target)) return;
 				e.preventDefault();
 				store.setGraphToolMode('pan');
 				return;
 			}
-			if (
-				(e.key === 'v' || e.key === 'V') &&
-				!e.ctrlKey &&
-				!e.metaKey &&
-				!e.altKey
-			) {
+			if ((e.key === 'v' || e.key === 'V') && !mod && !e.altKey) {
 				if (isTextInputElement(target)) return;
 				e.preventDefault();
 				store.setGraphToolMode('select');

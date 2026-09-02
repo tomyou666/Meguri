@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- グラフクリック後も Ctrl+A / Cmd+A でノード全選択できるようにした
 - 脆弱性解消
 - goのバージョンを1.26.6に変更
 

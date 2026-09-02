@@ -3,8 +3,9 @@ type TextInputLike = {
 	isContentEditable: boolean;
 };
 
-type ElementLike = {
-	closest: (selector: string) => Element | null;
+type PrimaryModifierKeys = {
+	ctrlKey: boolean;
+	metaKey: boolean;
 };
 
 function isTextInputLike(target: EventTarget | null): boolean {
@@ -16,13 +17,9 @@ function isTextInputLike(target: EventTarget | null): boolean {
 	);
 }
 
-function isElementLike(target: EventTarget | null): boolean {
-	return (
-		target !== null &&
-		typeof target === 'object' &&
-		'closest' in target &&
-		typeof (target as ElementLike).closest === 'function'
-	);
+/** Ctrl（Windows）または Cmd（Mac）が押されているか。 */
+export function isPrimaryModifier(e: PrimaryModifierKeys): boolean {
+	return e.ctrlKey || e.metaKey;
 }
 
 /** INPUT / TEXTAREA / contenteditable ではブラウザ標準の編集ショートカットを優先する。 */
@@ -58,12 +55,4 @@ export function shouldDeferToNativeTextEditing(
 		: null,
 ): boolean {
 	return isTextInputElement(target) || hasNonEmptyTextSelection(selection);
-}
-
-/** グラフ上でのノード向けショートカット（Ctrl+A 等）の対象か。 */
-export function isGraphShortcutTarget(target: EventTarget | null): boolean {
-	if (!isElementLike(target)) {
-		return false;
-	}
-	return (target as unknown as ElementLike).closest('.react-flow') !== null;
 }

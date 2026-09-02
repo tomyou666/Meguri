@@ -1,25 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
 	hasNonEmptyTextSelection,
-	isGraphShortcutTarget,
+	isPrimaryModifier,
 	isTextInputElement,
 	shouldDeferToNativeTextEditing,
 } from '@/lib/keyboardShortcutGuards';
 
 function el(
 	tagName: string,
-	opts?: { contentEditable?: boolean; className?: string },
+	opts?: { contentEditable?: boolean },
 ): HTMLElement {
 	return {
 		tagName: tagName.toUpperCase(),
 		isContentEditable: opts?.contentEditable ?? false,
-		className: opts?.className ?? '',
-		closest: (selector: string) => {
-			if (selector === '.react-flow' && opts?.className === 'react-flow') {
-				return {} as Element;
-			}
-			return null;
-		},
 	} as unknown as HTMLElement;
 }
 
@@ -64,15 +57,10 @@ describe('keyboardShortcutGuards', () => {
 		expect(shouldDeferToNativeTextEditing(el('div'), null)).toBe(false);
 	});
 
-	it('.react-flow 配下のみグラフ向けショートカット対象とする', () => {
-		const graph = el('div', { className: 'react-flow' });
-		const pane = {
-			closest: (selector: string) =>
-				selector === '.react-flow' ? graph : null,
-		} as unknown as Element;
-
-		expect(isGraphShortcutTarget(pane)).toBe(true);
-		expect(isGraphShortcutTarget(el('div'))).toBe(false);
-		expect(isGraphShortcutTarget(null)).toBe(false);
+	it('ctrlKey または metaKey を主修飾キーとして判定する', () => {
+		expect(isPrimaryModifier({ ctrlKey: true, metaKey: false })).toBe(true);
+		expect(isPrimaryModifier({ ctrlKey: false, metaKey: true })).toBe(true);
+		expect(isPrimaryModifier({ ctrlKey: true, metaKey: true })).toBe(true);
+		expect(isPrimaryModifier({ ctrlKey: false, metaKey: false })).toBe(false);
 	});
 });
