@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
+- front usecase（Wails サービス）に gowrap debug ログ（start 毎回 / end は 200ms 以上）を追加
 - 設定の複数値入力で改行貼り付けによる一括追加とコピーを追加
 
 ### 修正

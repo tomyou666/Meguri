@@ -15,17 +15,109 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// StoreService は Wails 公開 Store RPC。
+//go:generate go tool gowrap gen -p meguri-app/internal/usecase/wails_service -i StoreServiceAPI -t templates/slog_debug_slow.gotmpl -o store_service_with_debug_log.go -v ServiceName=StoreService -v DecoratorName=StoreServiceWithDebugLog
+
+// StoreServiceAPI は StoreService の公開メソッド面。
+type StoreServiceAPI interface {
+	// SetApp は Wails App を後から注入する（最大化・エクスポートウィンドウ用）。
+	SetApp(app *application.App)
+	// GetAppDefaults はアプリ既定設定を返す。
+	GetAppDefaults() (json.RawMessage, error)
+	// SetAppDefaults はアプリ既定設定を設定する。
+	SetAppDefaults(config json.RawMessage) error
+	// SaveAppDefaults はアプリ既定設定を保存する。
+	SaveAppDefaults(config json.RawMessage) (model.SaveSettingsResponseDTO, error)
+	// ListWorkspaces は WS 一覧を返す。
+	ListWorkspaces() ([]model.WorkspaceListItemDTO, error)
+	// LoadWorkspace は WS を読み込む。
+	LoadWorkspace(id string) (*model.WorkspaceDTO, error)
+	// SaveWorkspace は WS を保存する。
+	SaveWorkspace(ws model.WorkspaceDTO) error
+	// SaveWorkspaceSettings は WS 設定を保存する。
+	SaveWorkspaceSettings(workspaceID string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error)
+	// SaveNodeSettings はノード設定を置き換えて保存する。
+	SaveNodeSettings(workspaceID, nodeID string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error)
+	// DeleteWorkspace は WS を削除する。
+	DeleteWorkspace(id string) error
+	// DuplicateWorkspace は WS を複製する。
+	DuplicateWorkspace(req model.DuplicateWorkspaceRequest) (*model.WorkspaceDTO, error)
+	// GetNodeResult はノード結果を返す。
+	GetNodeResult(workspaceID, nodeID string) (*model.CrawlResultDTO, error)
+	// GetNodeResults は複数ノード結果を返す。
+	GetNodeResults(workspaceID string, nodeIDs []string) ([]model.CrawlResultDTO, error)
+	// UpdateNodeResult はノード結果の手動編集を保存する。
+	UpdateNodeResult(req model.UpdateNodeResultRequest) (*model.CrawlResultDTO, error)
+	// ShowMaximizedNodeResult は別 WebviewWindow でノード結果を拡大表示する。
+	ShowMaximizedNodeResult(req model.MaximizedNodeResultRequest) error
+	// GetMaximizedNodeResult は最大化ウィンドウ用の直近スナップショットを返す。
+	GetMaximizedNodeResult() (model.MaximizedNodeResultRequest, error)
+	// ShowExportWindow は別 WebviewWindow でエクスポート画面を表示する。
+	ShowExportWindow(req model.ExportSessionRequest) error
+	// GetExportSession はエクスポートウィンドウ用の直近スナップショットを返す。
+	GetExportSession() (model.ExportSessionRequest, error)
+	// SaveExportFile はエクスポート本文をファイルに保存する。
+	SaveExportFile(content string, defaultExt string) error
+	// SaveExportZip は複数ファイルを ZIP にまとめて保存する。
+	SaveExportZip(entries []model.ExportZipEntryDTO, defaultExt string) error
+	// MergeResults は結果をマージする。
+	MergeResults(workspaceID string, nodeIDs []string, formats []string) (model.MergeResultsResponseDTO, error)
+	// SaveResults は baseline 用に結果を保存する。
+	SaveResults(workspaceID string, nodeIDs []string) error
+	// DeleteResults は最新結果を削除する。
+	DeleteResults(workspaceID string, nodeIDs []string) error
+	// SaveResultsSnapshot は baseline snapshot を保存する。
+	SaveResultsSnapshot(workspaceID, runID string) (string, error)
+	// GetWorkspaceDiff は WS 差分を返す。
+	GetWorkspaceDiff(workspaceID string) (model.WorkspaceDiffDTO, error)
+	// GetNodeDiffDetail は単一ノードの差分詳細を返す。
+	GetNodeDiffDetail(workspaceID, nodeID string) (model.NodeDiffDetailDTO, error)
+	// ShowNodeDiffWindow は別 WebviewWindow でノード差分を表示する。
+	ShowNodeDiffWindow(req model.NodeDiffViewerRequest) error
+	// GetNodeDiffViewerSession は差分ビューアウィンドウ用の直近スナップショットを返す。
+	GetNodeDiffViewerSession() (model.NodeDiffViewerRequest, error)
+	// BeginCrawlRun は crawl run を開始する。
+	BeginCrawlRun(req model.BeginCrawlRunRequest) error
+	// FinishCrawlRun は crawl run を終了する。
+	FinishCrawlRun(req model.FinishCrawlRunRequest) error
+	// AppendNodeResult はノード結果行を追加する。
+	AppendNodeResult(req model.AppendNodeResultRequest) error
+	// PatchGraphNodeStatus はノード status を更新する。
+	PatchGraphNodeStatus(req model.PatchGraphNodeStatusRequest) error
+	// GetGraphNodeStatuses は指定ノードの status と lastError を返す。
+	GetGraphNodeStatuses(workspaceID string, nodeIDs []string) ([]model.GraphNodeStatusDTO, error)
+	// PatchGraphNodePositions はノード座標を部分更新する。
+	PatchGraphNodePositions(req model.PatchGraphNodePositionsRequest) error
+	// UpsertDiscoveredGraph は crawl 中に発見したノードとエッジを永続化する。
+	UpsertDiscoveredGraph(req model.UpsertDiscoveredGraphRequest) error
+	// Bootstrap は起動時 DB 初期化。
+	Bootstrap() error
+}
+
+// StoreService は Wails 公開 Store RPC（debug ログ付き殻）。
 type StoreService struct {
-	app           *application.App
-	appConfig     *domain.AppConfigService
-	workspaces    *domain.WorkspaceService
-	results       *domain.ResultsService
-	diff          *domain.DiffService
-	crawlPersist  *domain.CrawlPersistService
+	StoreServiceWithDebugLog
+}
+
+// storeService は StoreService の実装本体。
+type storeService struct {
+	// app は Wails アプリ（イベント・ダイアログ用）。
+	app *application.App
+	// appConfig はアプリ既定設定サービス。
+	appConfig *domain.AppConfigService
+	// workspaces はワークスペースサービス。
+	workspaces *domain.WorkspaceService
+	// results はクロール結果サービス。
+	results *domain.ResultsService
+	// diff は差分サービス。
+	diff *domain.DiffService
+	// crawlPersist はクロール永続化サービス。
+	crawlPersist *domain.CrawlPersistService
+	// nodeResultWin はノード結果最大化ウィンドウ。
 	nodeResultWin *NodeResultWindowManager
-	exportWin     *ExportWindowManager
-	nodeDiffWin   *NodeDiffWindowManager
+	// exportWin はエクスポートウィンドウ。
+	exportWin *ExportWindowManager
+	// nodeDiffWin はノード差分ウィンドウ。
+	nodeDiffWin *NodeDiffWindowManager
 }
 
 // NewStoreService は StoreService を構築する。
@@ -36,17 +128,18 @@ func NewStoreService(
 	diff *domain.DiffService,
 	crawlPersist *domain.CrawlPersistService,
 ) *StoreService {
-	return &StoreService{
+	impl := &storeService{
 		appConfig:    appConfig,
 		workspaces:   workspaces,
 		results:      results,
 		diff:         diff,
 		crawlPersist: crawlPersist,
 	}
+	return &StoreService{StoreServiceWithDebugLog: NewStoreServiceWithDebugLog(impl)}
 }
 
 // SetApp は Wails App を後から注入する（最大化・エクスポートウィンドウ用）。
-func (s *StoreService) SetApp(app *application.App) {
+func (s *storeService) SetApp(app *application.App) {
 	s.app = app
 	s.nodeResultWin = NewNodeResultWindowManager(app)
 	s.exportWin = NewExportWindowManager(app)
@@ -55,31 +148,35 @@ func (s *StoreService) SetApp(app *application.App) {
 
 // WireMainWindow はメインウィンドウ終了時のプレビュー連動を登録する。
 func WireMainWindow(s *StoreService, w application.Window) {
-	if s.nodeResultWin != nil {
-		s.nodeResultWin.SetMainWindow(w)
+	impl, ok := s._base.(*storeService)
+	if !ok {
+		return
 	}
-	if s.exportWin != nil {
-		s.exportWin.SetMainWindow(w)
+	if impl.nodeResultWin != nil {
+		impl.nodeResultWin.SetMainWindow(w)
 	}
-	if s.nodeDiffWin != nil {
-		s.nodeDiffWin.SetMainWindow(w)
+	if impl.exportWin != nil {
+		impl.exportWin.SetMainWindow(w)
+	}
+	if impl.nodeDiffWin != nil {
+		impl.nodeDiffWin.SetMainWindow(w)
 	}
 }
 
-func (s *StoreService) ctx() context.Context { return context.Background() }
+func (s *storeService) ctx() context.Context { return context.Background() }
 
 // GetAppDefaults はアプリ既定設定を返す。
-func (s *StoreService) GetAppDefaults() (json.RawMessage, error) {
+func (s *storeService) GetAppDefaults() (json.RawMessage, error) {
 	return s.appConfig.GetDefaults(s.ctx())
 }
 
 // SetAppDefaults はアプリ既定設定を設定する。
-func (s *StoreService) SetAppDefaults(config json.RawMessage) error {
+func (s *storeService) SetAppDefaults(config json.RawMessage) error {
 	return s.appConfig.SaveDefaults(s.ctx(), config)
 }
 
 // SaveAppDefaults はアプリ既定設定を保存する。
-func (s *StoreService) SaveAppDefaults(config json.RawMessage) (model.SaveSettingsResponseDTO, error) {
+func (s *storeService) SaveAppDefaults(config json.RawMessage) (model.SaveSettingsResponseDTO, error) {
 	if err := s.appConfig.SaveDefaults(s.ctx(), config); err != nil {
 		return model.SaveSettingsResponseDTO{}, err
 	}
@@ -87,22 +184,22 @@ func (s *StoreService) SaveAppDefaults(config json.RawMessage) (model.SaveSettin
 }
 
 // ListWorkspaces は WS 一覧を返す。
-func (s *StoreService) ListWorkspaces() ([]model.WorkspaceListItemDTO, error) {
+func (s *storeService) ListWorkspaces() ([]model.WorkspaceListItemDTO, error) {
 	return s.workspaces.List(s.ctx())
 }
 
 // LoadWorkspace は WS を読み込む。
-func (s *StoreService) LoadWorkspace(id string) (*model.WorkspaceDTO, error) {
+func (s *storeService) LoadWorkspace(id string) (*model.WorkspaceDTO, error) {
 	return s.workspaces.Load(s.ctx(), id)
 }
 
 // SaveWorkspace は WS を保存する。
-func (s *StoreService) SaveWorkspace(ws model.WorkspaceDTO) error {
+func (s *storeService) SaveWorkspace(ws model.WorkspaceDTO) error {
 	return s.workspaces.Save(s.ctx(), ws)
 }
 
 // SaveWorkspaceSettings は WS 設定を保存する。
-func (s *StoreService) SaveWorkspaceSettings(workspaceID string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error) {
+func (s *storeService) SaveWorkspaceSettings(workspaceID string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error) {
 	if err := s.workspaces.SaveWorkspaceSettings(s.ctx(), workspaceID, settings); err != nil {
 		return model.SaveSettingsResponseDTO{}, err
 	}
@@ -110,7 +207,7 @@ func (s *StoreService) SaveWorkspaceSettings(workspaceID string, settings json.R
 }
 
 // SaveNodeSettings はノード設定を置き換えて保存する。
-func (s *StoreService) SaveNodeSettings(workspaceID, nodeID string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error) {
+func (s *storeService) SaveNodeSettings(workspaceID, nodeID string, settings json.RawMessage) (model.SaveSettingsResponseDTO, error) {
 	if err := s.workspaces.SaveNodeSettings(s.ctx(), workspaceID, nodeID, settings); err != nil {
 		return model.SaveSettingsResponseDTO{}, err
 	}
@@ -118,7 +215,7 @@ func (s *StoreService) SaveNodeSettings(workspaceID, nodeID string, settings jso
 }
 
 // DeleteWorkspace は WS を削除する。
-func (s *StoreService) DeleteWorkspace(id string) error {
+func (s *storeService) DeleteWorkspace(id string) error {
 	return s.workspaces.Delete(s.ctx(), id)
 }
 
@@ -127,24 +224,24 @@ func (s *StoreService) DeleteWorkspace(id string) error {
 // req.Mode は複製範囲を表す。
 // "full": 設定・ノード・エッジ・UIState をコピーする。
 // "settings": 設定と除外 URL のみコピーし、起点 URL からシードノードを新規作成する。
-func (s *StoreService) DuplicateWorkspace(req model.DuplicateWorkspaceRequest) (*model.WorkspaceDTO, error) {
+func (s *storeService) DuplicateWorkspace(req model.DuplicateWorkspaceRequest) (*model.WorkspaceDTO, error) {
 	return s.workspaces.Duplicate(s.ctx(), req)
 }
 
 // GetNodeResult はノード結果を返す。
-func (s *StoreService) GetNodeResult(workspaceID, nodeID string) (*model.CrawlResultDTO, error) {
+func (s *storeService) GetNodeResult(workspaceID, nodeID string) (*model.CrawlResultDTO, error) {
 	return s.results.GetNodeResult(s.ctx(), workspaceID, nodeID)
 }
 
 // GetNodeResults は複数ノード結果を返す。
-func (s *StoreService) GetNodeResults(workspaceID string, nodeIDs []string) ([]model.CrawlResultDTO, error) {
+func (s *storeService) GetNodeResults(workspaceID string, nodeIDs []string) ([]model.CrawlResultDTO, error) {
 	return s.results.GetNodeResults(s.ctx(), workspaceID, nodeIDs)
 }
 
 const topicNodeResultUpdated = "node-result:updated"
 
 // UpdateNodeResult はノード結果の手動編集を保存する。
-func (s *StoreService) UpdateNodeResult(req model.UpdateNodeResultRequest) (*model.CrawlResultDTO, error) {
+func (s *storeService) UpdateNodeResult(req model.UpdateNodeResultRequest) (*model.CrawlResultDTO, error) {
 	dto, err := s.results.UpdateNodeResult(s.ctx(), req)
 	if err != nil {
 		return nil, err
@@ -160,7 +257,7 @@ func (s *StoreService) UpdateNodeResult(req model.UpdateNodeResultRequest) (*mod
 }
 
 // ShowMaximizedNodeResult は別 WebviewWindow でノード結果を拡大表示する。
-func (s *StoreService) ShowMaximizedNodeResult(req model.MaximizedNodeResultRequest) error {
+func (s *storeService) ShowMaximizedNodeResult(req model.MaximizedNodeResultRequest) error {
 	if s.nodeResultWin == nil {
 		return fmt.Errorf("app not initialized")
 	}
@@ -168,7 +265,7 @@ func (s *StoreService) ShowMaximizedNodeResult(req model.MaximizedNodeResultRequ
 }
 
 // GetMaximizedNodeResult は最大化ウィンドウ用の直近スナップショットを返す。
-func (s *StoreService) GetMaximizedNodeResult() (model.MaximizedNodeResultRequest, error) {
+func (s *storeService) GetMaximizedNodeResult() (model.MaximizedNodeResultRequest, error) {
 	if s.nodeResultWin == nil {
 		return model.MaximizedNodeResultRequest{}, fmt.Errorf("app not initialized")
 	}
@@ -176,7 +273,7 @@ func (s *StoreService) GetMaximizedNodeResult() (model.MaximizedNodeResultReques
 }
 
 // ShowExportWindow は別 WebviewWindow でエクスポート画面を表示する。
-func (s *StoreService) ShowExportWindow(req model.ExportSessionRequest) error {
+func (s *storeService) ShowExportWindow(req model.ExportSessionRequest) error {
 	if s.exportWin == nil {
 		return fmt.Errorf("app not initialized")
 	}
@@ -184,7 +281,7 @@ func (s *StoreService) ShowExportWindow(req model.ExportSessionRequest) error {
 }
 
 // GetExportSession はエクスポートウィンドウ用の直近スナップショットを返す。
-func (s *StoreService) GetExportSession() (model.ExportSessionRequest, error) {
+func (s *storeService) GetExportSession() (model.ExportSessionRequest, error) {
 	if s.exportWin == nil {
 		return model.ExportSessionRequest{}, fmt.Errorf("app not initialized")
 	}
@@ -194,7 +291,7 @@ func (s *StoreService) GetExportSession() (model.ExportSessionRequest, error) {
 // SaveExportFile はエクスポート本文をファイルに保存する。
 //
 // defaultExt はダイアログの既定拡張子（"md" または "html"）。
-func (s *StoreService) SaveExportFile(content string, defaultExt string) error {
+func (s *storeService) SaveExportFile(content string, defaultExt string) error {
 	if s.app == nil {
 		return fmt.Errorf("app not initialized")
 	}
@@ -229,7 +326,7 @@ func (s *StoreService) SaveExportFile(content string, defaultExt string) error {
 //
 // defaultExt はダイアログ表示用のヒント（"md" または "html"）。
 // ZIP 内のファイル名は entries の Name をそのまま使う。
-func (s *StoreService) SaveExportZip(entries []model.ExportZipEntryDTO, defaultExt string) error {
+func (s *storeService) SaveExportZip(entries []model.ExportZipEntryDTO, defaultExt string) error {
 	_ = defaultExt
 	if s.app == nil {
 		return fmt.Errorf("app not initialized")
@@ -280,7 +377,7 @@ func (s *StoreService) SaveExportZip(entries []model.ExportZipEntryDTO, defaultE
 }
 
 // MergeResults は結果をマージする。
-func (s *StoreService) MergeResults(workspaceID string, nodeIDs []string, formats []string) (model.MergeResultsResponseDTO, error) {
+func (s *storeService) MergeResults(workspaceID string, nodeIDs []string, formats []string) (model.MergeResultsResponseDTO, error) {
 	var ids []string
 	if len(nodeIDs) > 0 {
 		ids = nodeIDs
@@ -289,32 +386,32 @@ func (s *StoreService) MergeResults(workspaceID string, nodeIDs []string, format
 }
 
 // SaveResults は baseline 用に結果を保存する。
-func (s *StoreService) SaveResults(workspaceID string, nodeIDs []string) error {
+func (s *storeService) SaveResults(workspaceID string, nodeIDs []string) error {
 	return s.results.SaveResults(s.ctx(), workspaceID, nodeIDs)
 }
 
 // DeleteResults は最新結果を削除する。
-func (s *StoreService) DeleteResults(workspaceID string, nodeIDs []string) error {
+func (s *storeService) DeleteResults(workspaceID string, nodeIDs []string) error {
 	return s.results.DeleteResults(s.ctx(), workspaceID, nodeIDs)
 }
 
 // SaveResultsSnapshot は baseline snapshot を保存する。
-func (s *StoreService) SaveResultsSnapshot(workspaceID, runID string) (string, error) {
+func (s *storeService) SaveResultsSnapshot(workspaceID, runID string) (string, error) {
 	return s.results.SaveResultsSnapshot(s.ctx(), workspaceID, runID)
 }
 
 // GetWorkspaceDiff は WS 差分を返す。
-func (s *StoreService) GetWorkspaceDiff(workspaceID string) (model.WorkspaceDiffDTO, error) {
+func (s *storeService) GetWorkspaceDiff(workspaceID string) (model.WorkspaceDiffDTO, error) {
 	return s.diff.GetWorkspaceDiff(s.ctx(), workspaceID)
 }
 
 // GetNodeDiffDetail は単一ノードの差分詳細を返す。
-func (s *StoreService) GetNodeDiffDetail(workspaceID, nodeID string) (model.NodeDiffDetailDTO, error) {
+func (s *storeService) GetNodeDiffDetail(workspaceID, nodeID string) (model.NodeDiffDetailDTO, error) {
 	return s.diff.GetNodeDiffDetail(s.ctx(), workspaceID, nodeID)
 }
 
 // ShowNodeDiffWindow は別 WebviewWindow でノード差分を表示する。
-func (s *StoreService) ShowNodeDiffWindow(req model.NodeDiffViewerRequest) error {
+func (s *storeService) ShowNodeDiffWindow(req model.NodeDiffViewerRequest) error {
 	if s.nodeDiffWin == nil {
 		return fmt.Errorf("app not initialized")
 	}
@@ -322,7 +419,7 @@ func (s *StoreService) ShowNodeDiffWindow(req model.NodeDiffViewerRequest) error
 }
 
 // GetNodeDiffViewerSession は差分ビューアウィンドウ用の直近スナップショットを返す。
-func (s *StoreService) GetNodeDiffViewerSession() (model.NodeDiffViewerRequest, error) {
+func (s *storeService) GetNodeDiffViewerSession() (model.NodeDiffViewerRequest, error) {
 	if s.nodeDiffWin == nil {
 		return model.NodeDiffViewerRequest{}, fmt.Errorf("app not initialized")
 	}
@@ -330,42 +427,42 @@ func (s *StoreService) GetNodeDiffViewerSession() (model.NodeDiffViewerRequest, 
 }
 
 // BeginCrawlRun は crawl run を開始する。
-func (s *StoreService) BeginCrawlRun(req model.BeginCrawlRunRequest) error {
+func (s *storeService) BeginCrawlRun(req model.BeginCrawlRunRequest) error {
 	return s.crawlPersist.BeginCrawlRun(s.ctx(), req)
 }
 
 // FinishCrawlRun は crawl run を終了する。
-func (s *StoreService) FinishCrawlRun(req model.FinishCrawlRunRequest) error {
+func (s *storeService) FinishCrawlRun(req model.FinishCrawlRunRequest) error {
 	return s.crawlPersist.FinishCrawlRun(s.ctx(), req)
 }
 
 // AppendNodeResult はノード結果行を追加する。
-func (s *StoreService) AppendNodeResult(req model.AppendNodeResultRequest) error {
+func (s *storeService) AppendNodeResult(req model.AppendNodeResultRequest) error {
 	return s.results.AppendNodeResultRow(s.ctx(), req)
 }
 
 // PatchGraphNodeStatus はノード status を更新する。
-func (s *StoreService) PatchGraphNodeStatus(req model.PatchGraphNodeStatusRequest) error {
+func (s *storeService) PatchGraphNodeStatus(req model.PatchGraphNodeStatusRequest) error {
 	return s.crawlPersist.PatchGraphNodeStatus(s.ctx(), req)
 }
 
 // GetGraphNodeStatuses は指定ノードの status と lastError を返す。
-func (s *StoreService) GetGraphNodeStatuses(workspaceID string, nodeIDs []string) ([]model.GraphNodeStatusDTO, error) {
+func (s *storeService) GetGraphNodeStatuses(workspaceID string, nodeIDs []string) ([]model.GraphNodeStatusDTO, error) {
 	return s.crawlPersist.GetGraphNodeStatuses(s.ctx(), workspaceID, nodeIDs)
 }
 
 // PatchGraphNodePositions はノード座標を部分更新する。
-func (s *StoreService) PatchGraphNodePositions(req model.PatchGraphNodePositionsRequest) error {
+func (s *storeService) PatchGraphNodePositions(req model.PatchGraphNodePositionsRequest) error {
 	return s.workspaces.PatchGraphNodePositions(s.ctx(), req)
 }
 
 // UpsertDiscoveredGraph は crawl 中に発見したノードとエッジを永続化する。
-func (s *StoreService) UpsertDiscoveredGraph(req model.UpsertDiscoveredGraphRequest) error {
+func (s *storeService) UpsertDiscoveredGraph(req model.UpsertDiscoveredGraphRequest) error {
 	return s.crawlPersist.UpsertDiscoveredGraph(s.ctx(), req)
 }
 
 // Bootstrap は起動時 DB 初期化。
-func (s *StoreService) Bootstrap() error {
+func (s *storeService) Bootstrap() error {
 	if err := s.appConfig.Bootstrap(s.ctx()); err != nil {
 		return fmt.Errorf("bootstrap app config: %w", err)
 	}

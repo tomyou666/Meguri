@@ -16,7 +16,7 @@ func testRobotsConfigLayer(t *testing.T) json.RawMessage {
 
 // FetchRobotsTxt は runner 委譲で HTTP 応答パターンを検証する。
 func TestFetchRobotsTxt(t *testing.T) {
-	svc := &ScraperService{}
+	svc := NewScraperService(nil)
 	cfgLayer := testRobotsConfigLayer(t)
 
 	t.Run("正常系: 200 応答は found と body を返す", func(t *testing.T) {

@@ -1,0 +1,42 @@
+import (
+	"context"
+	"log/slog"
+	"time"
+)
+
+{{ $decorator := (or .Vars.DecoratorName (printf "%sWithDebugLog" .Interface.Name)) }}
+{{ $serviceName := (or .Vars.ServiceName .Interface.Name) }}
+
+// {{$decorator}} は {{.Interface.Type}} に debug ログを付与するデコレータ。
+type {{$decorator}} struct {
+	_base {{.Interface.Type}}
+}
+
+// New{{$decorator}} は base を debug ログ付きでラップする。
+func New{{$decorator}}(base {{.Interface.Type}}) {{$decorator}} {
+	return {{$decorator}}{_base: base}
+}
+
+{{range $method := .Interface.Methods}}
+// {{$method.Name}} は {{$.Interface.Type}} を実装する。
+func (_d {{$decorator}}) {{$method.Declaration}} {
+	{{- if $method.AcceptsContext}}
+	slog.DebugContext(ctx, "usecase: {{$serviceName}}.{{$method.Name}} start")
+	{{- else}}
+	slog.Debug("usecase: {{$serviceName}}.{{$method.Name}} start")
+	{{- end}}
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		if elapsed < debugLogSlowThreshold {
+			return
+		}
+		{{- if $method.AcceptsContext}}
+		slog.DebugContext(ctx, "usecase: {{$serviceName}}.{{$method.Name}} end", slog.Duration("elapsed", elapsed))
+		{{- else}}
+		slog.Debug("usecase: {{$serviceName}}.{{$method.Name}} end", slog.Duration("elapsed", elapsed))
+		{{- end}}
+	}()
+	{{ $method.Pass "_d._base." }}
+}
+{{end}}

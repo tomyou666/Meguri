@@ -7,7 +7,7 @@ import (
 )
 
 // restart はステージ済み更新を適用してアプリを再起動する。
-func (s *UpdateService) restart(ctx context.Context) error {
+func (s *updateService) restart(ctx context.Context) error {
 	if s.app == nil || s.app.Updater == nil {
 		return ErrUpdaterUnavailable
 	}

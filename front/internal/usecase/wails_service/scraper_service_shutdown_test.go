@@ -17,24 +17,25 @@ func TestScraperService_ServiceShutdown(t *testing.T) {
 
 	t.Run("正常系: cancel 後に goroutine 終了を待ってから返る", func(t *testing.T) {
 		s := NewScraperService(nil)
+		impl := s._base.(*scraperService)
 		done := make(chan struct{})
 
-		s.mu.Lock()
-		s.job = &activeCrawlJob{
+		impl.mu.Lock()
+		impl.job = &activeCrawlJob{
 			cancel: func() {
 				go func() {
 					time.Sleep(20 * time.Millisecond)
-					s.releaseActiveJobResources()
+					impl.releaseActiveJobResources()
 					close(done)
 				}()
 			},
 			done: done,
 		}
-		s.mu.Unlock()
+		impl.mu.Unlock()
 
 		start := time.Now()
 		require.NoError(t, s.ServiceShutdown())
 		assert.GreaterOrEqual(t, time.Since(start), 15*time.Millisecond)
-		assert.Nil(t, s.job)
+		assert.Nil(t, impl.job)
 	})
 }

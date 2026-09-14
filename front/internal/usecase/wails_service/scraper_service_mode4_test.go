@@ -24,7 +24,7 @@ func TestMode4VisitOrder(t *testing.T) {
 	})
 
 	t.Run("正常系: nodeIds 空なら runMode4 はエラー", func(t *testing.T) {
-		s := &ScraperService{}
+		s := &scraperService{}
 		st := newCrawlState(model.StartCrawlRequest{
 			Workspace: model.WorkspaceDTO{},
 		})

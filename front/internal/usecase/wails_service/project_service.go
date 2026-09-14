@@ -10,25 +10,46 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// ProjectService は .scrb 入出力 Wails RPC。
+//go:generate go tool gowrap gen -p meguri-app/internal/usecase/wails_service -i ProjectServiceAPI -t templates/slog_debug_slow.gotmpl -o project_service_with_debug_log.go -v ServiceName=ProjectService -v DecoratorName=ProjectServiceWithDebugLog
+
+// ProjectServiceAPI は ProjectService の公開メソッド面。
+type ProjectServiceAPI interface {
+	// SetApp は Wails App を後から注入する（ダイアログ用）。
+	SetApp(app *application.App)
+	// OpenScrb は .scrb を開き新規 WS としてインポートする。
+	OpenScrb() (model.OpenScrbResponse, error)
+	// SaveScrb はアクティブ WS を .crawlproj に保存する。
+	SaveScrb(workspaceID string, includeResults bool) error
+}
+
+// ProjectService は .scrb 入出力 Wails RPC（debug ログ付き殻）。
 type ProjectService struct {
-	projects   *domain.ProjectFileService
+	ProjectServiceWithDebugLog
+}
+
+// projectService は ProjectService の実装本体。
+type projectService struct {
+	// projects はプロジェクトファイル入出力サービス。
+	projects *domain.ProjectFileService
+	// workspaces はワークスペースサービス。
 	workspaces *domain.WorkspaceService
-	app        *application.App
+	// app は Wails アプリ（ダイアログ用）。
+	app *application.App
 }
 
 // NewProjectService は ProjectService を構築する。
 func NewProjectService(projects *domain.ProjectFileService, workspaces *domain.WorkspaceService) *ProjectService {
-	return &ProjectService{projects: projects, workspaces: workspaces}
+	impl := &projectService{projects: projects, workspaces: workspaces}
+	return &ProjectService{ProjectServiceWithDebugLog: NewProjectServiceWithDebugLog(impl)}
 }
 
 // SetApp は Wails App を後から注入する（ダイアログ用）。
-func (s *ProjectService) SetApp(app *application.App) {
+func (s *projectService) SetApp(app *application.App) {
 	s.app = app
 }
 
 // OpenScrb は .scrb を開き新規 WS としてインポートする。
-func (s *ProjectService) OpenScrb() (model.OpenScrbResponse, error) {
+func (s *projectService) OpenScrb() (model.OpenScrbResponse, error) {
 	if s.app == nil {
 		return model.OpenScrbResponse{}, fmt.Errorf("app not initialized")
 	}
@@ -51,7 +72,7 @@ func (s *ProjectService) OpenScrb() (model.OpenScrbResponse, error) {
 // SaveScrb はアクティブ WS を .crawlproj に保存する。
 //
 // includeResults が true のとき最新成功の node_results も ZIP に含める。
-func (s *ProjectService) SaveScrb(workspaceID string, includeResults bool) error {
+func (s *projectService) SaveScrb(workspaceID string, includeResults bool) error {
 	if s.app == nil {
 		return fmt.Errorf("app not initialized")
 	}
@@ -73,4 +94,4 @@ func (s *ProjectService) SaveScrb(workspaceID string, includeResults bool) error
 	return s.projects.ExportToPath(s.ctx(), workspaceID, path, includeResults)
 }
 
-func (s *ProjectService) ctx() context.Context { return context.Background() }
+func (s *projectService) ctx() context.Context { return context.Background() }

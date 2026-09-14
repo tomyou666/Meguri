@@ -174,6 +174,7 @@ require (
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
+	github.com/hexdigest/gowrap v1.4.3 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -353,5 +354,6 @@ replace meguri => ../backend
 tool (
 	github.com/go-delve/delve/cmd/dlv
 	github.com/golang-migrate/migrate/v4/cmd/migrate
+	github.com/hexdigest/gowrap/cmd/gowrap
 	github.com/wailsapp/wails/v3/cmd/wails3
 )

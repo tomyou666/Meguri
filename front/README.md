@@ -20,7 +20,7 @@ Wails v3 デスクトップ UI。Go バックエンドはレイヤード構成�
 
 - Go 1.26+（[`.prototools`](../.prototools) / [proto](https://moonrepo.dev/proto) 推奨）
 - Node.js + npm（同上）
-- 開発用 Go CLI: `make tools`（`go.mod` の `tool` で `dlv` / `migrate` / `wails3` を管理）
+- 開発用 Go CLI: `make tools`（`go.mod` の `tool` で `dlv` / `migrate` / `wails3` / `gowrap` を管理）
 
 Go の SQLite / golang-migrate は **CGO 不要**の pure Go スタック（`glebarez/sqlite` + `modernc.org/sqlite`）。ビルドタグの指定は不要です。
 
@@ -29,10 +29,11 @@ Go の SQLite / golang-migrate は **CGO 不要**の pure Go スタック（`gle
 ```powershell
 cd front
 make setup          # npm install
-make tools          # go mod download（dlv, migrate, wails3）
+make tools          # go mod download（dlv, migrate, wails3, gowrap）
 make migrate-up     # DB 作成 + スキーマ適用
 make gen            # GORM Gen（マイグレーション後に実行）
 make wire           # wire_gen.go（internal/app 実装後）
+make gowrap         # wails_service debug ログデコレータ（公開 API 変更後）
 make bindings       # TS bindings（wails_service 実装後）
 ```
 
@@ -67,6 +68,8 @@ Wails 起動時に `internal/app/logging.go` で `meguri/pkg/logger` を初期�
 | レベル | Debug | Info |
 | ローテーション | 10MB × 5 世代 | 同左 |
 | flush | 1 秒間隔 | 毎レコード |
+
+`internal/usecase/wails_service/` の公開 RPC は gowrap で debug ログ付きデコレータを生成する。start は関数名のみ毎回、end は 200ms 以上のときだけ `elapsed` 付きで出す（`make gowrap`、生成物はコミット対象）。
 
 `logs/` は `data/` と同様 `.gitignore` 対象です。
 
@@ -137,6 +140,14 @@ Go の Wails 公開 API から、フロント用の型安全 TS モジュール�
 
 `providers.go` / `wire.go` 変更後に再実行してください。
 
+## gowrap 生成
+
+| 項目 | 内容 |
+|------|------|
+| コマンド | `make gowrap` |
+| 生成物 | `internal/usecase/wails_service/*_with_debug_log.go`（手編集禁止、コミット対象） |
+| タイミング | `StoreServiceAPI` 等の公開 interface 変更後 |
+
 ## 生成物一覧
 
 | 種別 | コマンド | 出力先 | 手編集 |
@@ -145,6 +156,7 @@ Go の Wails 公開 API から、フロント用の型安全 TS モジュール�
 | GORM Gen | `make gen` | `internal/model/*.gen.go`, `internal/query/` | 禁止 |
 | Wails bindings | `make bindings` | `frontend/bindings/` | 禁止 |
 | Wire | `make wire` | `internal/app/wire_gen.go` | 禁止 |
+| gowrap | `make gowrap` | `internal/usecase/wails_service/*_with_debug_log.go` | 禁止 |
 | DDL 参照 | 手動同期 | `storage/schema.sql` | 可（migrations と一致させる） |
 
 ## よく使うコマンド
@@ -156,9 +168,10 @@ Go の Wails 公開 API から、フロント用の型安全 TS モジュール�
 | テスト | `make test` |
 | lint + test | `make check` |
 | 依存整理 | `make gtidy` |
-| 開発 CLI 導入 | `make tools`（`go tool dlv` / `migrate` / `wails3`） |
+| 開発 CLI 導入 | `make tools`（`go tool dlv` / `migrate` / `wails3` / `gowrap`） |
 | マイグレーション適用 | `make migrate-up` |
 | DB バージョン確認 | `make migrate-version` |
 | GORM Gen | `make gen` |
 | Wire | `make wire` |
+| gowrap | `make gowrap` |
 | TS bindings | `make bindings` |

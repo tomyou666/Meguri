@@ -21,7 +21,7 @@ help:
 	@echo "  fmt           Run backend, front, and tools fmt"
 	@echo "  tidy          Run go mod tidy on backend, front, and tools"
 	@echo "  wire          Regenerate backend and front wire_gen.go"
-	@echo "  generate      Regenerate all codegen (backend wire + gowrap + front migrate/gen/wire/bindings)"
+	@echo "  generate      Regenerate all codegen (backend wire + gowrap + front migrate/gen/wire/gowrap/bindings)"
 	@echo "  tools         Download backend and front Go tool dependencies (gowrap, dlv, migrate, wails3)"
 	@echo "  vuln          Run govulncheck (all Go modules) + npm audit"
 	@echo "  upgrade-patch Upgrade patch versions (Go + npm)"

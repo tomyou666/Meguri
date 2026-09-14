@@ -9,38 +9,78 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/updater"
 )
 
-// UpdateService は Wails updater の手動確認 RPC。
+//go:generate go tool gowrap gen -p meguri-app/internal/usecase/wails_service -i UpdateServiceAPI -t templates/slog_debug_slow.gotmpl -o update_service_with_debug_log.go -v ServiceName=UpdateService -v DecoratorName=UpdateServiceWithDebugLog
+
+// UpdateServiceAPI は UpdateService の公開メソッド面。
+type UpdateServiceAPI interface {
+	// SetApp は Wails App を後から注入する。
+	SetApp(app *application.App)
+	// Check は更新を確認し、利用可能なら pending に保持する（ダウンロードはしない）。
+	Check() (UpdateStatus, error)
+	// GetStatus は現在の更新状態を返す。
+	GetStatus() (UpdateStatus, error)
+	// PromptUpdate は別 WebviewWindow で更新確認を行う。
+	PromptUpdate() (UpdatePromptResult, error)
+	// SubmitUpdatePrompt は更新確認ウィンドウからの選択を受け取る。
+	SubmitUpdatePrompt(action string) error
+	// GetUpdatePromptSnapshot は更新確認ウィンドウ用の直近スナップショットを返す。
+	GetUpdatePromptSnapshot() (UpdatePromptSnapshot, error)
+	// ApplyUpdate は pending 更新をダウンロードしてステージし、exe を差し替えて再起動する。
+	ApplyUpdate() error
+	// CheckForUpdates は手動更新確認（Check → 利用可能なら PromptUpdate）を行う。
+	CheckForUpdates() (CheckForUpdatesResult, error)
+	// CheckOnStartup は起動時の更新確認を行い、利用可能ならイベントを発火する。
+	CheckOnStartup()
+	// StartPeriodicCheck は interval ごとに Check のみを実行するバックグラウンドループを開始する。
+	StartPeriodicCheck(interval time.Duration)
+}
+
+// UpdateService は Wails updater の手動確認 RPC（debug ログ付き殻）。
 type UpdateService struct {
-	app       *application.App
+	UpdateServiceWithDebugLog
+}
+
+// updateService は UpdateService の実装本体。
+type updateService struct {
+	// app は Wails アプリ。
+	app *application.App
+	// promptWin は更新確認ウィンドウ。
 	promptWin *UpdateWindowManager
 
-	mu             sync.RWMutex
+	// mu は pendingRelease の排他制御。
+	mu sync.RWMutex
+	// pendingRelease は確認済み未適用のリリース。
 	pendingRelease *updater.Release
 }
 
 // NewUpdateService は UpdateService を構築する。
 func NewUpdateService() *UpdateService {
-	return &UpdateService{}
+	impl := &updateService{}
+	return &UpdateService{UpdateServiceWithDebugLog: NewUpdateServiceWithDebugLog(impl)}
 }
 
 // SetApp は Wails App を後から注入する。
-func (s *UpdateService) SetApp(app *application.App) {
+func (s *updateService) SetApp(app *application.App) {
 	s.app = app
 	s.promptWin = NewUpdateWindowManager(app)
 }
 
 // WireUpdateMainWindow は UpdateService にメインウィンドウを注入する。
 func WireUpdateMainWindow(s *UpdateService, window application.Window) {
-	if s.promptWin != nil {
-		s.promptWin.SetMainWindow(window)
+	impl, ok := s._base.(*updateService)
+	if !ok {
+		return
+	}
+	if impl.promptWin != nil {
+		impl.promptWin.SetMainWindow(window)
 	}
 }
 
-func (s *UpdateService) ctx() context.Context {
+func (s *updateService) ctx() context.Context {
 	return context.Background()
 }
 
-func (s *UpdateService) requireUpdater() error {
+func (s *updateService) requireUpdater() error {
 	if s.app == nil || s.app.Updater == nil {
 		return ErrUpdaterUnavailable
 	}
@@ -48,7 +88,7 @@ func (s *UpdateService) requireUpdater() error {
 }
 
 // Check は更新を確認し、利用可能なら pending に保持する（ダウンロードはしない）。
-func (s *UpdateService) Check() (UpdateStatus, error) {
+func (s *updateService) Check() (UpdateStatus, error) {
 	if err := s.requireUpdater(); err != nil {
 		return UpdateStatus{Status: updateStatusUnavailable}, err
 	}
@@ -75,7 +115,7 @@ func (s *UpdateService) Check() (UpdateStatus, error) {
 }
 
 // GetStatus は現在の更新状態を返す。
-func (s *UpdateService) GetStatus() (UpdateStatus, error) {
+func (s *updateService) GetStatus() (UpdateStatus, error) {
 	if err := s.requireUpdater(); err != nil {
 		return UpdateStatus{Status: updateStatusUnavailable}, err
 	}
@@ -107,7 +147,7 @@ func (s *UpdateService) GetStatus() (UpdateStatus, error) {
 }
 
 // PromptUpdate は別 WebviewWindow で更新確認を行う。
-func (s *UpdateService) PromptUpdate() (UpdatePromptResult, error) {
+func (s *updateService) PromptUpdate() (UpdatePromptResult, error) {
 	s.mu.RLock()
 	rel := s.pendingRelease
 	s.mu.RUnlock()
@@ -138,7 +178,7 @@ func (s *UpdateService) PromptUpdate() (UpdatePromptResult, error) {
 // SubmitUpdatePrompt は更新確認ウィンドウからの選択を受け取る。
 //
 // action は confirmed / open_release / dismissed のいずれか。
-func (s *UpdateService) SubmitUpdatePrompt(action string) error {
+func (s *updateService) SubmitUpdatePrompt(action string) error {
 	if s.promptWin == nil {
 		return ErrUpdaterUnavailable
 	}
@@ -146,7 +186,7 @@ func (s *UpdateService) SubmitUpdatePrompt(action string) error {
 }
 
 // GetUpdatePromptSnapshot は更新確認ウィンドウ用の直近スナップショットを返す。
-func (s *UpdateService) GetUpdatePromptSnapshot() (UpdatePromptSnapshot, error) {
+func (s *updateService) GetUpdatePromptSnapshot() (UpdatePromptSnapshot, error) {
 	if s.promptWin == nil {
 		return UpdatePromptSnapshot{}, ErrUpdaterUnavailable
 	}
@@ -154,7 +194,7 @@ func (s *UpdateService) GetUpdatePromptSnapshot() (UpdatePromptSnapshot, error) 
 }
 
 // ApplyUpdate は pending 更新をダウンロードしてステージし、exe を差し替えて再起動する。
-func (s *UpdateService) ApplyUpdate() error {
+func (s *updateService) ApplyUpdate() error {
 	if err := s.requireUpdater(); err != nil {
 		return err
 	}
@@ -176,7 +216,7 @@ func (s *UpdateService) ApplyUpdate() error {
 }
 
 // CheckForUpdates は手動更新確認（Check → 利用可能なら PromptUpdate）を行う。
-func (s *UpdateService) CheckForUpdates() (CheckForUpdatesResult, error) {
+func (s *updateService) CheckForUpdates() (CheckForUpdatesResult, error) {
 	status, err := s.Check()
 	if err != nil {
 		return CheckForUpdatesResult{}, err
@@ -198,7 +238,7 @@ func (s *UpdateService) CheckForUpdates() (CheckForUpdatesResult, error) {
 }
 
 // CheckOnStartup は起動時の更新確認を行い、利用可能ならイベントを発火する。
-func (s *UpdateService) CheckOnStartup() {
+func (s *updateService) CheckOnStartup() {
 	status, err := s.Check()
 	if err != nil {
 		if s.app != nil {
@@ -218,7 +258,7 @@ func (s *UpdateService) CheckOnStartup() {
 }
 
 // StartPeriodicCheck は interval ごとに Check のみを実行するバックグラウンドループを開始する。
-func (s *UpdateService) StartPeriodicCheck(interval time.Duration) {
+func (s *updateService) StartPeriodicCheck(interval time.Duration) {
 	if interval <= 0 {
 		return
 	}

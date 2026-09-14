@@ -80,7 +80,7 @@ func TestCrawlState(t *testing.T) {
 	})
 
 	t.Run("正常系: noteLinkSkipped は件数だけ増やし UI emit なしでも集計できる", func(t *testing.T) {
-		s := &ScraperService{}
+		s := &scraperService{}
 		st := newCrawlState(model.StartCrawlRequest{})
 		s.noteLinkSkipped(st)
 		s.noteLinkSkipped(st)
@@ -89,7 +89,7 @@ func TestCrawlState(t *testing.T) {
 
 	t.Run("正常系: emitLinkSkipped も件数を加算する", func(t *testing.T) {
 		// app 未設定のため Event.Emit は走らないが、集計は進む。
-		s := &ScraperService{}
+		s := &scraperService{}
 		st := newCrawlState(model.StartCrawlRequest{})
 		req := model.StartCrawlRequest{WorkspaceID: "ws", RunID: "run"}
 		s.emitLinkSkipped(req, st, "https://example.com/p", "https://example.com/c", "duplicate_in_run")

@@ -23,7 +23,7 @@ const (
 // restart はステージ済み更新を適用してアプリを再起動する。
 //
 // MEGURI_UPDATER_SWAP_TARGET が設定されている場合は差し替え先 exe を上書きする。
-func (s *UpdateService) restart(ctx context.Context) error {
+func (s *updateService) restart(ctx context.Context) error {
 	if s.app == nil || s.app.Updater == nil {
 		return ErrUpdaterUnavailable
 	}
@@ -34,7 +34,7 @@ func (s *UpdateService) restart(ctx context.Context) error {
 	return s.app.Updater.Restart(ctx)
 }
 
-func (s *UpdateService) restartWithSwapTarget(swapTarget string) error {
+func (s *updateService) restartWithSwapTarget(swapTarget string) error {
 	staged := s.app.Updater.DownloadedPath()
 	if staged == "" {
 		return fmt.Errorf("updater: no staged update")

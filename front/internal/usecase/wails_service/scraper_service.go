@@ -29,19 +29,53 @@ const (
 
 const crawlShutdownTimeout = 5 * time.Second
 
-// ScraperService は backend crawler を駆動し Wails Event で進捗を配信する。
+//go:generate go tool gowrap gen -p meguri-app/internal/usecase/wails_service -i ScraperServiceAPI -t templates/slog_debug_slow.gotmpl -o scraper_service_with_debug_log.go -v ServiceName=ScraperService -v DecoratorName=ScraperServiceWithDebugLog
+
+// ScraperServiceAPI は ScraperService の公開メソッド面。
+type ScraperServiceAPI interface {
+	// SetApp は Wails App を後から注入する（Event 発火用）。
+	SetApp(app *application.App)
+	// ServiceShutdown は Wails アプリ終了時に active crawl を止め chromium プールを閉じる。
+	ServiceShutdown() error
+	// StartCrawl はクロールを非同期で開始し runId を返す。
+	StartCrawl(req model.StartCrawlRequest) (string, error)
+	// PauseCrawl は実行中 crawl を一時停止する。
+	PauseCrawl(runID string) error
+	// ResumeCrawl は一時停止中 crawl を再開する。
+	ResumeCrawl(runID string) error
+	// StopCrawl は実行中 crawl をキャンセルする。
+	StopCrawl(runID string) error
+	// FetchRobotsTxt は robots.txt を取得する。
+	FetchRobotsTxt(host, baseURL string, appDefaults, wsSettings json.RawMessage) (model.RobotsTxtInfoDTO, error)
+}
+
+// ScraperService は backend crawler を駆動し Wails Event で進捗を配信する（debug ログ付き殻）。
 type ScraperService struct {
-	app     *application.App
+	ScraperServiceWithDebugLog
+}
+
+// scraperService は ScraperService の実装本体。
+type scraperService struct {
+	// app は Wails アプリ（Event 発火用）。
+	app *application.App
+	// persist はクロール永続化サービス。
 	persist *domain.CrawlPersistService
-	mu      sync.Mutex
-	job     *activeCrawlJob
+	// mu は active crawl job の排他制御。
+	mu sync.Mutex
+	// job は実行中クロールジョブ。
+	job *activeCrawlJob
 }
 
 type activeCrawlJob struct {
-	runID  string
-	pause  *runner.PauseController
-	cache  *runner.RunnerCache
-	opts   *runner.RunOptions
+	// runID はクロール実行 ID。
+	runID string
+	// pause は一時停止コントローラ。
+	pause *runner.PauseController
+	// cache は runner キャッシュ。
+	cache *runner.RunnerCache
+	// opts は runner 実行オプション。
+	opts *runner.RunOptions
+	// cancel はクロール context の cancel。
 	cancel context.CancelFunc
 	// done はクロール goroutine 終了を通知する（close でシグナル）。
 	done chan struct{}
@@ -49,16 +83,17 @@ type activeCrawlJob struct {
 
 // NewScraperService は ScraperService を構築する。
 func NewScraperService(persist *domain.CrawlPersistService) *ScraperService {
-	return &ScraperService{persist: persist}
+	impl := &scraperService{persist: persist}
+	return &ScraperService{ScraperServiceWithDebugLog: NewScraperServiceWithDebugLog(impl)}
 }
 
 // SetApp は Wails App を後から注入する（Event 発火用）。
-func (s *ScraperService) SetApp(app *application.App) {
+func (s *scraperService) SetApp(app *application.App) {
 	s.app = app
 }
 
 // ServiceShutdown は Wails アプリ終了時に active crawl を止め chromium プールを閉じる。
-func (s *ScraperService) ServiceShutdown() error {
+func (s *scraperService) ServiceShutdown() error {
 	s.mu.Lock()
 	var done <-chan struct{}
 	if s.job != nil {
@@ -81,7 +116,7 @@ func (s *ScraperService) ServiceShutdown() error {
 }
 
 // StartCrawl はクロールを非同期で開始し runId を返す。
-func (s *ScraperService) StartCrawl(req model.StartCrawlRequest) (string, error) {
+func (s *scraperService) StartCrawl(req model.StartCrawlRequest) (string, error) {
 	if s.app == nil {
 		return "", fmt.Errorf("app not initialized")
 	}
@@ -147,7 +182,7 @@ func (s *ScraperService) StartCrawl(req model.StartCrawlRequest) (string, error)
 }
 
 // PauseCrawl は実行中 crawl を一時停止する。
-func (s *ScraperService) PauseCrawl(runID string) error {
+func (s *scraperService) PauseCrawl(runID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.job == nil || s.job.runID != runID {
@@ -158,7 +193,7 @@ func (s *ScraperService) PauseCrawl(runID string) error {
 }
 
 // ResumeCrawl は一時停止中 crawl を再開する。
-func (s *ScraperService) ResumeCrawl(runID string) error {
+func (s *scraperService) ResumeCrawl(runID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.job == nil || s.job.runID != runID {
@@ -169,7 +204,7 @@ func (s *ScraperService) ResumeCrawl(runID string) error {
 }
 
 // StopCrawl は実行中 crawl をキャンセルする。
-func (s *ScraperService) StopCrawl(runID string) error {
+func (s *scraperService) StopCrawl(runID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.job == nil || s.job.runID != runID {
@@ -180,7 +215,7 @@ func (s *ScraperService) StopCrawl(runID string) error {
 }
 
 // releaseActiveJobResources は active job の RunnerCache と FetchLimiter を解放する。
-func (s *ScraperService) releaseActiveJobResources() {
+func (s *scraperService) releaseActiveJobResources() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.job == nil {
@@ -195,7 +230,7 @@ func (s *ScraperService) releaseActiveJobResources() {
 	s.job = nil
 }
 
-func (s *ScraperService) runOptions() *runner.RunOptions {
+func (s *scraperService) runOptions() *runner.RunOptions {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.job == nil {
@@ -204,14 +239,14 @@ func (s *ScraperService) runOptions() *runner.RunOptions {
 	return s.job.opts
 }
 
-func (s *ScraperService) emit(topic string, payload model.CrawlEventPayload) {
+func (s *scraperService) emit(topic string, payload model.CrawlEventPayload) {
 	if s.app == nil {
 		return
 	}
 	s.app.Event.Emit(topic, payload)
 }
 
-func (s *ScraperService) finishCrawlRun(
+func (s *scraperService) finishCrawlRun(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	status string,
@@ -237,7 +272,7 @@ func (s *ScraperService) finishCrawlRun(
 	})
 }
 
-func (s *ScraperService) persistNodeStarted(ctx context.Context, req model.StartCrawlRequest, nodeID string) {
+func (s *scraperService) persistNodeStarted(ctx context.Context, req model.StartCrawlRequest, nodeID string) {
 	if s.persist == nil || nodeID == "" {
 		return
 	}
@@ -249,7 +284,7 @@ func (s *ScraperService) persistNodeStarted(ctx context.Context, req model.Start
 	s.logPersistError(ctx, "patchGraphNodeStatus", req, nodeID, "", err)
 }
 
-func (s *ScraperService) logPersistError(
+func (s *scraperService) logPersistError(
 	ctx context.Context,
 	op string,
 	req model.StartCrawlRequest,
@@ -269,7 +304,7 @@ func (s *ScraperService) logPersistError(
 	)
 }
 
-func (s *ScraperService) persistNodeSucceeded(
+func (s *scraperService) persistNodeSucceeded(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	nodeID, url string,
@@ -316,7 +351,7 @@ func (s *ScraperService) persistNodeSucceeded(
 	s.logPersistError(ctx, "patchGraphNodeStatus", req, nodeID, url, err)
 }
 
-func (s *ScraperService) persistNodeFailed(
+func (s *scraperService) persistNodeFailed(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	nodeID, url, errMsg string,
@@ -342,7 +377,7 @@ func (s *ScraperService) persistNodeFailed(
 	s.logPersistError(ctx, "patchGraphNodeStatus", req, nodeID, url, err)
 }
 
-func (s *ScraperService) persistNodeSkipped(ctx context.Context, req model.StartCrawlRequest, nodeID string) {
+func (s *scraperService) persistNodeSkipped(ctx context.Context, req model.StartCrawlRequest, nodeID string) {
 	if s.persist == nil || nodeID == "" {
 		return
 	}
@@ -354,7 +389,7 @@ func (s *ScraperService) persistNodeSkipped(ctx context.Context, req model.Start
 	s.logPersistError(ctx, "patchGraphNodeStatus", req, nodeID, "", err)
 }
 
-func (s *ScraperService) persistEdgeDiscovered(
+func (s *scraperService) persistEdgeDiscovered(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	sourceID, targetID, targetURL string,
@@ -370,7 +405,7 @@ func (s *ScraperService) persistEdgeDiscovered(
 	})
 }
 
-func (s *ScraperService) runCrawl(ctx context.Context, req model.StartCrawlRequest) error {
+func (s *scraperService) runCrawl(ctx context.Context, req model.StartCrawlRequest) error {
 	ws := req.Workspace
 	state := newCrawlState(req)
 
@@ -633,14 +668,14 @@ func shouldSuppressNodeSkipped(mainReached map[string]struct{}, nodeID string) b
 }
 
 // noteLinkSkipped はリンクスキップ件数を加算する（UI へは出さない）。
-func (s *ScraperService) noteLinkSkipped(st *crawlState) {
+func (s *scraperService) noteLinkSkipped(st *crawlState) {
 	st.mu.Lock()
 	st.linkSkippedCount++
 	st.mu.Unlock()
 }
 
 // emitLinkSkipped はリンクスキップを集計し UI へ通知する。
-func (s *ScraperService) emitLinkSkipped(
+func (s *scraperService) emitLinkSkipped(
 	req model.StartCrawlRequest,
 	st *crawlState,
 	parentURL, childURL, reason string,
@@ -683,7 +718,7 @@ func (st *crawlState) mergedConfig(mode int32, node model.GraphNodeDTO) (*runner
 	return cfg, nil
 }
 
-func (s *ScraperService) runMainBFS(
+func (s *scraperService) runMainBFS(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	st *crawlState,
@@ -860,7 +895,7 @@ func (s *ScraperService) runMainBFS(
 	return stats, mainReached, err
 }
 
-func (s *ScraperService) runMode3(
+func (s *scraperService) runMode3(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	st *crawlState,
@@ -880,7 +915,7 @@ func (s *ScraperService) runMode3(
 }
 
 // runMode4 は明示 nodeIds の既存ノードのみを入力順に scrape する（リンク探索なし）。
-func (s *ScraperService) runMode4(
+func (s *scraperService) runMode4(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	st *crawlState,
@@ -906,7 +941,7 @@ func filterExistingNodeIDs(nodeIDs []string, nodeByID map[string]model.GraphNode
 }
 
 // scrapeExistingNodesInOrder は visit 順に既存ノードを scrape する（mode 3 / 4 共通）。
-func (s *ScraperService) scrapeExistingNodesInOrder(
+func (s *scraperService) scrapeExistingNodesInOrder(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	st *crawlState,
@@ -948,7 +983,7 @@ func (s *ScraperService) scrapeExistingNodesInOrder(
 	return nil
 }
 
-func (s *ScraperService) runManualPass(
+func (s *scraperService) runManualPass(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	st *crawlState,
@@ -992,7 +1027,7 @@ func (s *ScraperService) runManualPass(
 	return nil
 }
 
-func (s *ScraperService) scrapeOneNode(
+func (s *scraperService) scrapeOneNode(
 	ctx context.Context,
 	req model.StartCrawlRequest,
 	st *crawlState,
@@ -1078,7 +1113,7 @@ func resultToDTO(res *runner.Result) *model.CrawlNodeResultDTO {
 //
 // baseURL は scheme 推定用（ノード URL）。空の場合は https を使用する。
 // appDefaults と wsSettings は MergeUIConfigLayers 用の PartialConfig JSON。
-func (s *ScraperService) FetchRobotsTxt(host, baseURL string, appDefaults, wsSettings json.RawMessage) (model.RobotsTxtInfoDTO, error) {
+func (s *scraperService) FetchRobotsTxt(host, baseURL string, appDefaults, wsSettings json.RawMessage) (model.RobotsTxtInfoDTO, error) {
 	res, err := runner.FetchRobotsTxt(context.Background(), host, baseURL, appDefaults, wsSettings)
 	if err != nil {
 		return model.RobotsTxtInfoDTO{}, err

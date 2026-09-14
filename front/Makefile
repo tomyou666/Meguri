@@ -2,7 +2,7 @@
 	gtest gbuild gtidy gfmt gvet glint gvuln gupgrade-patch gupgrade-minor \
 	finstall fdev fbuild fpreview ftest flint ftypecheck ffmt flintfix \
 	faudit fupgrade-patch fupgrade-minor vuln upgrade-patch upgrade-minor \
-	tools migrate-up migrate-down migrate-version gen wire bindings generate
+	tools migrate-up migrate-down migrate-version gen wire gowrap bindings generate
 
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
@@ -34,14 +34,15 @@ help:
 	@echo "  clean       Remove generated frontend dist"
 	@echo ""
 	@echo "Codegen / DB targets:"
-	@echo "  tools           Download Go tool dependencies (dlv, migrate, wails3)"
+	@echo "  tools           Download Go tool dependencies (dlv, migrate, wails3, gowrap)"
 	@echo "  migrate-up      Apply pending SQL migrations"
 	@echo "  migrate-down    Roll back one migration"
 	@echo "  migrate-version Show current DB migration version"
 	@echo "  gen             GORM Gen (requires migrate-up first)"
 	@echo "  wire            Regenerate internal/app/wire_gen.go"
+	@echo "  gowrap          Regenerate wails_service *_with_debug_log.go"
 	@echo "  bindings        Regenerate frontend/bindings (TypeScript)"
-	@echo "  generate        migrate-up + gen + wire + bindings"
+	@echo "  generate        migrate-up + gen + wire + gowrap + bindings"
 	@echo ""
 	@echo "Quality targets:"
 	@echo "  check     lint + test"
@@ -73,7 +74,8 @@ tools:
 	$(GO) tool -n dlv
 	$(GO) tool -n migrate
 	$(GO) tool -n wails3
-	@echo Go tools ready: dlv, migrate, wails3
+	$(GO) tool -n gowrap
+	@echo Go tools ready: dlv, migrate, wails3, gowrap
 
 ifeq ($(OS),Windows_NT)
 MIGRATE_MKDIR = powershell -NoProfile -Command "New-Item -ItemType Directory -Path (Split-Path '$(DB)') -Force | Out-Null"
@@ -97,10 +99,16 @@ gen:
 wire:
 	cd internal/app && $(GO) run github.com/google/wire/cmd/wire
 
+gowrap:
+	cd internal/usecase/wails_service && $(GO) tool gowrap gen -p meguri-app/internal/usecase/wails_service -i StoreServiceAPI -t templates/slog_debug_slow.gotmpl -o store_service_with_debug_log.go -v ServiceName=StoreService -v DecoratorName=StoreServiceWithDebugLog
+	cd internal/usecase/wails_service && $(GO) tool gowrap gen -p meguri-app/internal/usecase/wails_service -i ProjectServiceAPI -t templates/slog_debug_slow.gotmpl -o project_service_with_debug_log.go -v ServiceName=ProjectService -v DecoratorName=ProjectServiceWithDebugLog
+	cd internal/usecase/wails_service && $(GO) tool gowrap gen -p meguri-app/internal/usecase/wails_service -i ScraperServiceAPI -t templates/slog_debug_slow.gotmpl -o scraper_service_with_debug_log.go -v ServiceName=ScraperService -v DecoratorName=ScraperServiceWithDebugLog
+	cd internal/usecase/wails_service && $(GO) tool gowrap gen -p meguri-app/internal/usecase/wails_service -i UpdateServiceAPI -t templates/slog_debug_slow.gotmpl -o update_service_with_debug_log.go -v ServiceName=UpdateService -v DecoratorName=UpdateServiceWithDebugLog
+
 bindings:
 	$(WAILS) generate bindings -ts
 
-generate: migrate-up gen wire bindings
+generate: migrate-up gen wire gowrap bindings
 
 finstall:
 	$(NPM) --prefix $(FRONTEND_DIR) install
