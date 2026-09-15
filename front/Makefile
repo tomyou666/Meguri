@@ -13,10 +13,11 @@ NCU ?= npx --yes npm-check-updates
 WAILS ?= $(GO) tool wails3
 FRONTEND_DIR ?= frontend
 
-DB ?= data/scraperbot.db
+DB ?= data/meguri.db
 MIGRATIONS_PATH ?= internal/app/migrations
 MIGRATE_DATABASE ?= sqlite://$(DB)
-MIGRATE ?= $(GO) tool migrate
+# go tool migrate は sqlite ドライバを含まない。CLI は -tags sqlite が必要。
+MIGRATE ?= $(GO) run -tags sqlite github.com/golang-migrate/migrate/v4/cmd/migrate
 
 # main (//go:embed frontend/dist) はビルド済みアセットが無いと go list ./... が失敗するため除外する。
 GTEST_DIRS := ./internal/... ./cmd/... ./shared/... ./tools/... ./build/...

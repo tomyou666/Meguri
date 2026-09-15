@@ -22,6 +22,8 @@ func applyWorkspaceTestSchema(db *gorm.DB) error {
 		"000001_init.up.sql",
 		"000002_origin.up.sql",
 		"000005_node_result_manual_edit.up.sql",
+		"000006_node_results_drop_run_cascade.up.sql",
+		"000007_node_results_reorder_small_cols.up.sql",
 	} {
 		path := filepath.Join("..", "..", "internal", "app", "migrations", name)
 		sqlBytes, err := os.ReadFile(path)

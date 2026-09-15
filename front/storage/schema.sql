@@ -138,6 +138,10 @@ CREATE INDEX idx_crawl_runs_workspace_started ON crawl_runs(workspace_id, starte
 --   workspace_id:  所属ワークスペース ID
 --   node_id:       グラフノード ID
 --   url:           取得時点の URL（表示用）
+--   content_hash:  Phase4 content 差分: canonical markdown の SHA-256 十六進
+--                  算法: UTF-8( trim + LF 正規化した markdown ) の SHA-256（front/frontend/src/lib/contentHash.ts）
+--                  巨大 TEXT より前に置く。SQLite packed record で overflow を辿らずに読めるようにする
+--   manually_edited: ユーザー手動編集済みフラグ（1 = 手動編集）
 --   markdown:      抽出 Markdown
 --   html:          整形 HTML
 --   raw_html:      生 HTML
@@ -146,9 +150,6 @@ CREATE INDEX idx_crawl_runs_workspace_started ON crawl_runs(workspace_id, starte
 --   metadata_json: メタデータ JSON
 --   error:         取得失敗時のエラー文言（成功時は NULL）
 --   fetched_at:    取得日時（ISO 8601）
---   content_hash:  Phase4 content 差分: canonical markdown の SHA-256 十六進
---                  算法: UTF-8( trim + LF 正規化した markdown ) の SHA-256（front/frontend/src/lib/contentHash.ts）
---   manually_edited: ユーザー手動編集済みフラグ（1 = 手動編集）
 -- ---------------------------------------------------------------------------
 CREATE TABLE node_results (
     id              TEXT PRIMARY KEY,
@@ -156,6 +157,8 @@ CREATE TABLE node_results (
     workspace_id    TEXT NOT NULL,
     node_id         TEXT NOT NULL,
     url             TEXT NOT NULL,
+    content_hash    TEXT,
+    manually_edited INTEGER NOT NULL DEFAULT 0,
     markdown        TEXT,
     html            TEXT,
     raw_html        TEXT,
@@ -164,8 +167,6 @@ CREATE TABLE node_results (
     metadata_json   TEXT,
     error           TEXT,
     fetched_at      TEXT NOT NULL,
-    content_hash    TEXT,
-    manually_edited INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (workspace_id, node_id)
         REFERENCES graph_nodes(workspace_id, id) ON DELETE CASCADE,
     UNIQUE (run_id, node_id)

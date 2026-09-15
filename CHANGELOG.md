@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- DB最適化（`node_results` の `content_hash` / `manually_edited` を巨大 TEXT より前へ移すマイグレーションを追加）
 - グラフクリック後も Ctrl+A / Cmd+A でノード全選択できるようにした
 - 脆弱性解消
 - goのバージョンを1.26.6に変更
