@@ -326,7 +326,6 @@ type OutputConfig struct {
 	FilePattern string `yaml:"file_pattern"`
 }
 
-// Default は設計書で確定したデフォルト値を適用した Config を返す。
 func Default() Config {
 	return Config{
 		Request: RequestConfig{

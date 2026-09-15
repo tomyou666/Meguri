@@ -1,9 +1,9 @@
 import type { DbNodeResult } from '@/types/db';
 
-/** ノードごとの node_results 履歴上限（Grill 確定の実行履歴 20 件と同数）。 */
+/** ノードごとの node_results 履歴上限 */
 export const MAX_NODE_RESULT_HISTORY = 20;
 
-/** WS ごとの crawl_runs 履歴上限（UI runHistory と同数）。 */
+/** WS ごとの crawl_runs 履歴上限 */
 export const MAX_CRAWL_RUN_HISTORY = 20;
 
 export function latestByNode(rows: DbNodeResult[]): Map<string, DbNodeResult> {
