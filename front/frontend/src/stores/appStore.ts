@@ -31,6 +31,7 @@ import {
 	getMinimapCollapsed,
 	setMinimapCollapsed,
 } from '@/lib/minimapPreferences';
+import { nodeResultBodyCache } from '@/lib/nodeResultBodyCache';
 import {
 	buildNodeStatusPatches,
 	collectRunningNodeIds,
@@ -538,6 +539,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 		if (!id) return;
 		try {
 			await scraperPort.deleteWorkspace(id);
+			nodeResultBodyCache.dropWorkspace(id);
 			set((s) => {
 				const workspaces = s.workspaces.filter((w) => w.id !== id);
 				const activeWorkspaceId =
@@ -620,6 +622,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	loadWorkspaceFromServer: async (id) => {
 		const ws = await scraperPort.loadWorkspace(id);
 		if (!ws) return;
+		nodeResultBodyCache.dropWorkspace(id);
 		const firstId = ws.nodes[0]?.id ?? null;
 		set((s) => {
 			const exists = s.workspaces.some((w) => w.id === id);
@@ -693,6 +696,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 		const primary = selectedNodeIds[selectedNodeIds.length - 1] ?? id;
 		const node = ws.nodes.find((n) => n.id === primary);
+		const willFetch =
+			selectedNodeIds.length === 1 && node?.status === 'success';
+		const cached = willFetch ? nodeResultBodyCache.get(ws.id, primary) : null;
 		const wantTreeFocus =
 			opts?.treeFocus === true && !opts?.additive && !opts?.range;
 		const prevTreeFocus = get().treeFocusRequest;
@@ -700,7 +706,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedNodeId: primary,
 			selectedNodeIds,
 			selectionAnchorId,
-			loadedNodeResult: null,
+			// hit なら即表示。miss は null のまま fetch する。
+			loadedNodeResult: cached,
 			nodeResultLoadingNodeId: null,
 			resultPreview: null,
 			...(opts?.suppressRfSync ? { _suppressSelectionSync: true } : {}),
@@ -718,7 +725,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				set({ _suppressSelectionSync: false });
 			});
 		}
-		if (selectedNodeIds.length === 1 && node?.status === 'success') {
+		if (willFetch) {
 			void get().fetchSelectedNodeResult();
 		}
 	},
@@ -727,15 +734,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const primary = ids[ids.length - 1] ?? null;
 		const ws = get().getActiveWorkspace();
 		const node = primary ? ws?.nodes.find((n) => n.id === primary) : undefined;
+		const willFetch = ids.length === 1 && node?.status === 'success' && !!ws;
+		const cached =
+			willFetch && ws && primary
+				? nodeResultBodyCache.get(ws.id, primary)
+				: null;
 		set({
 			selectedNodeIds: ids,
 			selectedNodeId: primary,
 			selectionAnchorId: primary,
-			loadedNodeResult: null,
+			loadedNodeResult: cached,
 			nodeResultLoadingNodeId: null,
 			resultPreview: null,
 		});
-		if (ids.length === 1 && node?.status === 'success') {
+		if (willFetch) {
 			void get().fetchSelectedNodeResult();
 		}
 	},
@@ -944,6 +956,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const removeUrls = new Set(
 			ws.nodes.filter((n) => removeIds.has(n.id)).map((n) => n.urlNormalized),
 		);
+		for (const id of removeIds) {
+			nodeResultBodyCache.drop(ws.id, id);
+		}
 
 		set((s) => ({
 			workspaces: s.workspaces.map((w) => {
@@ -1117,6 +1132,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			onRunStarted: (id) => set({ _activeRunId: id }),
 			getWorkspace: () => get().getActiveWorkspace()!,
 			onNodeStarted: (nodeId, url) => {
+				nodeResultBodyCache.drop(ws.id, nodeId);
 				patchNode(nodeId, {
 					status: 'running' as NodeStatus,
 					label: url,
@@ -1399,6 +1415,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const removeUrls = new Set(
 			ws.nodes.filter((n) => removeIds.has(n.id)).map((n) => n.urlNormalized),
 		);
+		for (const id of removeIds) {
+			nodeResultBodyCache.drop(ws.id, id);
+		}
 		patchWorkspaces(set, get, (workspaces) =>
 			workspaces.map((w) => {
 				if (w.id !== ws.id) return w;
@@ -1423,11 +1442,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const ws = get().getActiveWorkspace();
 		const nodeId = get().selectedNodeId;
 		if (!ws || !nodeId) return;
+		const cached = nodeResultBodyCache.get(ws.id, nodeId);
+		if (cached) {
+			set({ loadedNodeResult: cached, nodeResultLoadingNodeId: null });
+			return;
+		}
 		set({ nodeResultLoadingNodeId: nodeId });
 		try {
 			const result = await scraperPort.getNodeResult(ws.id, nodeId);
 			if (get().selectedNodeId !== nodeId) return;
 			if (get().nodeResultLoadingNodeId !== nodeId) return;
+			if (result) {
+				nodeResultBodyCache.set(ws.id, nodeId, result);
+			}
 			set({ loadedNodeResult: result, nodeResultLoadingNodeId: null });
 		} catch {
 			if (get().nodeResultLoadingNodeId === nodeId) {
@@ -1500,6 +1527,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 						: prev?.contentHash,
 				linksHash: prev?.linksHash,
 			});
+			nodeResultBodyCache.set(ws.id, nodeId, updated);
 			patchWorkspaces(set, get, (workspaces) =>
 				workspaces.map((w) => {
 					if (w.id !== ws.id) return w;
@@ -1540,6 +1568,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				linksHash: prev?.linksHash,
 			});
 			if (get().activeWorkspaceId !== workspaceId) return;
+			nodeResultBodyCache.set(workspaceId, nodeId, result);
 			patchWorkspaces(set, get, (workspaces) =>
 				workspaces.map((w) => {
 					if (w.id !== workspaceId) return w;

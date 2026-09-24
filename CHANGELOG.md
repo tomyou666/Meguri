@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 - 設定の複数値入力で改行貼り付けによる一括追加とコピーを追加
 - `node_results` 本文を `node_result_bodies` に分離し、Load / 差分一覧をメタのみにした
   - `.scrb` は formatVersion 2（`results.json` + `result_bodies.json`）。v1 結合形式も import 可能
+- ノード本文のセッション内キャッシュ（合計 32MB・最低 10 件・LRU）を追加
 
 ### 修正
 
