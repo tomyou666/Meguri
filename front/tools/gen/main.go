@@ -44,7 +44,10 @@ func main() {
 		),
 		g.GenerateModel("graph_edges"),
 		g.GenerateModel("crawl_runs"),
-		g.GenerateModel("node_results"),
+		g.GenerateModel("node_results",
+			stripIntDefault("manually_edited"),
+		),
+		g.GenerateModel("node_result_bodies"),
 		g.GenerateModel("graph_ui_state"),
 	)
 	g.Execute()

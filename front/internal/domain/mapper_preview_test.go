@@ -11,14 +11,16 @@ func TestNodeResultToPreviewHTML(t *testing.T) {
 	html := "<p>filtered</p>"
 	raw := "<html>raw</html>"
 	jsonBody := `{"k":"v"}`
-	row := model.NodeResult{
+	meta := model.NodeResult{
 		URL:            "https://example.com",
-		HTML:           &html,
-		RawHTML:        &raw,
-		JSONBody:       &jsonBody,
 		ManuallyEdited: 1,
 	}
-	dto := nodeResultToPreview(row)
+	body := &model.NodeResultBody{
+		HTML:     &html,
+		RawHTML:  &raw,
+		JSONBody: &jsonBody,
+	}
+	dto := nodeResultToPreview(meta, body)
 	if dto.HTML != html {
 		t.Fatalf("HTML: got %q want %q", dto.HTML, html)
 	}

@@ -20,7 +20,8 @@ type GraphNodeDTO struct {
 	Origin         string          `json:"origin"`
 	Status         string          `json:"status"`
 	LastError      string          `json:"lastError,omitempty"`
-	LastResult     *CrawlResultDTO `json:"lastResult,omitempty"`
+	// LastResult は最新成功のメタのみ（本文は含まない）。
+	LastResult *CrawlResultMetaDTO `json:"lastResult,omitempty"`
 }
 
 // GraphEdgeDTO は Wails 公開エッジ。
@@ -59,7 +60,19 @@ type SaveSettingsResponseDTO struct {
 	Scope string `json:"scope"`
 }
 
-// CrawlResultDTO はノード結果プレビュー。
+// CrawlResultMetaDTO は Load / 差分一覧用のメタのみプレビュー。
+type CrawlResultMetaDTO struct {
+	// URL は取得時点の URL。
+	URL string `json:"url"`
+	// ContentHash は canonical markdown の SHA-256 十六進。
+	ContentHash string `json:"contentHash,omitempty"`
+	// LinksHash は canonical links JSON の SHA-256 十六進。
+	LinksHash string `json:"linksHash,omitempty"`
+	// ManuallyEdited は手動編集済みなら true。
+	ManuallyEdited bool `json:"manuallyEdited,omitempty"`
+}
+
+// CrawlResultDTO はノード結果プレビュー（本文付き）。
 type CrawlResultDTO struct {
 	URL            string            `json:"url"`
 	Markdown       string            `json:"markdown,omitempty"`
@@ -176,13 +189,21 @@ type NodeResultUpdatedEvent struct {
 	Result      CrawlResultDTO `json:"result"`
 }
 
-// NodeResultContentPatch は node_results 本文列の部分更新。
+// NodeResultContentPatch は node_results メタ／本文の部分更新。
 type NodeResultContentPatch struct {
-	Markdown       *string
-	HTML           *string
-	RawHTML        *string
-	JSONBody       *string
-	ContentHash    *string
+	// Markdown は抽出 Markdown。nil は変更しない。
+	Markdown *string
+	// HTML は整形 HTML。nil は変更しない。
+	HTML *string
+	// RawHTML は生 HTML。nil は変更しない。
+	RawHTML *string
+	// JSONBody は JSON 本文。nil は変更しない。
+	JSONBody *string
+	// ContentHash は canonical markdown の SHA-256 十六進。nil は変更しない。
+	ContentHash *string
+	// LinksHash は canonical links JSON の SHA-256 十六進。nil は変更しない。
+	LinksHash *string
+	// ManuallyEdited は手動編集済みフラグ。
 	ManuallyEdited bool
 }
 
@@ -261,6 +282,7 @@ type AppendNodeResultRequest struct {
 	Error        string `json:"error,omitempty"`
 	FetchedAt    string `json:"fetchedAt"`
 	ContentHash  string `json:"contentHash,omitempty"`
+	LinksHash    string `json:"linksHash,omitempty"`
 }
 
 // PatchGraphNodeStatusRequest はノード status 更新。

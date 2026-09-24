@@ -74,7 +74,7 @@ export function NodeResultPanel({
 
 	const resolvedNodeId = nodeId ?? node?.id;
 	const resolvedWorkspaceId = workspaceId ?? activeWorkspace?.id;
-	const displayResult = result ?? node?.lastResult ?? null;
+	const displayResult = result ?? null;
 	const showPdfTab = isPdfResourceResult(displayResult);
 	const isMaximized = panelMode === 'maximized';
 	const nodeSettings = node?.nodeSettings ?? {};

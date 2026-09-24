@@ -329,6 +329,7 @@ func (s *scraperService) persistNodeSucceeded(
 			metadataJSON = string(b)
 		}
 	}
+	linksHash := domain.LinksHashFromLinks(result.Links)
 	err := s.persist.AppendNodeResult(ctx, model.AppendNodeResultRequest{
 		WorkspaceID:  req.WorkspaceID,
 		RunID:        req.RunID,
@@ -341,6 +342,7 @@ func (s *scraperService) persistNodeSucceeded(
 		MetadataJSON: metadataJSON,
 		FetchedAt:    domain.NowISO(),
 		ContentHash:  contentHash,
+		LinksHash:    linksHash,
 	})
 	s.logPersistError(ctx, "appendNodeResult", req, nodeID, url, err)
 	err = s.persist.PatchGraphNodeStatus(ctx, model.PatchGraphNodeStatusRequest{
@@ -627,18 +629,6 @@ func (st *crawlState) mergeSkipScrapeLinkMap(fromDB map[string][]string, skipURL
 			continue
 		}
 		out[k] = append([]string(nil), v...)
-	}
-	for _, n := range st.nodeByID {
-		if _, ok := want[n.URLNormalized]; !ok {
-			continue
-		}
-		if _, exists := out[n.URLNormalized]; exists {
-			continue
-		}
-		if n.LastResult == nil || len(n.LastResult.Links) == 0 {
-			continue
-		}
-		out[n.URLNormalized] = append([]string(nil), n.LastResult.Links...)
 	}
 	if len(out) == 0 {
 		return nil

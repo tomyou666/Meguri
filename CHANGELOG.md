@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 - front usecase（Wails サービス）に gowrap debug ログ（start 毎回 / end は 200ms 以上）を追加
 - 設定の複数値入力で改行貼り付けによる一括追加とコピーを追加
+- `node_results` 本文を `node_result_bodies` に分離し、Load / 差分一覧をメタのみにした
+  - `.scrb` は formatVersion 2（`results.json` + `result_bodies.json`）。v1 結合形式も import 可能
 
 ### 修正
 
@@ -17,6 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 - グラフクリック後も Ctrl+A / Cmd+A でノード全選択できるようにした
 - 脆弱性解消
 - goのバージョンを1.26.6に変更
+- 複数選択時の右サイドバーから「保存」を削除し、「削除」はノード削除確認ダイアログに統一した
+- 初回クロールの baseline 保存が `UNIQUE (run_id, node_id)` で失敗していたのを修正
+- ノード結果の手動編集でメタと本文が別トランザクションになっていたのを同一 TX にまとめた
+- 手動編集後にグラフ上の `content_hash` が古いまま残っていたのを修正
 
 ## [0.11.0] - 2026-08-04
 

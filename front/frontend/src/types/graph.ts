@@ -1,5 +1,5 @@
 import type { PartialConfig } from './config';
-import type { CrawlResultPreview } from './crawl';
+import type { CrawlResultMeta } from './crawl';
 
 export type NodeStatus = 'idle' | 'running' | 'success' | 'error' | 'skipped';
 
@@ -17,7 +17,8 @@ export interface GraphNode {
 	nodeSettings: PartialConfig;
 	crawlExclude: boolean;
 	status: NodeStatus;
-	lastResult?: CrawlResultPreview;
+	/** 最新成功のメタのみ。本文は loadedNodeResult / GetNodeResult */
+	lastResult?: CrawlResultMeta;
 	lastError?: string;
 }
 

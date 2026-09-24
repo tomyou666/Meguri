@@ -3,6 +3,7 @@ import { scraperPort } from '@/adapters';
 import { defaultsForLayer } from '@/components/settings/configFormUtils';
 import { messages } from '@/i18n/messages';
 import { validatePartialConfig } from '@/lib/configValidation';
+import { contentHashFromMarkdown } from '@/lib/contentHash';
 import {
 	getRescrapeExisting as getRescrapeExistingPreference,
 	getRunMode as getRunModePreference,
@@ -38,6 +39,7 @@ import {
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import { notifyDiffDetected, notifyError, notifySuccess } from '@/lib/notify';
 import { withDerivedContentFormats } from '@/lib/previewFormats';
+import { crawlResultMetaFromPreview } from '@/lib/wailsMappers';
 import {
 	redoGraph,
 	syncGraphHistory,
@@ -283,7 +285,6 @@ interface AppState {
 	) => Promise<void>;
 	previewSelectedResults: () => Promise<void>;
 	openExportWindow: (mode: 'all' | 'selected') => Promise<void>;
-	saveSelectedResults: () => Promise<void>;
 	deleteSelectedResults: () => Promise<void>;
 	bulkScrapeSelected: () => Promise<void>;
 	fetchWorkspaceDiff: (workspaceId: string) => Promise<WorkspaceDiff>;
@@ -379,17 +380,26 @@ export const useAppStore = create<AppState>((set, get) => ({
 			activeWorkspaceId = latest.id;
 		}
 		const active = workspaces.find((w) => w.id === activeWorkspaceId);
+		const firstId = active?.nodes[0]?.id ?? null;
 		set({
 			bootstrapped: true,
 			appDefaults: defaults,
 			workspaces,
 			activeWorkspaceId,
 			showNewWorkspaceDialog: list.length === 0,
-			selectedNodeId: active?.nodes[0]?.id ?? null,
-			selectedNodeIds: active?.nodes[0]?.id ? [active.nodes[0].id] : [],
+			selectedNodeId: firstId,
+			selectedNodeIds: firstId ? [firstId] : [],
+			loadedNodeResult: null,
+			nodeResultLoadingNodeId: null,
 		});
 		if (workspaces.length > 0) {
 			syncGraphHistory(workspaces, activeWorkspaceId);
+		}
+		const firstNode = firstId
+			? active?.nodes.find((n) => n.id === firstId)
+			: undefined;
+		if (firstNode?.status === 'success') {
+			void get().fetchSelectedNodeResult();
 		}
 	},
 
@@ -610,6 +620,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	loadWorkspaceFromServer: async (id) => {
 		const ws = await scraperPort.loadWorkspace(id);
 		if (!ws) return;
+		const firstId = ws.nodes[0]?.id ?? null;
 		set((s) => {
 			const exists = s.workspaces.some((w) => w.id === id);
 			const workspaces = exists
@@ -619,11 +630,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 			return {
 				workspaces,
 				activeWorkspaceId: id,
-				selectedNodeId: ws.nodes[0]?.id ?? null,
-				selectedNodeIds: ws.nodes[0]?.id ? [ws.nodes[0].id] : [],
+				selectedNodeId: firstId,
+				selectedNodeIds: firstId ? [firstId] : [],
+				loadedNodeResult: null,
+				nodeResultLoadingNodeId: null,
 				showNewWorkspaceDialog: false,
 			};
 		});
+		const firstNode = firstId
+			? ws.nodes.find((n) => n.id === firstId)
+			: undefined;
+		if (firstNode?.status === 'success') {
+			void get().fetchSelectedNodeResult();
+		}
 	},
 
 	selectNode: (id, opts) => {
@@ -674,12 +693,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 		const primary = selectedNodeIds[selectedNodeIds.length - 1] ?? id;
 		const node = ws.nodes.find((n) => n.id === primary);
-		const cached =
-			selectedNodeIds.length === 1 &&
-			node?.status === 'success' &&
-			node.lastResult
-				? node.lastResult
-				: null;
 		const wantTreeFocus =
 			opts?.treeFocus === true && !opts?.additive && !opts?.range;
 		const prevTreeFocus = get().treeFocusRequest;
@@ -687,7 +700,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 			selectedNodeId: primary,
 			selectedNodeIds,
 			selectionAnchorId,
-			loadedNodeResult: cached,
+			loadedNodeResult: null,
 			nodeResultLoadingNodeId: null,
 			resultPreview: null,
 			...(opts?.suppressRfSync ? { _suppressSelectionSync: true } : {}),
@@ -705,7 +718,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 				set({ _suppressSelectionSync: false });
 			});
 		}
-		if (selectedNodeIds.length === 1 && node?.status === 'success' && !cached) {
+		if (selectedNodeIds.length === 1 && node?.status === 'success') {
 			void get().fetchSelectedNodeResult();
 		}
 	},
@@ -714,19 +727,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const primary = ids[ids.length - 1] ?? null;
 		const ws = get().getActiveWorkspace();
 		const node = primary ? ws?.nodes.find((n) => n.id === primary) : undefined;
-		const cached =
-			ids.length === 1 && node?.status === 'success' && node.lastResult
-				? node.lastResult
-				: null;
 		set({
 			selectedNodeIds: ids,
 			selectedNodeId: primary,
 			selectionAnchorId: primary,
-			loadedNodeResult: cached,
+			loadedNodeResult: null,
 			nodeResultLoadingNodeId: null,
 			resultPreview: null,
 		});
-		if (ids.length === 1 && node?.status === 'success' && !cached) {
+		if (ids.length === 1 && node?.status === 'success') {
 			void get().fetchSelectedNodeResult();
 		}
 	},
@@ -1480,13 +1489,24 @@ export const useAppStore = create<AppState>((set, get) => ({
 				notifyError(messages.right.updateFailed);
 				return false;
 			}
+			const prev = get()
+				.getActiveWorkspace()
+				?.nodes.find((n) => n.id === nodeId)?.lastResult;
+			// markdown 変更時は content_hash を再計算し、links はサーバが返さないので既存を維持する。
+			const meta = crawlResultMetaFromPreview(updated, {
+				contentHash:
+					patch.markdown !== undefined
+						? await contentHashFromMarkdown(patch.markdown)
+						: prev?.contentHash,
+				linksHash: prev?.linksHash,
+			});
 			patchWorkspaces(set, get, (workspaces) =>
 				workspaces.map((w) => {
 					if (w.id !== ws.id) return w;
 					return {
 						...w,
 						nodes: w.nodes.map((n) =>
-							n.id === nodeId ? { ...n, lastResult: updated } : n,
+							n.id === nodeId ? { ...n, lastResult: meta } : n,
 						),
 					};
 				}),
@@ -1505,22 +1525,36 @@ export const useAppStore = create<AppState>((set, get) => ({
 	},
 
 	applyNodeResultFromSync: (workspaceId, nodeId, result) => {
-		const active = get().activeWorkspaceId;
-		if (active !== workspaceId) return;
-		patchWorkspaces(set, get, (workspaces) =>
-			workspaces.map((w) => {
-				if (w.id !== workspaceId) return w;
-				return {
-					...w,
-					nodes: w.nodes.map((n) =>
-						n.id === nodeId ? { ...n, lastResult: result } : n,
-					),
-				};
-			}),
-		);
-		if (get().selectedNodeId === nodeId) {
-			set({ loadedNodeResult: result });
-		}
+		void (async () => {
+			const active = get().activeWorkspaceId;
+			if (active !== workspaceId) return;
+			const prev = get()
+				.workspaces.find((w) => w.id === workspaceId)
+				?.nodes.find((n) => n.id === nodeId)?.lastResult;
+			// 他ウィンドウ同期でも markdown があれば content_hash を合わせる。
+			const meta = crawlResultMetaFromPreview(result, {
+				contentHash:
+					result.markdown !== undefined
+						? await contentHashFromMarkdown(result.markdown)
+						: prev?.contentHash,
+				linksHash: prev?.linksHash,
+			});
+			if (get().activeWorkspaceId !== workspaceId) return;
+			patchWorkspaces(set, get, (workspaces) =>
+				workspaces.map((w) => {
+					if (w.id !== workspaceId) return w;
+					return {
+						...w,
+						nodes: w.nodes.map((n) =>
+							n.id === nodeId ? { ...n, lastResult: meta } : n,
+						),
+					};
+				}),
+			);
+			if (get().selectedNodeId === nodeId) {
+				set({ loadedNodeResult: result });
+			}
+		})();
 	},
 
 	showMaximizedNodeResult: async (snapshot) => {
@@ -1575,23 +1609,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 		}
 	},
 
-	saveSelectedResults: async () => {
-		const ws = get().getActiveWorkspace();
-		const ids = get().selectedNodeIds;
-		if (!ws || ids.length === 0) return;
-		await scraperPort.saveResults(ws.id, ids);
-	},
-
 	deleteSelectedResults: async () => {
-		const ws = get().getActiveWorkspace();
-		const ids = get().selectedNodeIds;
-		if (!ws || ids.length === 0) return;
-		await scraperPort.deleteResults(ws.id, ids);
-		set({
-			loadedNodeResult: null,
-			nodeResultLoadingNodeId: null,
-			resultPreview: null,
-		});
+		get().openDeleteNodeDialog();
 	},
 
 	bulkScrapeSelected: async () => {

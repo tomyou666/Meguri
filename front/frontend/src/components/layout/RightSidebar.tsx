@@ -50,7 +50,6 @@ export function RightSidebarContent() {
 	const clearCrawlError = useAppStore((s) => s.clearCrawlError);
 	const appDefaults = useAppStore((s) => s.appDefaults);
 	const previewSelectedResults = useAppStore((s) => s.previewSelectedResults);
-	const saveSelectedResults = useAppStore((s) => s.saveSelectedResults);
 	const deleteSelectedResults = useAppStore((s) => s.deleteSelectedResults);
 	const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
 
@@ -106,13 +105,6 @@ export function RightSidebarContent() {
 				<div className='flex flex-wrap gap-1 p-3'>
 					<Button size='xs' onClick={() => previewSelectedResults()}>
 						{messages.right.preview}
-					</Button>
-					<Button
-						size='xs'
-						variant='outline'
-						onClick={() => saveSelectedResults()}
-					>
-						{messages.right.save}
 					</Button>
 					<Button
 						size='xs'

@@ -43,7 +43,7 @@ func TestCrawlState(t *testing.T) {
 		assert.Nil(t, st.skipScrapeURLs())
 	})
 
-	t.Run("正常系: mergeSkipScrapeLinkMap は DB 優先で LastResult を補完する", func(t *testing.T) {
+	t.Run("正常系: mergeSkipScrapeLinkMap は DB マップのみ skip 対象 URL に載せる", func(t *testing.T) {
 		st := newCrawlState(model.StartCrawlRequest{
 			RescrapeExisting: false,
 			Workspace: model.WorkspaceDTO{
@@ -52,17 +52,11 @@ func TestCrawlState(t *testing.T) {
 						ID:            "n1",
 						URLNormalized: "https://example.com/a",
 						Status:        "success",
-						LastResult:    &model.CrawlResultDTO{Links: []string{"https://example.com/from-last"}},
+						LastResult:    &model.CrawlResultMetaDTO{URL: "https://example.com/a"},
 					},
 					{
 						ID:            "n2",
 						URLNormalized: "https://example.com/b",
-						Status:        "success",
-						LastResult:    &model.CrawlResultDTO{Links: []string{"https://example.com/from-last-b"}},
-					},
-					{
-						ID:            "n3",
-						URLNormalized: "https://example.com/c",
 						Status:        "success",
 					},
 				},
@@ -71,12 +65,13 @@ func TestCrawlState(t *testing.T) {
 		skip := []string{"https://example.com/a", "https://example.com/b", "https://example.com/c"}
 		fromDB := map[string][]string{
 			"https://example.com/a": {"https://example.com/from-db"},
+			"https://example.com/b": {"https://example.com/from-db-b"},
 		}
 		got := st.mergeSkipScrapeLinkMap(fromDB, skip)
 		assert.Equal(t, []string{"https://example.com/from-db"}, got["https://example.com/a"])
-		assert.Equal(t, []string{"https://example.com/from-last-b"}, got["https://example.com/b"])
+		assert.Equal(t, []string{"https://example.com/from-db-b"}, got["https://example.com/b"])
 		_, hasC := got["https://example.com/c"]
-		assert.False(t, hasC, "no links means omitted from map")
+		assert.False(t, hasC, "DB に無い skip URL は載せない")
 	})
 
 	t.Run("正常系: noteLinkSkipped は件数だけ増やし UI emit なしでも集計できる", func(t *testing.T) {

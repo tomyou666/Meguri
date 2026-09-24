@@ -438,7 +438,7 @@ func (s *storeService) FinishCrawlRun(req model.FinishCrawlRunRequest) error {
 
 // AppendNodeResult はノード結果行を追加する。
 func (s *storeService) AppendNodeResult(req model.AppendNodeResultRequest) error {
-	return s.results.AppendNodeResultRow(s.ctx(), req)
+	return s.crawlPersist.AppendNodeResult(s.ctx(), req)
 }
 
 // PatchGraphNodeStatus はノード status を更新する。

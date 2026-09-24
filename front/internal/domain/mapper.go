@@ -10,6 +10,7 @@ import (
 	"meguri-app/internal/model"
 )
 
+// dtoToBundle は WorkspaceDTO を永続化バンドルへ変換する。
 func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 	settingsJSON, err := settingsJSONFromRaw(dto.Settings)
 	if err != nil {
@@ -100,7 +101,8 @@ func dtoToBundle(dto model.WorkspaceDTO) (model.WorkspaceBundle, error) {
 	}, nil
 }
 
-func bundleToDTO(bundle *model.WorkspaceBundle, previews map[string]*model.CrawlResultDTO) (model.WorkspaceDTO, error) {
+// bundleToDTO は永続化バンドルと lastResult メタを WorkspaceDTO にする。
+func bundleToDTO(bundle *model.WorkspaceBundle, previews map[string]*model.CrawlResultMetaDTO) (model.WorkspaceDTO, error) {
 	ws := bundle.Workspace
 	var exclude []string
 	if err := json.Unmarshal([]byte(ws.ExcludeUrlsJSON), &exclude); err != nil {
@@ -109,7 +111,7 @@ func bundleToDTO(bundle *model.WorkspaceBundle, previews map[string]*model.Crawl
 
 	nodes := make([]model.GraphNodeDTO, len(bundle.Nodes))
 	for i, n := range bundle.Nodes {
-		var preview *model.CrawlResultDTO
+		var preview *model.CrawlResultMetaDTO
 		if previews != nil {
 			preview = previews[n.ID]
 		}
@@ -168,6 +170,9 @@ func bundleToDTO(bundle *model.WorkspaceBundle, previews map[string]*model.Crawl
 	return dto, nil
 }
 
+// latestSuccessByNode はノードごとの最新成功行を返す。
+//
+// rows は fetched_at DESC 想定。先頭の成功行が最新。
 func latestSuccessByNode(rows []model.NodeResult) map[string]model.NodeResult {
 	out := map[string]model.NodeResult{}
 	for _, r := range rows {
@@ -194,6 +199,7 @@ func latestResultByNode(rows []model.NodeResult) map[string]model.NodeResult {
 	return out
 }
 
+// rowsForRun は指定 run のノードごとの行を返す。同一ノードは後勝ち。
 func rowsForRun(rows []model.NodeResult, runID string) map[string]model.NodeResult {
 	out := map[string]model.NodeResult{}
 	for _, r := range rows {
@@ -204,30 +210,68 @@ func rowsForRun(rows []model.NodeResult, runID string) map[string]model.NodeResu
 	return out
 }
 
-func nodeResultToPreview(row model.NodeResult) model.CrawlResultDTO {
-	dto := model.CrawlResultDTO{URL: row.URL}
-	if row.Markdown != nil {
-		dto.Markdown = *row.Markdown
+// nodeResultMetaToDTO はメタ行を CrawlResultMetaDTO にする。
+func nodeResultMetaToDTO(row model.NodeResult) model.CrawlResultMetaDTO {
+	return model.CrawlResultMetaDTO{
+		URL:            row.URL,
+		ContentHash:    model.StrVal(row.ContentHash),
+		LinksHash:      model.StrVal(row.LinksHash),
+		ManuallyEdited: row.ManuallyEdited != 0,
 	}
-	if row.HTML != nil {
-		dto.HTML = *row.HTML
+}
+
+// nodeResultToPreview はメタ + 本文から CrawlResultDTO を作る。
+func nodeResultToPreview(meta model.NodeResult, body *model.NodeResultBody) model.CrawlResultDTO {
+	dto := model.CrawlResultDTO{
+		URL:            meta.URL,
+		ManuallyEdited: meta.ManuallyEdited != 0,
 	}
-	if row.RawHTML != nil {
-		dto.RawHTML = *row.RawHTML
+	if body == nil {
+		return dto
 	}
-	if row.JSONBody != nil {
-		dto.JSONBody = *row.JSONBody
+	if body.Markdown != nil {
+		dto.Markdown = *body.Markdown
 	}
-	dto.ManuallyEdited = row.ManuallyEdited != 0
-	if row.LinksJSON != nil && *row.LinksJSON != "" {
-		_ = json.Unmarshal([]byte(*row.LinksJSON), &dto.Links)
+	if body.HTML != nil {
+		dto.HTML = *body.HTML
 	}
-	if row.MetadataJSON != nil && *row.MetadataJSON != "" {
-		_ = json.Unmarshal([]byte(*row.MetadataJSON), &dto.Metadata)
+	if body.RawHTML != nil {
+		dto.RawHTML = *body.RawHTML
+	}
+	if body.JSONBody != nil {
+		dto.JSONBody = *body.JSONBody
+	}
+	if body.LinksJSON != nil && *body.LinksJSON != "" {
+		_ = json.Unmarshal([]byte(*body.LinksJSON), &dto.Links)
+	}
+	if body.MetadataJSON != nil && *body.MetadataJSON != "" {
+		_ = json.Unmarshal([]byte(*body.MetadataJSON), &dto.Metadata)
 	}
 	return dto
 }
 
+// bodiesByID は本文行を id キーの map にする。
+func bodiesByID(bodies []model.NodeResultBody) map[string]model.NodeResultBody {
+	out := map[string]model.NodeResultBody{}
+	for _, b := range bodies {
+		if b.ID != nil {
+			out[*b.ID] = b
+		}
+	}
+	return out
+}
+
+// linksFromBody は本文の links_json を URL 配列にする。
+func linksFromBody(body *model.NodeResultBody) []string {
+	if body == nil || body.LinksJSON == nil || *body.LinksJSON == "" {
+		return nil
+	}
+	var links []string
+	_ = json.Unmarshal([]byte(*body.LinksJSON), &links)
+	return links
+}
+
+// strPtr は空文字なら nil、それ以外はポインタを返す。
 func strPtr(s string) *string {
 	if s == "" {
 		return nil
@@ -235,6 +279,7 @@ func strPtr(s string) *string {
 	return &s
 }
 
+// genID は時刻ミリ秒と乱数からなる ID を返す。
 func genID() string {
 	var b [4]byte
 	_, _ = rand.Read(b[:])

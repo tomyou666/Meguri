@@ -20,6 +20,7 @@ func applyTestSchema(db *gorm.DB) error {
 		"000005_node_result_manual_edit.up.sql",
 		"000006_node_results_drop_run_cascade.up.sql",
 		"000007_node_results_reorder_small_cols.up.sql",
+		"000008_node_result_bodies.up.sql",
 	} {
 		path := filepath.Join("..", "..", "app", "migrations", name)
 		sqlBytes, err := os.ReadFile(path)
@@ -31,6 +32,21 @@ func applyTestSchema(db *gorm.DB) error {
 		}
 	}
 	return nil
+}
+
+func markdownForResult(t *testing.T, ctx context.Context, store *Store, meta model.NodeResult) string {
+	t.Helper()
+	if meta.ID == nil {
+		t.Fatal("result id is nil")
+	}
+	bodies, err := store.GetNodeResultBodies(ctx, []string{*meta.ID})
+	if err != nil {
+		t.Fatalf("get node result bodies: %v", err)
+	}
+	if len(bodies) == 0 {
+		return ""
+	}
+	return model.StrVal(bodies[0].Markdown)
 }
 
 // TestStore は DB 初期化とワークスペースの保存・読み込みを検証する。
@@ -250,8 +266,9 @@ func TestStore(t *testing.T) {
 			WorkspaceID: wsID,
 			NodeID:      "n1",
 			URL:         "https://example.com",
-			Markdown:    &markdown,
 			FetchedAt:   "2026-01-01T00:00:01Z",
+		}, &model.NodeResultBody{
+			ID: model.StrPtr("nr-1"), Markdown: &markdown,
 		}); err != nil {
 			t.Fatalf("append node result: %v", err)
 		}
@@ -262,14 +279,14 @@ func TestStore(t *testing.T) {
 			t.Fatalf("resave ws: %v", err)
 		}
 
-		results, err := store.GetNodeResults(ctx, wsID)
+		results, err := store.GetNodeResultMetas(ctx, wsID)
 		if err != nil {
-			t.Fatalf("get node results: %v", err)
+			t.Fatalf("get node result metas: %v", err)
 		}
 		if len(results) != 1 {
 			t.Fatalf("expected 1 node result, got %d", len(results))
 		}
-		if results[0].NodeID != "n1" || model.StrVal(results[0].Markdown) != markdown {
+		if results[0].NodeID != "n1" || markdownForResult(t, ctx, store, results[0]) != markdown {
 			t.Fatalf("unexpected node result: %+v", results[0])
 		}
 	})
@@ -346,8 +363,9 @@ func TestStore(t *testing.T) {
 				WorkspaceID: wsID,
 				NodeID:      tc.nodeID,
 				URL:         "https://example.com",
-				Markdown:    &md,
 				FetchedAt:   "2026-01-01T00:00:01Z",
+			}, &model.NodeResultBody{
+				ID: model.StrPtr(tc.id), Markdown: &md,
 			}); err != nil {
 				t.Fatalf("append node result %s: %v", tc.id, err)
 			}
@@ -358,9 +376,9 @@ func TestStore(t *testing.T) {
 			t.Fatalf("resave ws without n2: %v", err)
 		}
 
-		results, err := store.GetNodeResults(ctx, wsID)
+		results, err := store.GetNodeResultMetas(ctx, wsID)
 		if err != nil {
-			t.Fatalf("get node results: %v", err)
+			t.Fatalf("get node result metas: %v", err)
 		}
 		if len(results) != 1 {
 			t.Fatalf("expected 1 node result, got %d", len(results))
@@ -473,8 +491,8 @@ func TestGetGraphNodeStatuses(t *testing.T) {
 	})
 }
 
-// TestGetNodeResultsByNodeIDs は nodeIDs 絞り込み取得を検証する。
-func TestGetNodeResultsByNodeIDs(t *testing.T) {
+// TestGetNodeResultMetasByNodeIDs は nodeIDs 絞り込み取得を検証する。
+func TestGetNodeResultMetasByNodeIDs(t *testing.T) {
 	t.Run("正常系: 空 nodeIDs は空スライスを返す", func(t *testing.T) {
 		dir := t.TempDir()
 		dbPath := filepath.Join(dir, "test.db")
@@ -493,7 +511,7 @@ func TestGetNodeResultsByNodeIDs(t *testing.T) {
 
 		ctx := context.Background()
 		store := NewStore(db)
-		out, err := store.GetNodeResultsByNodeIDs(ctx, "ws-x", nil)
+		out, err := store.GetNodeResultMetasByNodeIDs(ctx, "ws-x", nil)
 		if err != nil {
 			t.Fatalf("get: %v", err)
 		}
@@ -574,31 +592,47 @@ func TestGetNodeResultsByNodeIDs(t *testing.T) {
 
 		mdOld, mdNew := "# old", "# new"
 		errMsg := "fail"
-		rows := []model.NodeResult{
+		type resultRow struct {
+			meta model.NodeResult
+			body *model.NodeResultBody
+		}
+		rows := []resultRow{
 			{
-				ID: model.StrPtr("nr-n1-old"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n1",
-				URL: "https://example.com", Markdown: &mdOld, FetchedAt: "2026-01-01T00:00:01Z",
+				meta: model.NodeResult{
+					ID: model.StrPtr("nr-n1-old"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n1",
+					URL: "https://example.com", FetchedAt: "2026-01-01T00:00:01Z",
+				},
+				body: &model.NodeResultBody{ID: model.StrPtr("nr-n1-old"), Markdown: &mdOld},
 			},
 			{
-				ID: model.StrPtr("nr-n1-new"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n1",
-				URL: "https://example.com", Markdown: &mdNew, FetchedAt: "2026-01-01T01:00:02Z",
+				meta: model.NodeResult{
+					ID: model.StrPtr("nr-n1-new"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n1",
+					URL: "https://example.com", FetchedAt: "2026-01-01T01:00:02Z",
+				},
+				body: &model.NodeResultBody{ID: model.StrPtr("nr-n1-new"), Markdown: &mdNew},
 			},
 			{
-				ID: model.StrPtr("nr-n2"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n2",
-				URL: "https://example.com/a", Markdown: &mdNew, FetchedAt: "2026-01-01T01:00:03Z",
+				meta: model.NodeResult{
+					ID: model.StrPtr("nr-n2"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n2",
+					URL: "https://example.com/a", FetchedAt: "2026-01-01T01:00:03Z",
+				},
+				body: &model.NodeResultBody{ID: model.StrPtr("nr-n2"), Markdown: &mdNew},
 			},
 			{
-				ID: model.StrPtr("nr-n3"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n3",
-				URL: "https://example.com/b", Error: &errMsg, FetchedAt: "2026-01-01T01:00:04Z",
+				meta: model.NodeResult{
+					ID: model.StrPtr("nr-n3"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n3",
+					URL: "https://example.com/b", Error: &errMsg, FetchedAt: "2026-01-01T01:00:04Z",
+				},
+				body: nil,
 			},
 		}
 		for _, row := range rows {
-			if err := store.AppendNodeResult(ctx, row); err != nil {
+			if err := store.AppendNodeResult(ctx, row.meta, row.body); err != nil {
 				t.Fatalf("append: %v", err)
 			}
 		}
 
-		out, err := store.GetNodeResultsByNodeIDs(ctx, wsID, []string{"n1", "n3"})
+		out, err := store.GetNodeResultMetasByNodeIDs(ctx, wsID, []string{"n1", "n3"})
 		if err != nil {
 			t.Fatalf("get: %v", err)
 		}
@@ -613,8 +647,103 @@ func TestGetNodeResultsByNodeIDs(t *testing.T) {
 		if out[0].NodeID != "n3" {
 			t.Fatalf("expected newest first (n3), got %+v", out[0])
 		}
-		if out[1].NodeID != "n1" || model.StrVal(out[1].Markdown) != mdNew {
+		if out[1].NodeID != "n1" || markdownForResult(t, ctx, store, out[1]) != mdNew {
 			t.Fatalf("expected n1 newest next, got %+v", out[1])
+		}
+
+		oldBodies, err := store.GetNodeResultBodies(ctx, []string{"nr-n1-old"})
+		if err != nil {
+			t.Fatalf("get old body: %v", err)
+		}
+		if len(oldBodies) != 0 {
+			t.Fatalf("expected old n1 body GC'd, got %d", len(oldBodies))
+		}
+		newBodies, err := store.GetNodeResultBodies(ctx, []string{"nr-n1-new"})
+		if err != nil {
+			t.Fatalf("get new body: %v", err)
+		}
+		if len(newBodies) != 1 || model.StrVal(newBodies[0].Markdown) != mdNew {
+			t.Fatalf("expected latest n1 body kept, got %+v", newBodies)
+		}
+	})
+}
+
+// TestGcNodeResultBodies は本文 GC が latest 成功と baseline 以外を消すことを検証する。
+func TestGcNodeResultBodies(t *testing.T) {
+	t.Run("正常系: baseline 行の本文は latest 以外でも残る", func(t *testing.T) {
+		dir := t.TempDir()
+		dbPath := filepath.Join(dir, "test.db")
+		db, err := gorm.Open(sqlite.Open(sqlitedsn.DSN(dbPath)), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open: %v", err)
+		}
+		if err := applyTestSchema(db); err != nil {
+			t.Fatalf("schema: %v", err)
+		}
+		sqlDB, _ := db.DB()
+		t.Cleanup(func() {
+			_ = sqlDB.Close()
+			_ = os.Remove(dbPath)
+		})
+
+		ctx := context.Background()
+		store := NewStore(db)
+		wsID := "ws-gc"
+		bundle := model.WorkspaceBundle{
+			Workspace: model.Workspace{
+				ID:                   model.StrPtr(wsID),
+				Name:                 "GC",
+				SeedURL:              "https://example.com",
+				SettingsJSON:         `{}`,
+				ExcludeUrlsJSON:      `[]`,
+				GraphLayoutDirection: model.StrPtr("LR"),
+				BaselineRunID:        model.StrPtr("run-1"),
+				CreatedAt:            "2026-01-01T00:00:00Z",
+				UpdatedAt:            "2026-01-01T00:00:00Z",
+			},
+			Nodes: []model.GraphNode{
+				{
+					WorkspaceID: wsID, ID: "n1", URLNormalized: "https://example.com",
+					Label: "n1", PositionX: 0, PositionY: 0,
+					NodeSettingsJSON: `{}`, Origin: "crawl", Status: model.StrPtr("success"),
+				},
+			},
+		}
+		if err := store.SaveWorkspaceBundle(ctx, bundle); err != nil {
+			t.Fatalf("save ws: %v", err)
+		}
+		for _, runID := range []string{"run-1", "run-2"} {
+			if err := store.BeginCrawlRun(ctx, model.CrawlRun{
+				ID:          model.StrPtr(runID),
+				WorkspaceID: wsID,
+				Mode:        1,
+				Status:      model.StrPtr("completed"),
+				StartedAt:   "2026-01-01T00:00:00Z",
+			}); err != nil {
+				t.Fatalf("begin %s: %v", runID, err)
+			}
+		}
+
+		mdBase, mdCur := "# base", "# current"
+		if err := store.AppendNodeResult(ctx, model.NodeResult{
+			ID: model.StrPtr("nr-base"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n1",
+			URL: "https://example.com", FetchedAt: "2026-01-01T00:00:01Z",
+		}, &model.NodeResultBody{ID: model.StrPtr("nr-base"), Markdown: &mdBase}); err != nil {
+			t.Fatalf("append base: %v", err)
+		}
+		if err := store.AppendNodeResult(ctx, model.NodeResult{
+			ID: model.StrPtr("nr-cur"), RunID: "run-2", WorkspaceID: wsID, NodeID: "n1",
+			URL: "https://example.com", FetchedAt: "2026-01-01T01:00:00Z",
+		}, &model.NodeResultBody{ID: model.StrPtr("nr-cur"), Markdown: &mdCur}); err != nil {
+			t.Fatalf("append current: %v", err)
+		}
+
+		bodies, err := store.GetNodeResultBodies(ctx, []string{"nr-base", "nr-cur"})
+		if err != nil {
+			t.Fatalf("get bodies: %v", err)
+		}
+		if len(bodies) != 2 {
+			t.Fatalf("expected baseline+latest bodies, got %d", len(bodies))
 		}
 	})
 }
@@ -676,7 +805,9 @@ func TestTrimCrawlRunsPreservesResults(t *testing.T) {
 		md := "# kept"
 		if err := store.AppendNodeResult(ctx, model.NodeResult{
 			ID: model.StrPtr("nr-old"), RunID: "run-old", WorkspaceID: wsID, NodeID: "n-old",
-			URL: "https://example.com/old", Markdown: &md, FetchedAt: "2026-01-01T00:00:01Z",
+			URL: "https://example.com/old", FetchedAt: "2026-01-01T00:00:01Z",
+		}, &model.NodeResultBody{
+			ID: model.StrPtr("nr-old"), Markdown: &md,
 		}); err != nil {
 			t.Fatalf("append old: %v", err)
 		}
@@ -694,14 +825,14 @@ func TestTrimCrawlRunsPreservesResults(t *testing.T) {
 			t.Fatalf("expected only run-new, got %+v", remaining)
 		}
 
-		results, err := store.GetNodeResults(ctx, wsID)
+		results, err := store.GetNodeResultMetas(ctx, wsID)
 		if err != nil {
 			t.Fatalf("get results: %v", err)
 		}
 		if len(results) != 1 {
 			t.Fatalf("expected 1 node_result preserved, got %d", len(results))
 		}
-		if results[0].RunID != "run-old" || model.StrVal(results[0].Markdown) != md {
+		if results[0].RunID != "run-old" || markdownForResult(t, ctx, store, results[0]) != md {
 			t.Fatalf("unexpected preserved result: %+v", results[0])
 		}
 	})

@@ -61,36 +61,51 @@ func (s *CrawlPersistService) UpsertDiscoveredGraph(ctx context.Context, req mod
 
 // AppendNodeResult は crawl 中のノード結果行を追加する。
 func (s *CrawlPersistService) AppendNodeResult(ctx context.Context, req model.AppendNodeResultRequest) error {
-	row := model.NodeResult{
-		ID:          model.StrPtr(genID()),
+	id := genID()
+	meta := model.NodeResult{
+		ID:          model.StrPtr(id),
 		RunID:       req.RunID,
 		WorkspaceID: req.WorkspaceID,
 		NodeID:      req.NodeID,
 		URL:         req.URL,
 		FetchedAt:   req.FetchedAt,
 	}
-	if req.Markdown != "" {
-		row.Markdown = &req.Markdown
-	}
-	if req.HTML != "" {
-		row.HTML = &req.HTML
-	}
-	if req.RawHTML != "" {
-		row.RawHTML = &req.RawHTML
-	}
-	if req.LinksJSON != "" {
-		row.LinksJSON = &req.LinksJSON
-	}
-	if req.MetadataJSON != "" {
-		row.MetadataJSON = &req.MetadataJSON
-	}
 	if req.Error != "" {
-		row.Error = &req.Error
+		meta.Error = &req.Error
 	}
 	if req.ContentHash != "" {
-		row.ContentHash = &req.ContentHash
+		meta.ContentHash = &req.ContentHash
 	}
-	return s.repo.AppendNodeResult(ctx, row)
+	if req.LinksHash != "" {
+		meta.LinksHash = &req.LinksHash
+	} else if req.LinksJSON != "" {
+		h := LinksHashFromLinksJSON(req.LinksJSON)
+		meta.LinksHash = &h
+	} else if req.Error == "" {
+		h := LinksHashFromLinks(nil)
+		meta.LinksHash = &h
+	}
+	var body *model.NodeResultBody
+	if req.Error == "" {
+		b := model.NodeResultBody{ID: model.StrPtr(id)}
+		if req.Markdown != "" {
+			b.Markdown = &req.Markdown
+		}
+		if req.HTML != "" {
+			b.HTML = &req.HTML
+		}
+		if req.RawHTML != "" {
+			b.RawHTML = &req.RawHTML
+		}
+		if req.LinksJSON != "" {
+			b.LinksJSON = &req.LinksJSON
+		}
+		if req.MetadataJSON != "" {
+			b.MetadataJSON = &req.MetadataJSON
+		}
+		body = &b
+	}
+	return s.repo.AppendNodeResult(ctx, meta, body)
 }
 
 // BuildSkipScrapeLinkMap は skip scrape 対象 URL の最新成功結果から outbound リンクマップを返す。
@@ -108,20 +123,36 @@ func (s *CrawlPersistService) BuildSkipScrapeLinkMap(
 	for _, u := range skipURLs {
 		want[u] = struct{}{}
 	}
-	rows, err := s.repo.GetNodeResults(ctx, workspaceID)
+	rows, err := s.repo.GetNodeResultMetas(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	latest := latestSuccessByNode(rows)
+	ids := make([]string, 0)
+	urlByID := map[string]string{}
+	for _, row := range latest {
+		if _, ok := want[row.URL]; !ok {
+			continue
+		}
+		if row.ID == nil {
+			continue
+		}
+		ids = append(ids, *row.ID)
+		urlByID[*row.ID] = row.URL
+	}
+	bodies, err := s.repo.GetNodeResultBodies(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
 	out := make(map[string][]string)
-	for _, row := range latestSuccessByNode(rows) {
-		if _, ok := want[row.URL]; !ok {
-			continue
-		}
-		links := linksFromRow(row)
+	for _, body := range bodies {
+		id := model.StrVal(body.ID)
+		url := urlByID[id]
+		links := linksFromBody(&body)
 		if len(links) == 0 {
 			continue
 		}
-		out[row.URL] = links
+		out[url] = links
 	}
 	return out, nil
 }

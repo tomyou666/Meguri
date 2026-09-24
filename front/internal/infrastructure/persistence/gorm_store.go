@@ -24,6 +24,7 @@ func NewStore(db *gorm.DB) *Store {
 	return &Store{q: query.Use(db)}
 }
 
+// nowISO は現在時刻の UTC RFC3339 文字列を返す。
 func nowISO() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
@@ -199,8 +200,8 @@ func (s *Store) DeleteWorkspace(ctx context.Context, id string) error {
 	return err
 }
 
-// GetNodeResults は WS の全 node_results を返す。
-func (s *Store) GetNodeResults(ctx context.Context, workspaceID string) ([]model.NodeResult, error) {
+// GetNodeResultMetas は WS の全 node_results メタを返す。
+func (s *Store) GetNodeResultMetas(ctx context.Context, workspaceID string) ([]model.NodeResult, error) {
 	nr := s.q.NodeResult
 	rows, err := nr.WithContext(ctx).
 		Where(nr.WorkspaceID.Eq(workspaceID)).
@@ -209,11 +210,11 @@ func (s *Store) GetNodeResults(ctx context.Context, workspaceID string) ([]model
 	return derefNodeResults(rows), err
 }
 
-// GetNodeResultsByNodeIDs は指定ノードの node_results を fetched_at 降順で返す。
+// GetNodeResultMetasByNodeIDs は指定ノードのメタを fetched_at 降順で返す。
 //
 // nodeIDs が空のときは空スライスを返す。
 // 成功／失敗の選定は呼び出し側（latestSuccessByNode 等）に委ねる。
-func (s *Store) GetNodeResultsByNodeIDs(ctx context.Context, workspaceID string, nodeIDs []string) ([]model.NodeResult, error) {
+func (s *Store) GetNodeResultMetasByNodeIDs(ctx context.Context, workspaceID string, nodeIDs []string) ([]model.NodeResult, error) {
 	if len(nodeIDs) == 0 {
 		return []model.NodeResult{}, nil
 	}
@@ -225,68 +226,149 @@ func (s *Store) GetNodeResultsByNodeIDs(ctx context.Context, workspaceID string,
 	return derefNodeResults(rows), err
 }
 
-// AppendNodeResult は結果行を追加する。
-func (s *Store) AppendNodeResult(ctx context.Context, row model.NodeResult) error {
-	ptr := row
-	if err := s.q.NodeResult.WithContext(ctx).Create(&ptr); err != nil {
-		return err
+// GetNodeResultBodies は result id 指定で本文を返す。
+//
+// ids が空のときは空スライスを返す。JOIN しない。
+func (s *Store) GetNodeResultBodies(ctx context.Context, ids []string) ([]model.NodeResultBody, error) {
+	if len(ids) == 0 {
+		return []model.NodeResultBody{}, nil
 	}
-	return s.TrimNodeResults(ctx, row.WorkspaceID, row.NodeID, model.MaxNodeResultsPerNode)
+	nb := s.q.NodeResultBody
+	rows, err := nb.WithContext(ctx).Where(nb.ID.In(ids...)).Find()
+	return derefNodeResultBodies(rows), err
+}
+
+// AppendNodeResult はメタを追加し、成功行なら本文も書く。
+//
+// body は error が空のときのみ書き込む。その後メタ trim と本文 GC を行う。
+func (s *Store) AppendNodeResult(ctx context.Context, meta model.NodeResult, body *model.NodeResultBody) error {
+	return s.q.Transaction(func(tx *query.Query) error {
+		ptr := meta
+		if err := tx.NodeResult.WithContext(ctx).Create(&ptr); err != nil {
+			return err
+		}
+		isSuccess := meta.Error == nil || *meta.Error == ""
+		if isSuccess && body != nil {
+			b := *body
+			if b.ID == nil {
+				b.ID = meta.ID
+			}
+			if err := tx.NodeResultBody.WithContext(ctx).Create(&b); err != nil {
+				return err
+			}
+		}
+		storeTx := &Store{q: tx}
+		if err := storeTx.TrimNodeResults(ctx, meta.WorkspaceID, meta.NodeID, model.MaxNodeResultsPerNode); err != nil {
+			return err
+		}
+		return storeTx.gcNodeResultBodies(ctx, meta.WorkspaceID, meta.NodeID)
+	})
 }
 
 // UpdateLatestNodeResult はノードの最新成功結果行を部分更新する。
+//
+// メタと本文は同一トランザクションで書く。本文行が無いときは作成する。
 func (s *Store) UpdateLatestNodeResult(
 	ctx context.Context,
 	workspaceID, nodeID string,
 	patch model.NodeResultContentPatch,
 ) error {
-	nr := s.q.NodeResult
-	rows, err := nr.WithContext(ctx).
-		Where(nr.WorkspaceID.Eq(workspaceID), nr.NodeID.Eq(nodeID)).
-		Order(nr.FetchedAt.Desc()).
-		Find()
-	if err != nil {
+	return s.q.Transaction(func(tx *query.Query) error {
+		nr := tx.NodeResult
+		rows, err := nr.WithContext(ctx).
+			Where(nr.WorkspaceID.Eq(workspaceID), nr.NodeID.Eq(nodeID)).
+			Order(nr.FetchedAt.Desc()).
+			Find()
+		if err != nil {
+			return err
+		}
+		var target *model.NodeResult
+		for _, row := range rows {
+			if row == nil {
+				continue
+			}
+			if row.Error != nil && *row.Error != "" {
+				continue
+			}
+			target = row
+			break
+		}
+		if target == nil || target.ID == nil {
+			return fmt.Errorf("no successful result for node %s", nodeID)
+		}
+		edited := int32(0)
+		if patch.ManuallyEdited {
+			edited = 1
+		}
+		metaUpdates := []field.AssignExpr{
+			nr.ManuallyEdited.Value(edited),
+		}
+		if patch.ContentHash != nil {
+			metaUpdates = append(metaUpdates, nr.ContentHash.Value(*patch.ContentHash))
+		}
+		if patch.LinksHash != nil {
+			metaUpdates = append(metaUpdates, nr.LinksHash.Value(*patch.LinksHash))
+		}
+		_, err = nr.WithContext(ctx).
+			Where(nr.ID.Eq(*target.ID)).
+			UpdateSimple(metaUpdates...)
+		if err != nil {
+			return err
+		}
+
+		nb := tx.NodeResultBody
+		bodyUpdates := []field.AssignExpr{}
+		if patch.Markdown != nil {
+			bodyUpdates = append(bodyUpdates, nb.Markdown.Value(*patch.Markdown))
+		}
+		if patch.HTML != nil {
+			bodyUpdates = append(bodyUpdates, nb.HTML.Value(*patch.HTML))
+		}
+		if patch.RawHTML != nil {
+			bodyUpdates = append(bodyUpdates, nb.RawHTML.Value(*patch.RawHTML))
+		}
+		if patch.JSONBody != nil {
+			bodyUpdates = append(bodyUpdates, nb.JSONBody.Value(*patch.JSONBody))
+		}
+		if len(bodyUpdates) == 0 {
+			return nil
+		}
+		// 本文行が無い場合は upsert する。
+		existing, findErr := nb.WithContext(ctx).Where(nb.ID.Eq(*target.ID)).First()
+		if errors.Is(findErr, gorm.ErrRecordNotFound) {
+			body := model.NodeResultBody{ID: target.ID}
+			if patch.Markdown != nil {
+				body.Markdown = patch.Markdown
+			}
+			if patch.HTML != nil {
+				body.HTML = patch.HTML
+			}
+			if patch.RawHTML != nil {
+				body.RawHTML = patch.RawHTML
+			}
+			if patch.JSONBody != nil {
+				body.JSONBody = patch.JSONBody
+			}
+			return nb.WithContext(ctx).Create(&body)
+		}
+		if findErr != nil {
+			return findErr
+		}
+		_, err = nb.WithContext(ctx).Where(nb.ID.Eq(*existing.ID)).UpdateSimple(bodyUpdates...)
 		return err
+	})
+}
+
+// DeleteNodeResult は result id 指定でメタ行を削除する。
+//
+// 本文は node_result_bodies の FK CASCADE で消える。
+func (s *Store) DeleteNodeResult(ctx context.Context, id string) error {
+	if id == "" {
+		return nil
 	}
-	var target *model.NodeResult
-	for _, row := range rows {
-		if row == nil {
-			continue
-		}
-		if row.Error != nil && *row.Error != "" {
-			continue
-		}
-		target = row
-		break
-	}
-	if target == nil || target.ID == nil {
-		return fmt.Errorf("no successful result for node %s", nodeID)
-	}
-	edited := int32(0)
-	if patch.ManuallyEdited {
-		edited = 1
-	}
-	updates := []field.AssignExpr{
-		nr.ManuallyEdited.Value(edited),
-	}
-	if patch.Markdown != nil {
-		updates = append(updates, nr.Markdown.Value(*patch.Markdown))
-	}
-	if patch.HTML != nil {
-		updates = append(updates, nr.HTML.Value(*patch.HTML))
-	}
-	if patch.RawHTML != nil {
-		updates = append(updates, nr.RawHTML.Value(*patch.RawHTML))
-	}
-	if patch.JSONBody != nil {
-		updates = append(updates, nr.JSONBody.Value(*patch.JSONBody))
-	}
-	if patch.ContentHash != nil {
-		updates = append(updates, nr.ContentHash.Value(*patch.ContentHash))
-	}
-	_, err = nr.WithContext(ctx).
-		Where(nr.ID.Eq(*target.ID)).
-		UpdateSimple(updates...)
+	nr := s.q.NodeResult
+	row := &model.NodeResult{ID: model.StrPtr(id)}
+	_, err := nr.WithContext(ctx).Delete(row)
 	return err
 }
 
@@ -325,6 +407,75 @@ func (s *Store) TrimNodeResults(ctx context.Context, workspaceID, nodeID string,
 		return nil
 	}
 	_, err = nr.WithContext(ctx).Delete(rows[keep:]...)
+	return err
+}
+
+// gcNodeResultBodies は latest 成功と baseline 以外の本文行を削除する。
+func (s *Store) gcNodeResultBodies(ctx context.Context, workspaceID, nodeID string) error {
+	nr := s.q.NodeResult
+	metas, err := nr.WithContext(ctx).
+		Where(nr.WorkspaceID.Eq(workspaceID), nr.NodeID.Eq(nodeID)).
+		Order(nr.FetchedAt.Desc()).
+		Find()
+	if err != nil {
+		return err
+	}
+	keep := map[string]struct{}{}
+	for _, row := range metas {
+		if row == nil || row.ID == nil {
+			continue
+		}
+		if row.Error == nil || *row.Error == "" {
+			keep[*row.ID] = struct{}{}
+			break
+		}
+	}
+	ws := s.q.Workspace
+	workspace, err := ws.WithContext(ctx).Where(ws.ID.Eq(workspaceID)).First()
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	if workspace != nil && workspace.BaselineRunID != nil && *workspace.BaselineRunID != "" {
+		baselineID := *workspace.BaselineRunID
+		for _, row := range metas {
+			if row == nil || row.ID == nil {
+				continue
+			}
+			if row.RunID == baselineID {
+				keep[*row.ID] = struct{}{}
+				break
+			}
+		}
+	}
+
+	nb := s.q.NodeResultBody
+	metaIDList := make([]string, 0, len(metas))
+	for _, row := range metas {
+		if row != nil && row.ID != nil {
+			metaIDList = append(metaIDList, *row.ID)
+		}
+	}
+	if len(metaIDList) == 0 {
+		return nil
+	}
+	bodies, err := nb.WithContext(ctx).Where(nb.ID.In(metaIDList...)).Find()
+	if err != nil {
+		return err
+	}
+	var toDelete []*model.NodeResultBody
+	for _, b := range bodies {
+		if b == nil || b.ID == nil {
+			continue
+		}
+		if _, ok := keep[*b.ID]; ok {
+			continue
+		}
+		toDelete = append(toDelete, b)
+	}
+	if len(toDelete) == 0 {
+		return nil
+	}
+	_, err = nb.WithContext(ctx).Delete(toDelete...)
 	return err
 }
 
@@ -550,6 +701,17 @@ func derefGraphEdges(ptrs []*model.GraphEdge) []model.GraphEdge {
 
 func derefNodeResults(ptrs []*model.NodeResult) []model.NodeResult {
 	out := make([]model.NodeResult, len(ptrs))
+	for i, p := range ptrs {
+		if p != nil {
+			out[i] = *p
+		}
+	}
+	return out
+}
+
+// derefNodeResultBodies はポインタスライスを値スライスにする。
+func derefNodeResultBodies(ptrs []*model.NodeResultBody) []model.NodeResultBody {
+	out := make([]model.NodeResultBody, len(ptrs))
 	for i, p := range ptrs {
 		if p != nil {
 			out[i] = *p

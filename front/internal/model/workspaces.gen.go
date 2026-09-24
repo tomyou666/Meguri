@@ -11,8 +11,8 @@ type Workspace struct {
 	ID                   *string `gorm:"column:id;primaryKey" json:"id"`
 	Name                 string  `gorm:"column:name;not null" json:"name"`
 	SeedURL              string  `gorm:"column:seed_url;not null" json:"seed_url"`
-	SettingsJSON         string  `gorm:"column:settings_json;not null;default:'{}'" json:"settings_json"`
-	ExcludeUrlsJSON      string  `gorm:"column:exclude_urls_json;not null;default:'[]'" json:"exclude_urls_json"`
+	SettingsJSON         string  `gorm:"column:settings_json;not null;default:{}" json:"settings_json"`
+	ExcludeUrlsJSON      string  `gorm:"column:exclude_urls_json;not null;default:[]" json:"exclude_urls_json"`
 	GraphLayoutDirection *string `gorm:"column:graph_layout_direction;type:TEXT" json:"graph_layout_direction"`
 	BaselineRunID        *string `gorm:"column:baseline_run_id" json:"baseline_run_id"`
 	CreatedAt            string  `gorm:"column:created_at;not null;default:datetime('now'))" json:"created_at"`

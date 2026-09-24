@@ -22,3 +22,15 @@ export function canonicalizeLinksJson(
 	if (!links?.length) return '[]';
 	return JSON.stringify([...links].sort());
 }
+
+/** canonical links JSON の SHA-256 十六進（node_results.links_hash と同一算法）。 */
+export async function linksHashFromLinks(
+	links: string[] | null | undefined,
+): Promise<string> {
+	const canonical = canonicalizeLinksJson(links);
+	const data = new TextEncoder().encode(canonical);
+	const buf = await crypto.subtle.digest('SHA-256', data);
+	return Array.from(new Uint8Array(buf))
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('');
+}

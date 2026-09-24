@@ -41,13 +41,13 @@ func (s *WorkspaceService) Load(ctx context.Context, id string) (*model.Workspac
 	if err != nil || bundle == nil {
 		return nil, err
 	}
-	rows, err := s.repo.GetNodeResults(ctx, id)
+	rows, err := s.repo.GetNodeResultMetas(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	previews := map[string]*model.CrawlResultDTO{}
+	previews := map[string]*model.CrawlResultMetaDTO{}
 	for nodeID, row := range latestSuccessByNode(rows) {
-		p := nodeResultToPreview(row)
+		p := nodeResultMetaToDTO(row)
 		previews[nodeID] = &p
 	}
 	dto, err := bundleToDTO(bundle, previews)
@@ -243,14 +243,16 @@ func (s *WorkspaceService) ImportBundle(ctx context.Context, bundle model.Worksp
 		bundle.UIState.WorkspaceID = model.StrPtr(wsID)
 	}
 	results := bundle.Results
+	bodies := bundle.ResultBodies
 	bundle.Results = nil
+	bundle.ResultBodies = nil
 	if err := s.repo.SaveWorkspaceBundle(ctx, bundle); err != nil {
 		return "", err
 	}
 	if len(results) == 0 {
 		return wsID, nil
 	}
-	if err := s.importBundleResults(ctx, wsID, idMap, results); err != nil {
+	if err := s.importBundleResults(ctx, wsID, idMap, results, bodies); err != nil {
 		if delErr := s.repo.DeleteWorkspace(ctx, wsID); delErr != nil {
 			return "", errors.Join(err, delErr)
 		}
@@ -265,6 +267,7 @@ func (s *WorkspaceService) importBundleResults(
 	wsID string,
 	idMap map[string]string,
 	results []model.NodeResult,
+	bodies []model.NodeResultBody,
 ) error {
 	runID := genID()
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -274,17 +277,33 @@ func (s *WorkspaceService) importBundleResults(
 	}); err != nil {
 		return err
 	}
+	bodyByOldID := bodiesByID(bodies)
 	for _, source := range results {
 		newNodeID, ok := idMap[source.NodeID]
 		if !ok {
 			continue
 		}
+		oldID := model.StrVal(source.ID)
 		row := source
-		row.ID = model.StrPtr(genID())
+		newID := genID()
+		row.ID = model.StrPtr(newID)
 		row.RunID = runID
 		row.WorkspaceID = wsID
 		row.NodeID = newNodeID
-		if err := s.repo.AppendNodeResult(ctx, row); err != nil {
+		var body *model.NodeResultBody
+		if b, ok := bodyByOldID[oldID]; ok {
+			cp := b
+			cp.ID = model.StrPtr(newID)
+			body = &cp
+			if row.LinksHash == nil {
+				h := LinksHashFromLinksJSON(model.StrVal(cp.LinksJSON))
+				row.LinksHash = &h
+			}
+		} else if row.LinksHash == nil && (row.Error == nil || *row.Error == "") {
+			h := LinksHashFromLinks(nil)
+			row.LinksHash = &h
+		}
+		if err := s.repo.AppendNodeResult(ctx, row, body); err != nil {
 			return err
 		}
 	}
@@ -293,7 +312,7 @@ func (s *WorkspaceService) importBundleResults(
 
 // ExportBundle はエクスポート用バンドルを返す（baseline なし）。
 //
-// includeResults が true のとき、ノードごとの最新成功結果を bundle.Results に載せる。
+// includeResults が true のとき、ノードごとの最新成功メタと本文を載せる。
 // false のときは結果を含めない（従来どおり）。
 func (s *WorkspaceService) ExportBundle(ctx context.Context, id string, includeResults bool) (*model.WorkspaceBundle, error) {
 	bundle, err := s.repo.LoadWorkspaceBundle(ctx, id)
@@ -304,7 +323,7 @@ func (s *WorkspaceService) ExportBundle(ctx context.Context, id string, includeR
 	if !includeResults {
 		return bundle, nil
 	}
-	rows, err := s.repo.GetNodeResults(ctx, id)
+	rows, err := s.repo.GetNodeResultMetas(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -313,9 +332,18 @@ func (s *WorkspaceService) ExportBundle(ctx context.Context, id string, includeR
 		return bundle, nil
 	}
 	results := make([]model.NodeResult, 0, len(byNode))
+	ids := make([]string, 0, len(byNode))
 	for _, row := range byNode {
 		results = append(results, row)
+		if row.ID != nil {
+			ids = append(ids, *row.ID)
+		}
+	}
+	bodies, err := s.repo.GetNodeResultBodies(ctx, ids)
+	if err != nil {
+		return nil, err
 	}
 	bundle.Results = results
+	bundle.ResultBodies = bodies
 	return bundle, nil
 }

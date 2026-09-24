@@ -5,6 +5,7 @@ export {
     AppendNodeResultRequest,
     BeginCrawlRunRequest,
     CrawlResultDTO,
+    CrawlResultMetaDTO,
     DiffPairDTO,
     DuplicateWorkspaceRequest,
     ExportSessionEdgeDTO,

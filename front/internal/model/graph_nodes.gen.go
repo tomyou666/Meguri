@@ -15,7 +15,7 @@ type GraphNode struct {
 	PositionX        float64 `gorm:"column:position_x;not null" json:"position_x"`
 	PositionY        float64 `gorm:"column:position_y;not null" json:"position_y"`
 	UserPositioned   int32   `gorm:"column:user_positioned;not null" json:"user_positioned"`
-	NodeSettingsJSON string  `gorm:"column:node_settings_json;not null;default:'{}'" json:"node_settings_json"`
+	NodeSettingsJSON string  `gorm:"column:node_settings_json;not null;default:{}" json:"node_settings_json"`
 	CrawlExclude     int32   `gorm:"column:crawl_exclude;not null" json:"crawl_exclude"`
 	Status           *string `gorm:"column:status;type:TEXT" json:"status"`
 	LastError        *string `gorm:"column:last_error" json:"last_error"`

@@ -15,6 +15,14 @@ export interface CrawlResultPreview {
 	manuallyEdited?: boolean;
 }
 
+/** Load / グラフ上の lastResult 用メタ（本文なし）。 */
+export interface CrawlResultMeta {
+	url: string;
+	contentHash?: string;
+	linksHash?: string;
+	manuallyEdited?: boolean;
+}
+
 export type LinkSkipReason = 'duplicate_existing' | 'duplicate_in_run';
 
 export interface CrawlLogEntry {

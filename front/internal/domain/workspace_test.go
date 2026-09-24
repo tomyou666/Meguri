@@ -24,6 +24,7 @@ func applyWorkspaceTestSchema(db *gorm.DB) error {
 		"000005_node_result_manual_edit.up.sql",
 		"000006_node_results_drop_run_cascade.up.sql",
 		"000007_node_results_reorder_small_cols.up.sql",
+		"000008_node_result_bodies.up.sql",
 	} {
 		path := filepath.Join("..", "..", "internal", "app", "migrations", name)
 		sqlBytes, err := os.ReadFile(path)
@@ -198,19 +199,22 @@ func TestWorkspaceServiceExportImportResults(t *testing.T) {
 		errMsg := "fail"
 		require.NoError(t, store.AppendNodeResult(ctx, model.NodeResult{
 			ID: model.StrPtr("r-ok"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n1",
-			URL: "https://example.com/", Markdown: &md, HTML: &html, RawHTML: &raw,
-			FetchedAt: "2026-01-01T01:00:30Z",
+			URL: "https://example.com/", FetchedAt: "2026-01-01T01:00:30Z",
+		}, &model.NodeResultBody{
+			ID: model.StrPtr("r-ok"), Markdown: &md, HTML: &html, RawHTML: &raw,
 		}))
 		require.NoError(t, store.AppendNodeResult(ctx, model.NodeResult{
 			ID: model.StrPtr("r-fail"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n2",
 			URL: "https://example.com/a", Error: &errMsg,
 			FetchedAt: "2026-01-01T01:00:40Z",
-		}))
+		}, nil))
 
 		exported, err := svc.ExportBundle(ctx, wsID, true)
 		require.NoError(t, err)
 		require.Len(t, exported.Results, 1)
+		require.Len(t, exported.ResultBodies, 1)
 		assert.Equal(t, "n1", exported.Results[0].NodeID)
+		assert.Equal(t, md, model.StrVal(exported.ResultBodies[0].Markdown))
 
 		newID, err := svc.ImportBundle(ctx, *exported)
 		require.NoError(t, err)
@@ -221,18 +225,26 @@ func TestWorkspaceServiceExportImportResults(t *testing.T) {
 		require.Len(t, loaded.Nodes, 2)
 
 		var withResult, withoutResult int
+		var resultNodeID string
 		for _, n := range loaded.Nodes {
 			if n.LastResult != nil {
 				withResult++
-				assert.Equal(t, md, n.LastResult.Markdown)
-				assert.Equal(t, html, n.LastResult.HTML)
-				assert.Equal(t, raw, n.LastResult.RawHTML)
+				resultNodeID = n.ID
+				assert.Equal(t, "https://example.com/", n.LastResult.URL)
 			} else {
 				withoutResult++
 			}
 		}
 		assert.Equal(t, 1, withResult)
 		assert.Equal(t, 1, withoutResult)
+
+		resultsSvc := domain.NewResultsService(store, svc)
+		full, err := resultsSvc.GetNodeResult(ctx, newID, resultNodeID)
+		require.NoError(t, err)
+		require.NotNil(t, full)
+		assert.Equal(t, md, full.Markdown)
+		assert.Equal(t, html, full.HTML)
+		assert.Equal(t, raw, full.RawHTML)
 	})
 
 	t.Run("正常系: includeResults=false では Results が空", func(t *testing.T) {
@@ -246,8 +258,8 @@ func TestWorkspaceServiceExportImportResults(t *testing.T) {
 		md := "# ok"
 		require.NoError(t, store.AppendNodeResult(ctx, model.NodeResult{
 			ID: model.StrPtr("r-ok"), RunID: "run-1", WorkspaceID: wsID, NodeID: "n1",
-			URL: "https://example.com/", Markdown: &md, FetchedAt: "2026-01-01T01:00:30Z",
-		}))
+			URL: "https://example.com/", FetchedAt: "2026-01-01T01:00:30Z",
+		}, &model.NodeResultBody{ID: model.StrPtr("r-ok"), Markdown: &md}))
 
 		exported, err := svc.ExportBundle(ctx, wsID, false)
 		require.NoError(t, err)
@@ -266,12 +278,16 @@ func TestWorkspaceServiceExportImportResults(t *testing.T) {
 		bundle.Results = []model.NodeResult{
 			{
 				ID: model.StrPtr("r1"), RunID: "old-run", WorkspaceID: wsID, NodeID: "n1",
-				URL: "https://example.com/", Markdown: &md, FetchedAt: "2026-01-01T01:00:00Z",
+				URL: "https://example.com/", FetchedAt: "2026-01-01T01:00:00Z",
 			},
 			{
 				ID: model.StrPtr("r2"), RunID: "old-run", WorkspaceID: wsID, NodeID: "n1",
-				URL: "https://example.com/", Markdown: &md, FetchedAt: "2026-01-01T02:00:00Z",
+				URL: "https://example.com/", FetchedAt: "2026-01-01T02:00:00Z",
 			},
+		}
+		bundle.ResultBodies = []model.NodeResultBody{
+			{ID: model.StrPtr("r1"), Markdown: &md},
+			{ID: model.StrPtr("r2"), Markdown: &md},
 		}
 
 		before, err := store.ListWorkspaces(ctx)

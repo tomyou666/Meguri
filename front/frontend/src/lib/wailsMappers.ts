@@ -1,9 +1,10 @@
 import type { PartialConfig } from '@/types/config';
-import type { CrawlResultPreview } from '@/types/crawl';
+import type { CrawlResultMeta, CrawlResultPreview } from '@/types/crawl';
 import type { GraphEdge, GraphNode } from '@/types/graph';
 import type { Workspace } from '@/types/workspace';
 import type {
 	CrawlResultDTO,
+	CrawlResultMetaDTO,
 	WorkspaceDTO,
 } from '../../bindings/meguri-app/internal/model/models.js';
 
@@ -55,7 +56,7 @@ function nodeFromDTO(n: WorkspaceDTO['nodes'][0]): GraphNode {
 		origin: (n.origin === 'manual' ? 'manual' : 'crawl') as GraphNode['origin'],
 		status: n.status as GraphNode['status'],
 		lastError: n.lastError,
-		lastResult: n.lastResult ? crawlResultFromDTO(n.lastResult) : undefined,
+		lastResult: n.lastResult ? crawlResultMetaFromDTO(n.lastResult) : undefined,
 	};
 }
 
@@ -71,7 +72,25 @@ function nodeToDTO(n: GraphNode): WorkspaceDTO['nodes'][0] {
 		origin: n.origin ?? 'crawl',
 		status: n.status,
 		lastError: n.lastError,
-		lastResult: n.lastResult ? crawlResultToDTO(n.lastResult) : undefined,
+		lastResult: n.lastResult ? crawlResultMetaToDTO(n.lastResult) : undefined,
+	};
+}
+
+function crawlResultMetaToDTO(r: CrawlResultMeta): CrawlResultMetaDTO {
+	return {
+		url: r.url,
+		contentHash: r.contentHash,
+		linksHash: r.linksHash,
+		manuallyEdited: r.manuallyEdited,
+	};
+}
+
+function crawlResultMetaFromDTO(dto: CrawlResultMetaDTO): CrawlResultMeta {
+	return {
+		url: dto.url,
+		contentHash: dto.contentHash,
+		linksHash: dto.linksHash,
+		manuallyEdited: dto.manuallyEdited,
 	};
 }
 
@@ -109,7 +128,25 @@ function crawlResultFromDTO(dto: CrawlResultDTO): CrawlResultPreview {
 	};
 }
 
-export { crawlResultFromDTO, crawlResultToDTO };
+/** 本文付き DTO からグラフ用メタだけ取り出す。 */
+export function crawlResultMetaFromPreview(
+	r: CrawlResultPreview,
+	hashes?: { contentHash?: string; linksHash?: string },
+): CrawlResultMeta {
+	return {
+		url: r.url,
+		contentHash: hashes?.contentHash,
+		linksHash: hashes?.linksHash,
+		manuallyEdited: r.manuallyEdited,
+	};
+}
+
+export {
+	crawlResultFromDTO,
+	crawlResultMetaFromDTO,
+	crawlResultMetaToDTO,
+	crawlResultToDTO,
+};
 
 function parseJSON<T>(raw: unknown, fallback: T): T {
 	if (raw == null || raw === '') return fallback;

@@ -33,7 +33,7 @@ func (s *DiffService) GetWorkspaceDiff(ctx context.Context, workspaceID string) 
 	if dto.BaselineRunID == "" {
 		return out, nil
 	}
-	rows, err := s.repo.GetNodeResults(ctx, workspaceID)
+	rows, err := s.repo.GetNodeResultMetas(ctx, workspaceID)
 	if err != nil {
 		return out, err
 	}
@@ -46,22 +46,16 @@ func (s *DiffService) GetWorkspaceDiff(ctx context.Context, workspaceID string) 
 		base := baseline[node.ID]
 		cur := current[node.ID]
 
-		baseHash := ""
-		if base.ContentHash != nil {
-			baseHash = *base.ContentHash
-		}
-		curHash := ""
-		if cur.ContentHash != nil {
-			curHash = *cur.ContentHash
-		}
+		baseHash := model.StrVal(base.ContentHash)
+		curHash := model.StrVal(cur.ContentHash)
 		if baseHash != curHash {
 			kinds = append(kinds, "content")
 			out.Summary.Content++
 		}
 
-		baseLinks := linksFromRow(base)
-		curLinks := linksFromRow(cur)
-		if canonicalLinks(baseLinks) != canonicalLinks(curLinks) {
+		baseLinksHash := model.StrVal(base.LinksHash)
+		curLinksHash := model.StrVal(cur.LinksHash)
+		if baseLinksHash != curLinksHash {
 			kinds = append(kinds, "links")
 			out.Summary.Links++
 		}
@@ -100,7 +94,7 @@ func (s *DiffService) GetNodeDiffDetail(ctx context.Context, workspaceID, nodeID
 	if dto.BaselineRunID == "" {
 		return out, nil
 	}
-	rows, err := s.repo.GetNodeResults(ctx, workspaceID)
+	rows, err := s.repo.GetNodeResultMetas(ctx, workspaceID)
 	if err != nil {
 		return out, err
 	}
@@ -110,27 +104,47 @@ func (s *DiffService) GetNodeDiffDetail(ctx context.Context, workspaceID, nodeID
 	base := baseline[nodeID]
 	cur := current[nodeID]
 
-	var kinds []string
-	baseHash := ""
-	if base.ContentHash != nil {
-		baseHash = *base.ContentHash
+	bodyIDs := make([]string, 0, 2)
+	if base.ID != nil {
+		bodyIDs = append(bodyIDs, *base.ID)
 	}
-	curHash := ""
-	if cur.ContentHash != nil {
-		curHash = *cur.ContentHash
+	if cur.ID != nil {
+		bodyIDs = append(bodyIDs, *cur.ID)
 	}
-	if baseHash != curHash {
-		kinds = append(kinds, "content")
-		out.Content = &model.DiffPairDTO{
-			Old: model.StrVal(base.Markdown),
-			New: model.StrVal(cur.Markdown),
+	bodies, err := s.repo.GetNodeResultBodies(ctx, bodyIDs)
+	if err != nil {
+		return out, err
+	}
+	byBody := bodiesByID(bodies)
+	var baseBody, curBody *model.NodeResultBody
+	if base.ID != nil {
+		if b, ok := byBody[*base.ID]; ok {
+			baseBody = &b
+		}
+	}
+	if cur.ID != nil {
+		if b, ok := byBody[*cur.ID]; ok {
+			curBody = &b
 		}
 	}
 
-	baseLinks := linksFromRow(base)
-	curLinks := linksFromRow(cur)
-	if canonicalLinks(baseLinks) != canonicalLinks(curLinks) {
+	var kinds []string
+	baseHash := model.StrVal(base.ContentHash)
+	curHash := model.StrVal(cur.ContentHash)
+	if baseHash != curHash {
+		kinds = append(kinds, "content")
+		out.Content = &model.DiffPairDTO{
+			Old: model.StrVal(nilSafeMarkdown(baseBody)),
+			New: model.StrVal(nilSafeMarkdown(curBody)),
+		}
+	}
+
+	baseLinksHash := model.StrVal(base.LinksHash)
+	curLinksHash := model.StrVal(cur.LinksHash)
+	if baseLinksHash != curLinksHash {
 		kinds = append(kinds, "links")
+		baseLinks := linksFromBody(baseBody)
+		curLinks := linksFromBody(curBody)
 		out.Links = &model.DiffPairDTO{
 			Old: prettyLinksJSON(baseLinks),
 			New: prettyLinksJSON(curLinks),
@@ -147,6 +161,15 @@ func (s *DiffService) GetNodeDiffDetail(ctx context.Context, workspaceID, nodeID
 	return out, nil
 }
 
+// nilSafeMarkdown は body が nil のとき nil、あれば Markdown を返す。
+func nilSafeMarkdown(body *model.NodeResultBody) *string {
+	if body == nil {
+		return nil
+	}
+	return body.Markdown
+}
+
+// sortDiffKinds は content / links / fetch の順に kinds を並べる。
 func sortDiffKinds(kinds []string) []string {
 	order := map[string]int{"content": 0, "links": 1, "fetch": 2}
 	cp := append([]string(nil), kinds...)
@@ -156,6 +179,7 @@ func sortDiffKinds(kinds []string) []string {
 	return cp
 }
 
+// prettyLinksJSON はリンク配列をソートしたインデント JSON にする。
 func prettyLinksJSON(links []string) string {
 	if len(links) == 0 {
 		return "[]"
@@ -163,25 +187,6 @@ func prettyLinksJSON(links []string) string {
 	cp := append([]string(nil), links...)
 	sort.Strings(cp)
 	b, _ := json.MarshalIndent(cp, "", "  ")
-	return string(b)
-}
-
-func linksFromRow(r model.NodeResult) []string {
-	if r.LinksJSON == nil || *r.LinksJSON == "" {
-		return nil
-	}
-	var links []string
-	_ = json.Unmarshal([]byte(*r.LinksJSON), &links)
-	return links
-}
-
-func canonicalLinks(links []string) string {
-	if len(links) == 0 {
-		return "[]"
-	}
-	cp := append([]string(nil), links...)
-	sort.Strings(cp)
-	b, _ := json.Marshal(cp)
 	return string(b)
 }
 

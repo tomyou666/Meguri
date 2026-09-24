@@ -60,16 +60,21 @@ export interface DbNodeResult {
 	workspace_id: string;
 	node_id: string;
 	url: string;
+	content_hash: string | null;
+	links_hash: string | null;
+	manually_edited: 0 | 1;
+	error: string | null;
+	fetched_at: string;
+}
+
+export interface DbNodeResultBody {
+	id: string;
+	links_json: string | null;
+	metadata_json: string | null;
 	markdown: string | null;
 	html: string | null;
 	raw_html: string | null;
 	json_body: string | null;
-	links_json: string | null;
-	metadata_json: string | null;
-	error: string | null;
-	fetched_at: string;
-	content_hash: string | null;
-	manually_edited: 0 | 1;
 }
 
 export interface DbGraphUiState {

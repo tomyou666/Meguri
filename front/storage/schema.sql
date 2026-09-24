@@ -130,7 +130,7 @@ CREATE TABLE crawl_runs (
 CREATE INDEX idx_crawl_runs_workspace_started ON crawl_runs(workspace_id, started_at DESC);
 
 -- ---------------------------------------------------------------------------
--- node_results — ノード単位のスクレイピング結果（永続層）
+-- node_results — ノード結果のメタ（永続層）
 -- ノードごとに fetched_at 降順で最大 20 行をアプリ層で保持
 -- DeleteResults は「そのノードの最新 1 行のみ」削除
 --   id:            結果行 ID
@@ -140,14 +140,8 @@ CREATE INDEX idx_crawl_runs_workspace_started ON crawl_runs(workspace_id, starte
 --   url:           取得時点の URL（表示用）
 --   content_hash:  Phase4 content 差分: canonical markdown の SHA-256 十六進
 --                  算法: UTF-8( trim + LF 正規化した markdown ) の SHA-256（front/frontend/src/lib/contentHash.ts）
---                  巨大 TEXT より前に置く。SQLite packed record で overflow を辿らずに読めるようにする
+--   links_hash:    Phase4 links 差分: canonical links JSON の SHA-256 十六進
 --   manually_edited: ユーザー手動編集済みフラグ（1 = 手動編集）
---   markdown:      抽出 Markdown
---   html:          整形 HTML
---   raw_html:      生 HTML
---   json_body:     JSON レスポンス本文
---   links_json:    抽出リンク URL の JSON 配列（Phase4 links 差分はこの列のみを比較）
---   metadata_json: メタデータ JSON
 --   error:         取得失敗時のエラー文言（成功時は NULL）
 --   fetched_at:    取得日時（ISO 8601）
 -- ---------------------------------------------------------------------------
@@ -158,13 +152,8 @@ CREATE TABLE node_results (
     node_id         TEXT NOT NULL,
     url             TEXT NOT NULL,
     content_hash    TEXT,
+    links_hash      TEXT,
     manually_edited INTEGER NOT NULL DEFAULT 0,
-    markdown        TEXT,
-    html            TEXT,
-    raw_html        TEXT,
-    json_body       TEXT,
-    links_json      TEXT,
-    metadata_json   TEXT,
     error           TEXT,
     fetched_at      TEXT NOT NULL,
     FOREIGN KEY (workspace_id, node_id)
@@ -175,6 +164,28 @@ CREATE TABLE node_results (
 CREATE INDEX idx_node_results_run ON node_results(run_id);
 CREATE INDEX idx_node_results_ws_node_fetched
     ON node_results(workspace_id, node_id, fetched_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- node_result_bodies — ノード結果の本文（latest 成功 + baseline のみ保持）
+--   id:            node_results.id（ON DELETE CASCADE）
+--   links_json:    抽出リンク URL の JSON 配列
+--   metadata_json: メタデータ JSON
+--   markdown:      抽出 Markdown
+--   html:          整形 HTML
+--   raw_html:      生 HTML
+--   json_body:     JSON レスポンス本文
+-- 列順は短い／先に読むものから（SQLite packed record の overflow 対策）
+-- ---------------------------------------------------------------------------
+CREATE TABLE node_result_bodies (
+    id              TEXT PRIMARY KEY,
+    links_json      TEXT,
+    metadata_json   TEXT,
+    markdown        TEXT,
+    html            TEXT,
+    raw_html        TEXT,
+    json_body       TEXT,
+    FOREIGN KEY (id) REFERENCES node_results(id) ON DELETE CASCADE
+);
 
 -- ---------------------------------------------------------------------------
 -- graph_ui_state — UI 補助状態（ワークスペースごと）

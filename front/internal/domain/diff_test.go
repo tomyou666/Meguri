@@ -24,6 +24,7 @@ func applyDiffTestSchema(db *gorm.DB) error {
 		"000005_node_result_manual_edit.up.sql",
 		"000006_node_results_drop_run_cascade.up.sql",
 		"000007_node_results_reorder_small_cols.up.sql",
+		"000008_node_result_bodies.up.sql",
 	} {
 		path := filepath.Join("..", "..", "internal", "app", "migrations", name)
 		sqlBytes, err := os.ReadFile(path)
@@ -105,20 +106,30 @@ func appendResult(
 	fetchedAt string,
 ) {
 	t.Helper()
+	id := runID + "-" + nodeID
 	md := markdown
 	links := linksJSON
 	hash := contentHash
-	require.NoError(t, store.AppendNodeResult(ctx, model.NodeResult{
-		ID:          model.StrPtr(runID + "-" + nodeID),
+	linksHash := domain.LinksHashFromLinksJSON(linksJSON)
+	meta := model.NodeResult{
+		ID:          model.StrPtr(id),
 		RunID:       runID,
 		WorkspaceID: wsID,
 		NodeID:      nodeID,
 		URL:         "https://example.com",
-		Markdown:    &md,
-		LinksJSON:   &links,
 		ContentHash: &hash,
+		LinksHash:   &linksHash,
 		Error:       errMsg,
 		FetchedAt:   fetchedAt,
+	}
+	if errMsg != nil {
+		require.NoError(t, store.AppendNodeResult(ctx, meta, nil))
+		return
+	}
+	require.NoError(t, store.AppendNodeResult(ctx, meta, &model.NodeResultBody{
+		ID:        model.StrPtr(id),
+		Markdown:  &md,
+		LinksJSON: &links,
 	}))
 }
 

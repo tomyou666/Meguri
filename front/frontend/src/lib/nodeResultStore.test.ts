@@ -13,16 +13,11 @@ function row(nodeId: string, fetchedAt: string, id?: string): DbNodeResult {
 		workspace_id: 'ws1',
 		node_id: nodeId,
 		url: `https://example.com/${nodeId}`,
-		markdown: null,
-		html: null,
-		raw_html: null,
-		json_body: null,
-		links_json: null,
-		metadata_json: null,
+		content_hash: null,
+		links_hash: null,
+		manually_edited: 0,
 		error: null,
 		fetched_at: fetchedAt,
-		content_hash: null,
-		manually_edited: 0,
 	};
 }
 

@@ -22,9 +22,9 @@ func NewResultsService(repo persistence.Repository, ws *WorkspaceService) *Resul
 	return &ResultsService{repo: repo, ws: ws}
 }
 
-// GetNodeResult は最新成功結果を返す。
+// GetNodeResult は最新成功結果（本文付き）を返す。
 func (s *ResultsService) GetNodeResult(ctx context.Context, workspaceID, nodeID string) (*model.CrawlResultDTO, error) {
-	rows, err := s.repo.GetNodeResultsByNodeIDs(ctx, workspaceID, []string{nodeID})
+	rows, err := s.repo.GetNodeResultMetasByNodeIDs(ctx, workspaceID, []string{nodeID})
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,17 @@ func (s *ResultsService) GetNodeResult(ctx context.Context, workspaceID, nodeID 
 	if !ok {
 		return nil, nil
 	}
-	dto := nodeResultToPreview(row)
+	var body *model.NodeResultBody
+	if row.ID != nil {
+		bodies, err := s.repo.GetNodeResultBodies(ctx, []string{*row.ID})
+		if err != nil {
+			return nil, err
+		}
+		if len(bodies) > 0 {
+			body = &bodies[0]
+		}
+	}
+	dto := nodeResultToPreview(row, body)
 	return &dto, nil
 }
 
@@ -44,17 +54,36 @@ func (s *ResultsService) GetNodeResults(ctx context.Context, workspaceID string,
 	if len(nodeIDs) == 0 {
 		return out, nil
 	}
-	rows, err := s.repo.GetNodeResultsByNodeIDs(ctx, workspaceID, nodeIDs)
+	rows, err := s.repo.GetNodeResultMetasByNodeIDs(ctx, workspaceID, nodeIDs)
 	if err != nil {
 		return nil, err
 	}
 	byNode := latestSuccessByNode(rows)
+	ids := make([]string, 0, len(byNode))
+	for _, nodeID := range nodeIDs {
+		row, ok := byNode[nodeID]
+		if !ok || row.ID == nil {
+			continue
+		}
+		ids = append(ids, *row.ID)
+	}
+	bodies, err := s.repo.GetNodeResultBodies(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	byBody := bodiesByID(bodies)
 	for _, nodeID := range nodeIDs {
 		row, ok := byNode[nodeID]
 		if !ok {
 			continue
 		}
-		out = append(out, nodeResultToPreview(row))
+		var body *model.NodeResultBody
+		if row.ID != nil {
+			if b, ok := byBody[*row.ID]; ok {
+				body = &b
+			}
+		}
+		out = append(out, nodeResultToPreview(row, body))
 	}
 	return out, nil
 }
@@ -127,6 +156,7 @@ func (s *ResultsService) MergeResults(ctx context.Context, workspaceID string, n
 	}, nil
 }
 
+// contains は ss に v が含まれるかを返す。
 func contains(ss []string, v string) bool {
 	for _, s := range ss {
 		if s == v {
@@ -146,7 +176,7 @@ func (s *ResultsService) SaveResults(ctx context.Context, workspaceID string, no
 	if err != nil {
 		return err
 	}
-	rows, err := s.repo.GetNodeResults(ctx, workspaceID)
+	rows, err := s.repo.GetNodeResultMetas(ctx, workspaceID)
 	if err != nil {
 		return err
 	}
@@ -156,11 +186,7 @@ func (s *ResultsService) SaveResults(ctx context.Context, workspaceID string, no
 		if !ok {
 			continue
 		}
-		copy := source
-		copy.ID = model.StrPtr(genID())
-		copy.RunID = runID
-		copy.FetchedAt = time.Now().UTC().Format(time.RFC3339)
-		if err := s.repo.AppendNodeResult(ctx, copy); err != nil {
+		if err := s.copyResultToRun(ctx, source, runID); err != nil {
 			return err
 		}
 	}
@@ -173,6 +199,9 @@ func (s *ResultsService) DeleteResults(ctx context.Context, workspaceID string, 
 }
 
 // SaveResultsSnapshot は baseline_run_id を更新し結果を snapshot する。
+//
+// runID が空なら合成 run を作る。渡された runID が最新成功行の run と同じなら
+// UNIQUE (run_id, node_id) を避けるためコピーせず、その run を baseline にする。
 func (s *ResultsService) SaveResultsSnapshot(ctx context.Context, workspaceID, runID string) (string, error) {
 	if runID == "" {
 		runID = genID()
@@ -197,16 +226,12 @@ func (s *ResultsService) SaveResultsSnapshot(ctx context.Context, workspaceID, r
 			return "", err
 		}
 	}
-	rows, err := s.repo.GetNodeResults(ctx, workspaceID)
+	rows, err := s.repo.GetNodeResultMetas(ctx, workspaceID)
 	if err != nil {
 		return "", err
 	}
 	for _, source := range latestSuccessByNode(rows) {
-		copy := source
-		copy.ID = model.StrPtr(genID())
-		copy.RunID = runID
-		copy.FetchedAt = time.Now().UTC().Format(time.RFC3339)
-		if err := s.repo.AppendNodeResult(ctx, copy); err != nil {
+		if err := s.copyResultToRun(ctx, source, runID); err != nil {
 			return "", err
 		}
 	}
@@ -216,6 +241,51 @@ func (s *ResultsService) SaveResultsSnapshot(ctx context.Context, workspaceID, r
 	return runID, nil
 }
 
+// copyResultToRun は source を指定 run へコピーする。
+//
+// source が既に runID の行なら何もしない（初回 baseline はクロール run をそのまま使う）。
+// 同じ (run_id, node_id) の別行があるときは削除してから挿入する。
+func (s *ResultsService) copyResultToRun(ctx context.Context, source model.NodeResult, runID string) error {
+	if source.RunID == runID {
+		return nil
+	}
+	existing, err := s.repo.GetNodeResultMetasByNodeIDs(ctx, source.WorkspaceID, []string{source.NodeID})
+	if err != nil {
+		return err
+	}
+	for _, row := range existing {
+		if row.RunID == runID && row.ID != nil {
+			if err := s.repo.DeleteNodeResult(ctx, *row.ID); err != nil {
+				return err
+			}
+		}
+	}
+	var body *model.NodeResultBody
+	if source.ID != nil {
+		bodies, err := s.repo.GetNodeResultBodies(ctx, []string{*source.ID})
+		if err != nil {
+			return err
+		}
+		if len(bodies) > 0 {
+			b := bodies[0]
+			body = &b
+		}
+	}
+	copyMeta := source
+	newID := genID()
+	copyMeta.ID = model.StrPtr(newID)
+	copyMeta.RunID = runID
+	copyMeta.FetchedAt = time.Now().UTC().Format(time.RFC3339)
+	var copyBody *model.NodeResultBody
+	if body != nil {
+		b := *body
+		b.ID = model.StrPtr(newID)
+		copyBody = &b
+	}
+	return s.repo.AppendNodeResult(ctx, copyMeta, copyBody)
+}
+
+// ensureBaselineRun は baseline run が無ければ合成 run を作り、その ID を返す。
 func (s *ResultsService) ensureBaselineRun(ctx context.Context, bundle *model.WorkspaceBundle) (string, error) {
 	if bundle.Workspace.BaselineRunID != nil && *bundle.Workspace.BaselineRunID != "" {
 		return *bundle.Workspace.BaselineRunID, nil
@@ -233,45 +303,6 @@ func (s *ResultsService) ensureBaselineRun(ctx context.Context, bundle *model.Wo
 	}
 	bundle.Workspace.BaselineRunID = &runID
 	return runID, nil
-}
-
-// AppendNodeResultRow は crawl 永続化用に結果行を追加する。
-func (s *ResultsService) AppendNodeResultRow(ctx context.Context, req model.AppendNodeResultRequest) error {
-	row := model.NodeResult{
-		ID:          model.StrPtr(genID()),
-		RunID:       req.RunID,
-		WorkspaceID: req.WorkspaceID,
-		NodeID:      req.NodeID,
-		URL:         req.URL,
-		FetchedAt:   req.FetchedAt,
-	}
-	if req.Markdown != "" {
-		row.Markdown = &req.Markdown
-	}
-	if req.HTML != "" {
-		row.HTML = &req.HTML
-	}
-	if req.RawHTML != "" {
-		row.RawHTML = &req.RawHTML
-	}
-	if req.LinksJSON != "" {
-		row.LinksJSON = &req.LinksJSON
-	}
-	if req.MetadataJSON != "" {
-		row.MetadataJSON = &req.MetadataJSON
-	}
-	if req.Error != "" {
-		row.Error = &req.Error
-	}
-	if req.ContentHash != "" {
-		row.ContentHash = &req.ContentHash
-	}
-	return s.repo.AppendNodeResult(ctx, row)
-}
-
-// UpsertBaselineFromRow は baseline 行 upsert 用（未使用だが将来用）。
-func (s *ResultsService) UpsertBaselineFromRow(_ context.Context, _ model.NodeResult) error {
-	return nil
 }
 
 // MarshalSummary は summary を JSON 文字列にする。

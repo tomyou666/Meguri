@@ -33,16 +33,11 @@ func newNodeResult(db *gorm.DB, opts ...gen.DOOption) nodeResult {
 	_nodeResult.WorkspaceID = field.NewString(tableName, "workspace_id")
 	_nodeResult.NodeID = field.NewString(tableName, "node_id")
 	_nodeResult.URL = field.NewString(tableName, "url")
-	_nodeResult.Markdown = field.NewString(tableName, "markdown")
-	_nodeResult.HTML = field.NewString(tableName, "html")
-	_nodeResult.RawHTML = field.NewString(tableName, "raw_html")
-	_nodeResult.JSONBody = field.NewString(tableName, "json_body")
-	_nodeResult.LinksJSON = field.NewString(tableName, "links_json")
-	_nodeResult.MetadataJSON = field.NewString(tableName, "metadata_json")
+	_nodeResult.ContentHash = field.NewString(tableName, "content_hash")
+	_nodeResult.LinksHash = field.NewString(tableName, "links_hash")
+	_nodeResult.ManuallyEdited = field.NewInt32(tableName, "manually_edited")
 	_nodeResult.Error = field.NewString(tableName, "error")
 	_nodeResult.FetchedAt = field.NewString(tableName, "fetched_at")
-	_nodeResult.ContentHash = field.NewString(tableName, "content_hash")
-	_nodeResult.ManuallyEdited = field.NewInt32(tableName, "manually_edited")
 
 	_nodeResult.fillFieldMap()
 
@@ -58,16 +53,11 @@ type nodeResult struct {
 	WorkspaceID    field.String
 	NodeID         field.String
 	URL            field.String
-	Markdown       field.String
-	HTML           field.String
-	RawHTML        field.String
-	JSONBody       field.String
-	LinksJSON      field.String
-	MetadataJSON   field.String
+	ContentHash    field.String
+	LinksHash      field.String
+	ManuallyEdited field.Int32
 	Error          field.String
 	FetchedAt      field.String
-	ContentHash    field.String
-	ManuallyEdited field.Int32
 
 	fieldMap map[string]field.Expr
 }
@@ -89,16 +79,11 @@ func (n *nodeResult) updateTableName(table string) *nodeResult {
 	n.WorkspaceID = field.NewString(table, "workspace_id")
 	n.NodeID = field.NewString(table, "node_id")
 	n.URL = field.NewString(table, "url")
-	n.Markdown = field.NewString(table, "markdown")
-	n.HTML = field.NewString(table, "html")
-	n.RawHTML = field.NewString(table, "raw_html")
-	n.JSONBody = field.NewString(table, "json_body")
-	n.LinksJSON = field.NewString(table, "links_json")
-	n.MetadataJSON = field.NewString(table, "metadata_json")
+	n.ContentHash = field.NewString(table, "content_hash")
+	n.LinksHash = field.NewString(table, "links_hash")
+	n.ManuallyEdited = field.NewInt32(table, "manually_edited")
 	n.Error = field.NewString(table, "error")
 	n.FetchedAt = field.NewString(table, "fetched_at")
-	n.ContentHash = field.NewString(table, "content_hash")
-	n.ManuallyEdited = field.NewInt32(table, "manually_edited")
 
 	n.fillFieldMap()
 
@@ -125,22 +110,17 @@ func (n *nodeResult) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (n *nodeResult) fillFieldMap() {
-	n.fieldMap = make(map[string]field.Expr, 15)
+	n.fieldMap = make(map[string]field.Expr, 10)
 	n.fieldMap["id"] = n.ID
 	n.fieldMap["run_id"] = n.RunID
 	n.fieldMap["workspace_id"] = n.WorkspaceID
 	n.fieldMap["node_id"] = n.NodeID
 	n.fieldMap["url"] = n.URL
-	n.fieldMap["markdown"] = n.Markdown
-	n.fieldMap["html"] = n.HTML
-	n.fieldMap["raw_html"] = n.RawHTML
-	n.fieldMap["json_body"] = n.JSONBody
-	n.fieldMap["links_json"] = n.LinksJSON
-	n.fieldMap["metadata_json"] = n.MetadataJSON
+	n.fieldMap["content_hash"] = n.ContentHash
+	n.fieldMap["links_hash"] = n.LinksHash
+	n.fieldMap["manually_edited"] = n.ManuallyEdited
 	n.fieldMap["error"] = n.Error
 	n.fieldMap["fetched_at"] = n.FetchedAt
-	n.fieldMap["content_hash"] = n.ContentHash
-	n.fieldMap["manually_edited"] = n.ManuallyEdited
 }
 
 func (n nodeResult) clone(db *gorm.DB) nodeResult {

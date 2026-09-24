@@ -16,14 +16,15 @@ import (
 )
 
 var (
-	Q            = new(Query)
-	AppConfig    *appConfig
-	CrawlRun     *crawlRun
-	GraphEdge    *graphEdge
-	GraphNode    *graphNode
-	GraphUIState *graphUIState
-	NodeResult   *nodeResult
-	Workspace    *workspace
+	Q              = new(Query)
+	AppConfig      *appConfig
+	CrawlRun       *crawlRun
+	GraphEdge      *graphEdge
+	GraphNode      *graphNode
+	GraphUIState   *graphUIState
+	NodeResult     *nodeResult
+	NodeResultBody *nodeResultBody
+	Workspace      *workspace
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
@@ -34,32 +35,35 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	GraphNode = &Q.GraphNode
 	GraphUIState = &Q.GraphUIState
 	NodeResult = &Q.NodeResult
+	NodeResultBody = &Q.NodeResultBody
 	Workspace = &Q.Workspace
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:           db,
-		AppConfig:    newAppConfig(db, opts...),
-		CrawlRun:     newCrawlRun(db, opts...),
-		GraphEdge:    newGraphEdge(db, opts...),
-		GraphNode:    newGraphNode(db, opts...),
-		GraphUIState: newGraphUIState(db, opts...),
-		NodeResult:   newNodeResult(db, opts...),
-		Workspace:    newWorkspace(db, opts...),
+		db:             db,
+		AppConfig:      newAppConfig(db, opts...),
+		CrawlRun:       newCrawlRun(db, opts...),
+		GraphEdge:      newGraphEdge(db, opts...),
+		GraphNode:      newGraphNode(db, opts...),
+		GraphUIState:   newGraphUIState(db, opts...),
+		NodeResult:     newNodeResult(db, opts...),
+		NodeResultBody: newNodeResultBody(db, opts...),
+		Workspace:      newWorkspace(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	AppConfig    appConfig
-	CrawlRun     crawlRun
-	GraphEdge    graphEdge
-	GraphNode    graphNode
-	GraphUIState graphUIState
-	NodeResult   nodeResult
-	Workspace    workspace
+	AppConfig      appConfig
+	CrawlRun       crawlRun
+	GraphEdge      graphEdge
+	GraphNode      graphNode
+	GraphUIState   graphUIState
+	NodeResult     nodeResult
+	NodeResultBody nodeResultBody
+	Workspace      workspace
 }
 
 func (q *Query) Available() bool { return q.db != nil }
@@ -68,14 +72,15 @@ func (q *Query) UnderlyingDB() *gorm.DB { return q.db }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:           db,
-		AppConfig:    q.AppConfig.clone(db),
-		CrawlRun:     q.CrawlRun.clone(db),
-		GraphEdge:    q.GraphEdge.clone(db),
-		GraphNode:    q.GraphNode.clone(db),
-		GraphUIState: q.GraphUIState.clone(db),
-		NodeResult:   q.NodeResult.clone(db),
-		Workspace:    q.Workspace.clone(db),
+		db:             db,
+		AppConfig:      q.AppConfig.clone(db),
+		CrawlRun:       q.CrawlRun.clone(db),
+		GraphEdge:      q.GraphEdge.clone(db),
+		GraphNode:      q.GraphNode.clone(db),
+		GraphUIState:   q.GraphUIState.clone(db),
+		NodeResult:     q.NodeResult.clone(db),
+		NodeResultBody: q.NodeResultBody.clone(db),
+		Workspace:      q.Workspace.clone(db),
 	}
 }
 
@@ -89,36 +94,39 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:           db,
-		AppConfig:    q.AppConfig.replaceDB(db),
-		CrawlRun:     q.CrawlRun.replaceDB(db),
-		GraphEdge:    q.GraphEdge.replaceDB(db),
-		GraphNode:    q.GraphNode.replaceDB(db),
-		GraphUIState: q.GraphUIState.replaceDB(db),
-		NodeResult:   q.NodeResult.replaceDB(db),
-		Workspace:    q.Workspace.replaceDB(db),
+		db:             db,
+		AppConfig:      q.AppConfig.replaceDB(db),
+		CrawlRun:       q.CrawlRun.replaceDB(db),
+		GraphEdge:      q.GraphEdge.replaceDB(db),
+		GraphNode:      q.GraphNode.replaceDB(db),
+		GraphUIState:   q.GraphUIState.replaceDB(db),
+		NodeResult:     q.NodeResult.replaceDB(db),
+		NodeResultBody: q.NodeResultBody.replaceDB(db),
+		Workspace:      q.Workspace.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	AppConfig    IAppConfigDo
-	CrawlRun     ICrawlRunDo
-	GraphEdge    IGraphEdgeDo
-	GraphNode    IGraphNodeDo
-	GraphUIState IGraphUIStateDo
-	NodeResult   INodeResultDo
-	Workspace    IWorkspaceDo
+	AppConfig      IAppConfigDo
+	CrawlRun       ICrawlRunDo
+	GraphEdge      IGraphEdgeDo
+	GraphNode      IGraphNodeDo
+	GraphUIState   IGraphUIStateDo
+	NodeResult     INodeResultDo
+	NodeResultBody INodeResultBodyDo
+	Workspace      IWorkspaceDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		AppConfig:    q.AppConfig.WithContext(ctx),
-		CrawlRun:     q.CrawlRun.WithContext(ctx),
-		GraphEdge:    q.GraphEdge.WithContext(ctx),
-		GraphNode:    q.GraphNode.WithContext(ctx),
-		GraphUIState: q.GraphUIState.WithContext(ctx),
-		NodeResult:   q.NodeResult.WithContext(ctx),
-		Workspace:    q.Workspace.WithContext(ctx),
+		AppConfig:      q.AppConfig.WithContext(ctx),
+		CrawlRun:       q.CrawlRun.WithContext(ctx),
+		GraphEdge:      q.GraphEdge.WithContext(ctx),
+		GraphNode:      q.GraphNode.WithContext(ctx),
+		GraphUIState:   q.GraphUIState.WithContext(ctx),
+		NodeResult:     q.NodeResult.WithContext(ctx),
+		NodeResultBody: q.NodeResultBody.WithContext(ctx),
+		Workspace:      q.Workspace.WithContext(ctx),
 	}
 }
 
