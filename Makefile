@@ -1,5 +1,5 @@
 .PHONY: help all check fmt vet lint test build tidy wire generate tools \
-	vuln upgrade-patch upgrade-minor \
+	vuln vuln-gate upgrade-patch upgrade-minor \
 	bcheck bbuild btidy btools bwire bgenerate blint bfmt bvuln bupgrade-patch bupgrade-minor \
 	fdev fbuild frun ftest flint ffmt fcheck fsetup ftools ftidy fwire fgenerate fvuln fupgrade-patch fupgrade-minor \
 	tlint tfmt ttidy tvuln tupgrade-patch tupgrade-minor
@@ -7,6 +7,8 @@
 BACKEND_DIR ?= backend
 FRONT_DIR ?= front
 TOOLS_DIR ?= tools
+GO ?= go
+VULN_GATE_DIR ?= $(TOOLS_DIR)/vuln-gate
 
 all: check
 
@@ -23,7 +25,8 @@ help:
 	@echo "  wire          Regenerate backend and front wire_gen.go"
 	@echo "  generate      Regenerate all codegen (backend wire + gowrap + front migrate/gen/wire/gowrap/bindings)"
 	@echo "  tools         Download backend and front Go tool dependencies (gowrap, dlv, migrate, wails3)"
-	@echo "  vuln          Run govulncheck (all Go modules) + npm audit"
+	@echo "  vuln          Run govulncheck (all Go modules) + npm audit (raw; fails on any finding)"
+	@echo "  vuln-gate     Match scanner findings against vuln-allowlist.yaml (CI gate)"
 	@echo "  upgrade-patch Upgrade patch versions (Go + npm)"
 	@echo "  upgrade-minor Upgrade minor versions (Go + npm)"
 	@echo ""
@@ -64,6 +67,10 @@ generate: bgenerate fgenerate
 tools: btools ftools
 
 vuln: bvuln fvuln tvuln
+
+vuln-gate:
+	$(GO) test ./$(VULN_GATE_DIR)
+	$(GO) run ./$(VULN_GATE_DIR) .
 
 upgrade-patch: bupgrade-patch fupgrade-patch tupgrade-patch
 

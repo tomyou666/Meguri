@@ -44,7 +44,7 @@ make tools
 | --- | --- | --- |
 | [proto](https://moonrepo.dev/proto) | Go / Node / npm のバージョン管理 | `.prototools` を参照 |
 | [golangci-lint](https://golangci-lint.run/) | `make lint` | [公式 install.sh](https://golangci-lint.run/welcome/install/)（Dev Container では同梱） |
-| [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) | `make vuln`（backend / front / tools） | `go install golang.org/x/vuln/cmd/govulncheck@latest`（CI も同様） |
+| [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) | `make vuln`（生検査）/ `make vuln-gate`（許容リスト突合。CI） | `go install golang.org/x/vuln/cmd/govulncheck@latest`（CI も同様）。許容ルールは [docs/vuln-allowlist.md](docs/vuln-allowlist.md) |
 | [gopls](https://pkg.go.dev/golang.org/x/tools/gopls) | Go 言語サーバー（補完・定義ジャンプ・エディタ診断） | VS Code の [Go 拡張](https://marketplace.visualstudio.com/items?itemName=golang.go) が初回に自動導入。手動なら `go install golang.org/x/tools/gopls@latest`（Dev Container では [`.devcontainer/DockerFile`](.devcontainer/DockerFile) で同梱） |
 | VS Code 拡張 | エディタ支援 | [`.vscode/extensions.json`](.vscode/extensions.json) の Recommendations |
 

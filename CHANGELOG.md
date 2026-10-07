@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 追加
 
+- `make vuln-gate` と `vuln-allowlist.yaml` による脆弱性許容ゲートを追加（CI はこちらを使用）
+  - 詳細は `docs/vuln-allowlist.md` / `tools/vuln-gate/README.md`
 - エクスポートプレビューを TanStack Virtual と行メタ／本文 API に切り替え、巨大プレビューでもスクロールできるようした
   - 保存はプレビュー済み不要で Go が追記。進捗オーバーレイと中止に対応。コピーボタンは削除
 - front usecase（Wails サービス）に gowrap debug ログ（start 毎回 / end は 200ms 以上）を追加

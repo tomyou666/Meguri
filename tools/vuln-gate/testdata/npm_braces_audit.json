@@ -1,0 +1,70 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@shadcn/registry": {
+      "name": "@shadcn/registry",
+      "severity": "high",
+      "via": ["fast-glob"],
+      "effects": ["shadcn"]
+    },
+    "@ts-morph/common": {
+      "name": "@ts-morph/common",
+      "severity": "high",
+      "via": ["fast-glob"],
+      "effects": ["ts-morph"]
+    },
+    "braces": {
+      "name": "braces",
+      "severity": "high",
+      "via": [
+        {
+          "source": 1115844,
+          "name": "braces",
+          "dependency": "braces",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "severity": "high",
+          "range": "<=3.0.3"
+        }
+      ],
+      "effects": ["micromatch"]
+    },
+    "fast-glob": {
+      "name": "fast-glob",
+      "severity": "high",
+      "via": ["micromatch"],
+      "effects": ["@shadcn/registry", "@ts-morph/common", "shadcn"]
+    },
+    "micromatch": {
+      "name": "micromatch",
+      "severity": "high",
+      "via": ["braces"],
+      "effects": ["fast-glob"]
+    },
+    "shadcn": {
+      "name": "shadcn",
+      "severity": "high",
+      "via": ["@shadcn/registry", "fast-glob", "ts-morph"],
+      "effects": []
+    },
+    "ts-morph": {
+      "name": "ts-morph",
+      "severity": "high",
+      "via": ["@ts-morph/common"],
+      "effects": []
+    },
+    "left-pad": {
+      "name": "left-pad",
+      "severity": "moderate",
+      "via": [
+        {
+          "name": "left-pad",
+          "url": "https://github.com/advisories/GHSA-aaaa-bbbb-cccc",
+          "severity": "moderate",
+          "range": "*"
+        }
+      ],
+      "effects": []
+    }
+  }
+}

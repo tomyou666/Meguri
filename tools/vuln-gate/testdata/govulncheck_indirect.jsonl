@@ -1,0 +1,4 @@
+{"config":{"protocol_version":"v1.0.0","scanner_name":"govulncheck"}}
+{"osv":{"id":"GO-2024-9999","aliases":["CVE-2024-9999"]}}
+{"finding":{"osv":"GO-2024-9999","fixed_version":"v1.2.3","trace":[{"module":"example.com/vuln","version":"v1.0.0","package":"example.com/vuln/pkg","function":"Bad"},{"module":"example.com/mid","version":"v0.1.0","package":"example.com/mid"},{"module":"meguri/example","package":"meguri/example/cmd"}]}}
+{"finding":{"osv":"GO-2024-9999","trace":[{"module":"example.com/vuln","version":"v1.0.0"}]}}

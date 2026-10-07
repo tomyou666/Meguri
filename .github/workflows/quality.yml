@@ -51,8 +51,8 @@ jobs:
         run: npm ci
         working-directory: front/frontend
 
-      - name: Run vulnerability checks
-        run: make vuln
+      - name: Run vulnerability gate
+        run: make vuln-gate
 
       - name: Run tests
         run: make test

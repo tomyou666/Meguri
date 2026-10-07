@@ -1,0 +1,10 @@
+# Vulnerability allowlist for `make vuln-gate`.
+# See docs/vuln-allowlist.md for matching rules and how to add entries.
+allows:
+  - id: GHSA-vfj7-8cjw-p6xm
+    ecosystem: npm
+    package: braces
+    module: front/frontend
+    via: [shadcn]
+    reason: braces 3.0.3 が最新で修正版がない。shadcn CLI の直接依存からのみ到達し、画面の実行コードからは呼ばれない。
+    expires: 2027-01-07

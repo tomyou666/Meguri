@@ -1,0 +1,2 @@
+{"config":{"protocol_version":"v1.0.0"}}
+{"finding":{"osv":"GO-2024-0001","trace":[{"module":"meguri/example","version":"v0.0.0","package":"meguri/example","function":"OwnBug"}]}}

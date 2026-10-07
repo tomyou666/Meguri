@@ -8,4 +8,5 @@ use (
 	./tools/updater-keygen
 	./tools/url-fetch
 	./tools/version-mng
+	./tools/vuln-gate
 )
