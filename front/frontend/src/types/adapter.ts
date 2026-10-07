@@ -180,11 +180,49 @@ export interface ScraperPort {
 	getMaximizedNodeResult(): Promise<MaximizedNodeResultSnapshot | null>;
 	showExportWindow(snapshot: ExportSessionSnapshot): Promise<void>;
 	getExportSession(): Promise<ExportSessionSnapshot | null>;
-	saveExportFile(content: string, defaultExt: string): Promise<void>;
-	saveExportZip(
-		entries: { name: string; content: string }[],
-		defaultExt: string,
-	): Promise<void>;
+	getExportPreviewMeta(args: {
+		workspaceId: string;
+		nodeIds: string[];
+		format: string;
+		generation: number;
+	}): Promise<{
+		generation: number;
+		rows: Array<{
+			id: string;
+			nodeId: string;
+			byteLength: number;
+			isFirst: boolean;
+		}>;
+		skippedCount: number;
+	}>;
+	getExportPreviewBodies(args: {
+		workspaceId: string;
+		format: string;
+		generation: number;
+		startIndex: number;
+		endIndex: number;
+	}): Promise<{
+		generation: number;
+		startIndex: number;
+		endIndex: number;
+		rows: Array<{
+			id: string;
+			nodeId: string;
+			url: string;
+			body: string;
+		}>;
+	}>;
+	clearExportPreviewCache(): Promise<void>;
+	saveExport(args: {
+		workspaceId: string;
+		nodeIds: string[];
+		format: string;
+		separator: string;
+		includeHeading: boolean;
+		headingField: string;
+		splitSave: boolean;
+	}): Promise<void>;
+	cancelExportSave(): Promise<void>;
 	mergeResults(
 		workspaceId: string,
 		nodeIds: string[] | null,

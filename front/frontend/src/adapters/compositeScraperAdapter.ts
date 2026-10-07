@@ -30,9 +30,12 @@ import type {
 import type { Workspace } from '@/types/workspace';
 import {
 	DuplicateWorkspaceRequest,
+	ExportPreviewBodiesRequest,
+	ExportPreviewMetaRequest,
 	ExportSessionRequest,
 	MaximizedNodeResultRequest,
 	NodeDiffViewerRequest,
+	SaveExportRequest,
 	StartCrawlRequest,
 	UpdateNodeResultPatchDTO,
 	UpdateNodeResultRequest,
@@ -291,15 +294,89 @@ export class CompositeScraperAdapter implements ScraperPort {
 		}
 	}
 
-	async saveExportFile(content: string, defaultExt: string): Promise<void> {
-		await StoreService.SaveExportFile(content, defaultExt);
+	async getExportPreviewMeta(args: {
+		workspaceId: string;
+		nodeIds: string[];
+		format: string;
+		generation: number;
+	}) {
+		const res = await StoreService.GetExportPreviewMeta(
+			new ExportPreviewMetaRequest({
+				workspaceId: args.workspaceId,
+				nodeIds: args.nodeIds,
+				format: args.format,
+				generation: args.generation,
+			}),
+		);
+		return {
+			generation: res.generation,
+			rows: (res.rows ?? []).map((r) => ({
+				id: r.id,
+				nodeId: r.nodeId,
+				byteLength: r.byteLength,
+				isFirst: r.isFirst,
+			})),
+			skippedCount: res.skippedCount,
+		};
 	}
 
-	async saveExportZip(
-		entries: { name: string; content: string }[],
-		defaultExt: string,
-	): Promise<void> {
-		await StoreService.SaveExportZip(entries, defaultExt);
+	async getExportPreviewBodies(args: {
+		workspaceId: string;
+		format: string;
+		generation: number;
+		startIndex: number;
+		endIndex: number;
+	}) {
+		const res = await StoreService.GetExportPreviewBodies(
+			new ExportPreviewBodiesRequest({
+				workspaceId: args.workspaceId,
+				format: args.format,
+				generation: args.generation,
+				startIndex: args.startIndex,
+				endIndex: args.endIndex,
+			}),
+		);
+		return {
+			generation: res.generation,
+			startIndex: res.startIndex,
+			endIndex: res.endIndex,
+			rows: (res.rows ?? []).map((r) => ({
+				id: r.id,
+				nodeId: r.nodeId,
+				url: r.url,
+				body: r.body,
+			})),
+		};
+	}
+
+	async clearExportPreviewCache(): Promise<void> {
+		await StoreService.ClearExportPreviewCache();
+	}
+
+	async saveExport(args: {
+		workspaceId: string;
+		nodeIds: string[];
+		format: string;
+		separator: string;
+		includeHeading: boolean;
+		headingField: string;
+		splitSave: boolean;
+	}): Promise<void> {
+		await StoreService.SaveExport(
+			new SaveExportRequest({
+				workspaceId: args.workspaceId,
+				nodeIds: args.nodeIds,
+				format: args.format,
+				separator: args.separator,
+				includeHeading: args.includeHeading,
+				headingField: args.headingField,
+				splitSave: args.splitSave,
+			}),
+		);
+	}
+
+	async cancelExportSave(): Promise<void> {
+		await StoreService.CancelExportSave();
 	}
 
 	async mergeResults(

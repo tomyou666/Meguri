@@ -256,6 +256,324 @@ export class DuplicateWorkspaceRequest {
 }
 
 /**
+ * ExportPreviewBodiesRequest はプレビュー本文取得リクエスト。
+ */
+export class ExportPreviewBodiesRequest {
+    /**
+     * WorkspaceID は対象ワークスペース ID。
+     */
+    "workspaceId": string;
+
+    /**
+     * Format は "markdown" または "html"。
+     */
+    "format": string;
+
+    /**
+     * Generation は行メタ取得時の世代。
+     */
+    "generation": number;
+
+    /**
+     * StartIndex は取得開始行 index（含む）。
+     */
+    "startIndex": number;
+
+    /**
+     * EndIndex は取得終了行 index（含まない）。
+     */
+    "endIndex": number;
+
+    /** Creates a new ExportPreviewBodiesRequest instance. */
+    constructor($$source: Partial<ExportPreviewBodiesRequest> = {}) {
+        if (!("workspaceId" in $$source)) {
+            this["workspaceId"] = "";
+        }
+        if (!("format" in $$source)) {
+            this["format"] = "";
+        }
+        if (!("generation" in $$source)) {
+            this["generation"] = 0;
+        }
+        if (!("startIndex" in $$source)) {
+            this["startIndex"] = 0;
+        }
+        if (!("endIndex" in $$source)) {
+            this["endIndex"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportPreviewBodiesRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportPreviewBodiesRequest {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExportPreviewBodiesRequest($$parsedSource as Partial<ExportPreviewBodiesRequest>);
+    }
+}
+
+/**
+ * ExportPreviewBodiesResponse は本文応答。
+ */
+export class ExportPreviewBodiesResponse {
+    /**
+     * Generation は要求と同じ世代。
+     */
+    "generation": number;
+
+    /**
+     * StartIndex は応答の開始 index。
+     */
+    "startIndex": number;
+
+    /**
+     * EndIndex は応答の終了 index（含まない）。
+     */
+    "endIndex": number;
+
+    /**
+     * Rows は範囲内の本文。
+     */
+    "rows": ExportPreviewRowBodyDTO[];
+
+    /** Creates a new ExportPreviewBodiesResponse instance. */
+    constructor($$source: Partial<ExportPreviewBodiesResponse> = {}) {
+        if (!("generation" in $$source)) {
+            this["generation"] = 0;
+        }
+        if (!("startIndex" in $$source)) {
+            this["startIndex"] = 0;
+        }
+        if (!("endIndex" in $$source)) {
+            this["endIndex"] = 0;
+        }
+        if (!("rows" in $$source)) {
+            this["rows"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportPreviewBodiesResponse instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportPreviewBodiesResponse {
+        const $$createField3_0 = $$createType3;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("rows" in $$parsedSource) {
+            $$parsedSource["rows"] = $$createField3_0($$parsedSource["rows"]);
+        }
+        return new ExportPreviewBodiesResponse($$parsedSource as Partial<ExportPreviewBodiesResponse>);
+    }
+}
+
+/**
+ * ExportPreviewMetaRequest はプレビュー行メタ取得リクエスト。
+ */
+export class ExportPreviewMetaRequest {
+    /**
+     * WorkspaceID は対象ワークスペース ID。
+     */
+    "workspaceId": string;
+
+    /**
+     * NodeIDs は順序どおりのノード ID。
+     */
+    "nodeIds": string[];
+
+    /**
+     * Format は "markdown" または "html"。
+     */
+    "format": string;
+
+    /**
+     * Generation はフロントが進める世代。
+     */
+    "generation": number;
+
+    /** Creates a new ExportPreviewMetaRequest instance. */
+    constructor($$source: Partial<ExportPreviewMetaRequest> = {}) {
+        if (!("workspaceId" in $$source)) {
+            this["workspaceId"] = "";
+        }
+        if (!("nodeIds" in $$source)) {
+            this["nodeIds"] = [];
+        }
+        if (!("format" in $$source)) {
+            this["format"] = "";
+        }
+        if (!("generation" in $$source)) {
+            this["generation"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportPreviewMetaRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportPreviewMetaRequest {
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("nodeIds" in $$parsedSource) {
+            $$parsedSource["nodeIds"] = $$createField1_0($$parsedSource["nodeIds"]);
+        }
+        return new ExportPreviewMetaRequest($$parsedSource as Partial<ExportPreviewMetaRequest>);
+    }
+}
+
+/**
+ * ExportPreviewMetaResponse は行メタ応答。
+ */
+export class ExportPreviewMetaResponse {
+    /**
+     * Generation は要求と同じ世代。
+     */
+    "generation": number;
+
+    /**
+     * Rows は全行メタ（本文なし）。
+     */
+    "rows": ExportPreviewRowMetaDTO[];
+
+    /**
+     * SkippedCount は結果なし・空本文で除外したノード数。
+     */
+    "skippedCount": number;
+
+    /** Creates a new ExportPreviewMetaResponse instance. */
+    constructor($$source: Partial<ExportPreviewMetaResponse> = {}) {
+        if (!("generation" in $$source)) {
+            this["generation"] = 0;
+        }
+        if (!("rows" in $$source)) {
+            this["rows"] = [];
+        }
+        if (!("skippedCount" in $$source)) {
+            this["skippedCount"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportPreviewMetaResponse instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportPreviewMetaResponse {
+        const $$createField1_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("rows" in $$parsedSource) {
+            $$parsedSource["rows"] = $$createField1_0($$parsedSource["rows"]);
+        }
+        return new ExportPreviewMetaResponse($$parsedSource as Partial<ExportPreviewMetaResponse>);
+    }
+}
+
+/**
+ * ExportPreviewRowBodyDTO は 1 行分の本文。
+ */
+export class ExportPreviewRowBodyDTO {
+    /**
+     * ID は行 ID。
+     */
+    "id": string;
+
+    /**
+     * NodeID はグラフノード ID。
+     */
+    "nodeId": string;
+
+    /**
+     * URL はプレビュー内リンクの基準 URL。
+     */
+    "url": string;
+
+    /**
+     * Body は断片本文。
+     */
+    "body": string;
+
+    /** Creates a new ExportPreviewRowBodyDTO instance. */
+    constructor($$source: Partial<ExportPreviewRowBodyDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("nodeId" in $$source)) {
+            this["nodeId"] = "";
+        }
+        if (!("url" in $$source)) {
+            this["url"] = "";
+        }
+        if (!("body" in $$source)) {
+            this["body"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportPreviewRowBodyDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportPreviewRowBodyDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExportPreviewRowBodyDTO($$parsedSource as Partial<ExportPreviewRowBodyDTO>);
+    }
+}
+
+/**
+ * ExportPreviewRowMetaDTO は本文なしの 1 行メタ。
+ */
+export class ExportPreviewRowMetaDTO {
+    /**
+     * ID は行 ID（ノードID:開始位置）。
+     */
+    "id": string;
+
+    /**
+     * NodeID はグラフノード ID。
+     */
+    "nodeId": string;
+
+    /**
+     * ByteLength は断片のバイト長。
+     */
+    "byteLength": number;
+
+    /**
+     * IsFirst はそのノードの先頭行か。
+     */
+    "isFirst": boolean;
+
+    /** Creates a new ExportPreviewRowMetaDTO instance. */
+    constructor($$source: Partial<ExportPreviewRowMetaDTO> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("nodeId" in $$source)) {
+            this["nodeId"] = "";
+        }
+        if (!("byteLength" in $$source)) {
+            this["byteLength"] = 0;
+        }
+        if (!("isFirst" in $$source)) {
+            this["isFirst"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportPreviewRowMetaDTO instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportPreviewRowMetaDTO {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExportPreviewRowMetaDTO($$parsedSource as Partial<ExportPreviewRowMetaDTO>);
+    }
+}
+
+/**
  * ExportSessionEdgeDTO はエクスポートツリー構築用エッジ。
  */
 export class ExportSessionEdgeDTO {
@@ -418,8 +736,8 @@ export class ExportSessionRequest {
      * Creates a new ExportSessionRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): ExportSessionRequest {
-        const $$createField4_0 = $$createType3;
-        const $$createField5_0 = $$createType5;
+        const $$createField4_0 = $$createType7;
+        const $$createField5_0 = $$createType9;
         const $$createField6_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nodes" in $$parsedSource) {
@@ -432,41 +750,6 @@ export class ExportSessionRequest {
             $$parsedSource["selectedNodeIds"] = $$createField6_0($$parsedSource["selectedNodeIds"]);
         }
         return new ExportSessionRequest($$parsedSource as Partial<ExportSessionRequest>);
-    }
-}
-
-/**
- * ExportZipEntryDTO は ZIP エクスポート用の 1 ファイル分。
- */
-export class ExportZipEntryDTO {
-    /**
-     * Name は ZIP 内のファイル名。
-     */
-    "name": string;
-
-    /**
-     * Content はファイル本文。
-     */
-    "content": string;
-
-    /** Creates a new ExportZipEntryDTO instance. */
-    constructor($$source: Partial<ExportZipEntryDTO> = {}) {
-        if (!("name" in $$source)) {
-            this["name"] = "";
-        }
-        if (!("content" in $$source)) {
-            this["content"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new ExportZipEntryDTO instance from a string or object.
-     */
-    static createFrom($$source: any = {}): ExportZipEntryDTO {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new ExportZipEntryDTO($$parsedSource as Partial<ExportZipEntryDTO>);
     }
 }
 
@@ -594,8 +877,8 @@ export class GraphNodeDTO {
      * Creates a new GraphNodeDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): GraphNodeDTO {
-        const $$createField3_0 = $$createType6;
-        const $$createField10_0 = $$createType8;
+        const $$createField3_0 = $$createType10;
+        const $$createField10_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("position" in $$parsedSource) {
             $$parsedSource["position"] = $$createField3_0($$parsedSource["position"]);
@@ -680,7 +963,7 @@ export class MaximizedNodeResultRequest {
      */
     static createFrom($$source: any = {}): MaximizedNodeResultRequest {
         const $$createField5_0 = $$createType0;
-        const $$createField6_0 = $$createType9;
+        const $$createField6_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("formats" in $$parsedSource) {
             $$parsedSource["formats"] = $$createField5_0($$parsedSource["formats"]);
@@ -791,9 +1074,9 @@ export class NodeDiffDetailDTO {
      */
     static createFrom($$source: any = {}): NodeDiffDetailDTO {
         const $$createField2_0 = $$createType0;
-        const $$createField3_0 = $$createType11;
-        const $$createField4_0 = $$createType11;
-        const $$createField5_0 = $$createType11;
+        const $$createField3_0 = $$createType15;
+        const $$createField4_0 = $$createType15;
+        const $$createField5_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("kinds" in $$parsedSource) {
             $$parsedSource["kinds"] = $$createField2_0($$parsedSource["kinds"]);
@@ -871,7 +1154,7 @@ export class NodePositionPatchDTO {
      * Creates a new NodePositionPatchDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): NodePositionPatchDTO {
-        const $$createField1_0 = $$createType6;
+        const $$createField1_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("position" in $$parsedSource) {
             $$parsedSource["position"] = $$createField1_0($$parsedSource["position"]);
@@ -927,7 +1210,7 @@ export class PatchGraphNodePositionsRequest {
      * Creates a new PatchGraphNodePositionsRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): PatchGraphNodePositionsRequest {
-        const $$createField1_0 = $$createType13;
+        const $$createField1_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("updates" in $$parsedSource) {
             $$parsedSource["updates"] = $$createField1_0($$parsedSource["updates"]);
@@ -1035,6 +1318,85 @@ export class RobotsTxtInfoDTO {
 }
 
 /**
+ * SaveExportRequest は Go 追記保存リクエスト。
+ */
+export class SaveExportRequest {
+    /**
+     * WorkspaceID は対象ワークスペース ID。
+     */
+    "workspaceId": string;
+
+    /**
+     * NodeIDs は順序どおりのチェック済みノード ID。
+     */
+    "nodeIds": string[];
+
+    /**
+     * Format は "markdown" または "html"。
+     */
+    "format": string;
+
+    /**
+     * Separator はノード間区切り（エスケープ前）。
+     */
+    "separator": string;
+
+    /**
+     * IncludeHeading は見出しを付けるか。
+     */
+    "includeHeading": boolean;
+
+    /**
+     * HeadingField は "url" または "label"。
+     */
+    "headingField": string;
+
+    /**
+     * SplitSave は ZIP 分割保存か。
+     */
+    "splitSave": boolean;
+
+    /** Creates a new SaveExportRequest instance. */
+    constructor($$source: Partial<SaveExportRequest> = {}) {
+        if (!("workspaceId" in $$source)) {
+            this["workspaceId"] = "";
+        }
+        if (!("nodeIds" in $$source)) {
+            this["nodeIds"] = [];
+        }
+        if (!("format" in $$source)) {
+            this["format"] = "";
+        }
+        if (!("separator" in $$source)) {
+            this["separator"] = "";
+        }
+        if (!("includeHeading" in $$source)) {
+            this["includeHeading"] = false;
+        }
+        if (!("headingField" in $$source)) {
+            this["headingField"] = "";
+        }
+        if (!("splitSave" in $$source)) {
+            this["splitSave"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SaveExportRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SaveExportRequest {
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("nodeIds" in $$parsedSource) {
+            $$parsedSource["nodeIds"] = $$createField1_0($$parsedSource["nodeIds"]);
+        }
+        return new SaveExportRequest($$parsedSource as Partial<SaveExportRequest>);
+    }
+}
+
+/**
  * SaveSettingsResponseDTO は設定保存レスポンス。
  */
 export class SaveSettingsResponseDTO {
@@ -1104,7 +1466,7 @@ export class StartCrawlRequest {
      */
     static createFrom($$source: any = {}): StartCrawlRequest {
         const $$createField4_0 = $$createType0;
-        const $$createField7_0 = $$createType14;
+        const $$createField7_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nodeIds" in $$parsedSource) {
             $$parsedSource["nodeIds"] = $$createField4_0($$parsedSource["nodeIds"]);
@@ -1167,7 +1529,7 @@ export class UpdateNodeResultRequest {
      * Creates a new UpdateNodeResultRequest instance from a string or object.
      */
     static createFrom($$source: any = {}): UpdateNodeResultRequest {
-        const $$createField2_0 = $$createType15;
+        const $$createField2_0 = $$createType19;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("patch" in $$parsedSource) {
             $$parsedSource["patch"] = $$createField2_0($$parsedSource["patch"]);
@@ -1264,8 +1626,8 @@ export class WorkspaceDTO {
      */
     static createFrom($$source: any = {}): WorkspaceDTO {
         const $$createField4_0 = $$createType0;
-        const $$createField5_0 = $$createType17;
-        const $$createField6_0 = $$createType19;
+        const $$createField5_0 = $$createType21;
+        const $$createField6_0 = $$createType23;
         const $$createField9_0 = $$createType0;
         const $$createField10_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
@@ -1320,7 +1682,7 @@ export class WorkspaceDiffDTO {
      * Creates a new WorkspaceDiffDTO instance from a string or object.
      */
     static createFrom($$source: any = {}): WorkspaceDiffDTO {
-        const $$createField3_0 = $$createType21;
+        const $$createField3_0 = $$createType25;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("nodes" in $$parsedSource) {
             $$parsedSource["nodes"] = $$createField3_0($$parsedSource["nodes"]);
@@ -1364,23 +1726,27 @@ export class WorkspaceListItemDTO {
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = $Create.Map($Create.Any, $Create.Any);
-const $$createType2 = ExportSessionNodeDTO.createFrom;
+const $$createType2 = ExportPreviewRowBodyDTO.createFrom;
 const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = ExportSessionEdgeDTO.createFrom;
+const $$createType4 = ExportPreviewRowMetaDTO.createFrom;
 const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = PositionDTO.createFrom;
-const $$createType7 = CrawlResultMetaDTO.createFrom;
-const $$createType8 = $Create.Nullable($$createType7);
-const $$createType9 = CrawlResultDTO.createFrom;
-const $$createType10 = DiffPairDTO.createFrom;
-const $$createType11 = $Create.Nullable($$createType10);
-const $$createType12 = NodePositionPatchDTO.createFrom;
-const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = WorkspaceDTO.createFrom;
-const $$createType15 = UpdateNodeResultPatchDTO.createFrom;
-const $$createType16 = GraphNodeDTO.createFrom;
+const $$createType6 = ExportSessionNodeDTO.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = ExportSessionEdgeDTO.createFrom;
+const $$createType9 = $Create.Array($$createType8);
+const $$createType10 = PositionDTO.createFrom;
+const $$createType11 = CrawlResultMetaDTO.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = CrawlResultDTO.createFrom;
+const $$createType14 = DiffPairDTO.createFrom;
+const $$createType15 = $Create.Nullable($$createType14);
+const $$createType16 = NodePositionPatchDTO.createFrom;
 const $$createType17 = $Create.Array($$createType16);
-const $$createType18 = GraphEdgeDTO.createFrom;
-const $$createType19 = $Create.Array($$createType18);
-const $$createType20 = NodeDiffDTO.createFrom;
+const $$createType18 = WorkspaceDTO.createFrom;
+const $$createType19 = UpdateNodeResultPatchDTO.createFrom;
+const $$createType20 = GraphNodeDTO.createFrom;
 const $$createType21 = $Create.Array($$createType20);
+const $$createType22 = GraphEdgeDTO.createFrom;
+const $$createType23 = $Create.Array($$createType22);
+const $$createType24 = NodeDiffDTO.createFrom;
+const $$createType25 = $Create.Array($$createType24);

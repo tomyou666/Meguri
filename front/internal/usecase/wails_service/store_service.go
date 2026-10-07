@@ -1,13 +1,9 @@
 package wails_service
 
 import (
-	"archive/zip"
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"meguri-app/internal/domain"
 	"meguri-app/internal/model"
@@ -55,10 +51,16 @@ type StoreServiceAPI interface {
 	ShowExportWindow(req model.ExportSessionRequest) error
 	// GetExportSession はエクスポートウィンドウ用の直近スナップショットを返す。
 	GetExportSession() (model.ExportSessionRequest, error)
-	// SaveExportFile はエクスポート本文をファイルに保存する。
-	SaveExportFile(content string, defaultExt string) error
-	// SaveExportZip は複数ファイルを ZIP にまとめて保存する。
-	SaveExportZip(entries []model.ExportZipEntryDTO, defaultExt string) error
+	// GetExportPreviewMeta はプレビュー行メタ（本文なし）を返す。
+	GetExportPreviewMeta(req model.ExportPreviewMetaRequest) (model.ExportPreviewMetaResponse, error)
+	// GetExportPreviewBodies はプレビュー行の本文断片を返す。
+	GetExportPreviewBodies(req model.ExportPreviewBodiesRequest) (model.ExportPreviewBodiesResponse, error)
+	// ClearExportPreviewCache はプレビュー行キャッシュを捨てる。
+	ClearExportPreviewCache()
+	// SaveExport はダイアログ後に Go が追記保存する。
+	SaveExport(req model.SaveExportRequest) error
+	// CancelExportSave は進行中の保存を中止する。
+	CancelExportSave() error
 	// MergeResults は結果をマージする。
 	MergeResults(workspaceID string, nodeIDs []string, formats []string) (model.MergeResultsResponseDTO, error)
 	// SaveResults は baseline 用に結果を保存する。
@@ -118,6 +120,10 @@ type storeService struct {
 	exportWin *ExportWindowManager
 	// nodeDiffWin はノード差分ウィンドウ。
 	nodeDiffWin *NodeDiffWindowManager
+	// exportPreview はプレビュー行メタのセッションキャッシュ。
+	exportPreview *exportPreviewCache
+	// exportSave は進行中の保存状態。
+	exportSave *exportSaveState
 }
 
 // NewStoreService は StoreService を構築する。
@@ -129,11 +135,13 @@ func NewStoreService(
 	crawlPersist *domain.CrawlPersistService,
 ) *StoreService {
 	impl := &storeService{
-		appConfig:    appConfig,
-		workspaces:   workspaces,
-		results:      results,
-		diff:         diff,
-		crawlPersist: crawlPersist,
+		appConfig:     appConfig,
+		workspaces:    workspaces,
+		results:       results,
+		diff:          diff,
+		crawlPersist:  crawlPersist,
+		exportPreview: &exportPreviewCache{},
+		exportSave:    &exportSaveState{},
 	}
 	return &StoreService{StoreServiceWithDebugLog: NewStoreServiceWithDebugLog(impl)}
 }
@@ -143,6 +151,10 @@ func (s *storeService) SetApp(app *application.App) {
 	s.app = app
 	s.nodeResultWin = NewNodeResultWindowManager(app)
 	s.exportWin = NewExportWindowManager(app)
+	s.exportWin.SetOnClosing(func() {
+		_ = s.CancelExportSave()
+		s.ClearExportPreviewCache()
+	})
 	s.nodeDiffWin = NewNodeDiffWindowManager(app)
 }
 
@@ -277,6 +289,7 @@ func (s *storeService) ShowExportWindow(req model.ExportSessionRequest) error {
 	if s.exportWin == nil {
 		return fmt.Errorf("app not initialized")
 	}
+	s.ClearExportPreviewCache()
 	return s.exportWin.Show(req)
 }
 
@@ -286,94 +299,6 @@ func (s *storeService) GetExportSession() (model.ExportSessionRequest, error) {
 		return model.ExportSessionRequest{}, fmt.Errorf("app not initialized")
 	}
 	return s.exportWin.GetSnapshot()
-}
-
-// SaveExportFile はエクスポート本文をファイルに保存する。
-//
-// defaultExt はダイアログの既定拡張子（"md" または "html"）。
-func (s *storeService) SaveExportFile(content string, defaultExt string) error {
-	if s.app == nil {
-		return fmt.Errorf("app not initialized")
-	}
-	ext := strings.TrimPrefix(strings.ToLower(defaultExt), ".")
-	if ext == "" {
-		ext = "md"
-	}
-	filterName := "Markdown"
-	filterPattern := "*.md"
-	defaultName := "export.md"
-	if ext == "html" {
-		filterName = "HTML"
-		filterPattern = "*.html"
-		defaultName = "export.html"
-	}
-	path, err := s.app.Dialog.SaveFile().
-		SetMessage("Save export").
-		SetFilename(defaultName).
-		AddFilter(filterName, filterPattern).
-		AddFilter("All Files", "*.*").
-		PromptForSingleSelection()
-	if err != nil || path == "" {
-		return err
-	}
-	if filepath.Ext(path) == "" {
-		path += "." + ext
-	}
-	return os.WriteFile(path, []byte(content), 0o644)
-}
-
-// SaveExportZip は複数ファイルを ZIP にまとめて保存する。
-//
-// defaultExt はダイアログ表示用のヒント（"md" または "html"）。
-// ZIP 内のファイル名は entries の Name をそのまま使う。
-func (s *storeService) SaveExportZip(entries []model.ExportZipEntryDTO, defaultExt string) error {
-	_ = defaultExt
-	if s.app == nil {
-		return fmt.Errorf("app not initialized")
-	}
-	if len(entries) == 0 {
-		return fmt.Errorf("no export entries")
-	}
-	path, err := s.app.Dialog.SaveFile().
-		SetMessage("Save export ZIP").
-		SetFilename("export.zip").
-		AddFilter("ZIP archive", "*.zip").
-		AddFilter("All Files", "*.*").
-		PromptForSingleSelection()
-	if err != nil || path == "" {
-		return err
-	}
-	if filepath.Ext(path) == "" {
-		path += ".zip"
-	}
-
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	w := zip.NewWriter(f)
-	for _, entry := range entries {
-		if entry.Name == "" {
-			continue
-		}
-		hdr := &zip.FileHeader{
-			Name:   entry.Name,
-			Method: zip.Deflate,
-		}
-		writer, err := w.CreateHeader(hdr)
-		if err != nil {
-			return err
-		}
-		if _, err := writer.Write([]byte(entry.Content)); err != nil {
-			return err
-		}
-	}
-	if err := w.Close(); err != nil {
-		return err
-	}
-	return f.Close()
 }
 
 // MergeResults は結果をマージする。

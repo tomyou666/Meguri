@@ -392,6 +392,7 @@ export const messages = {
 		deleteWorkspaceFailed: 'ワークスペースの削除に失敗しました',
 		duplicateWorkspaceFailed: 'ワークスペースのコピーに失敗しました',
 		renameWorkspaceFailed: 'ワークスペース名の変更に失敗しました',
+		unknown: '不明なエラーが発生しました',
 	},
 	graph: {
 		layout: 'レイアウト',
@@ -435,9 +436,11 @@ export const messages = {
 		previewTitle: 'プレビュー',
 		previewEmpty: '「プレビュー開始」を押すとここに表示されます',
 		previewStart: 'プレビュー開始',
+		previewFailed: 'プレビューの取得に失敗しました',
+		previewSessionExpired:
+			'プレビューのセッションが切れました。もう一度「プレビュー開始」を押してください',
 		previewLoading: 'プレビュー取得中…',
 		save: 'ファイルに保存',
-		copy: 'クリップボードにコピー',
 		selectAll: '全選択',
 		deselectAll: '全解除',
 		cascadeCheck: '連動選択',
@@ -455,11 +458,14 @@ export const messages = {
 		noNodesChecked: 'エクスポート対象のノードを選択してください',
 		noNodesInTree: 'エクスポート対象のノードがありません',
 		skippedNoResult: (n: number) => `結果がないノード ${n} 件を除外しました`,
-		copied: 'クリップボードにコピーしました',
-		copyFailed: 'コピーに失敗しました',
 		saveFailed: 'ファイルの保存に失敗しました',
 		saveSuccess: 'ファイルを保存しました',
 		saveZipSuccess: 'ZIP ファイルを保存しました',
+		saveNoContent: '保存できる本文がありません',
+		savingTitle: 'ファイルを保存しています…',
+		savingProgress: (done: number, total: number) =>
+			`${done} / ${total} ノード完了`,
+		saveCancel: '中止',
 		openFailed: 'エクスポートウィンドウを開けませんでした',
 	},
 } as const;

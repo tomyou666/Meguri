@@ -60,7 +60,8 @@
 	--card: oklch(0.218 0 0);
 	--card-foreground: oklch(1 0 0);
 	--popover: oklch(0.269 0 0);
-	--popover-foreground: oklch(1 0 0);
+	/* トースト本文など暗背景上で潰れないよう、十分な明度を確保する */
+	--popover-foreground: oklch(0.92 0 0);
 	--primary: oklch(1 0 0);
 	--primary-foreground: oklch(0 0 0);
 	--secondary: oklch(0.159 0 0);
@@ -101,7 +102,7 @@
 	--card: oklch(0.218 0 0);
 	--card-foreground: oklch(1 0 0);
 	--popover: oklch(0.269 0 0);
-	--popover-foreground: oklch(1 0 0);
+	--popover-foreground: oklch(0.92 0 0);
 	--primary: oklch(1 0 0);
 	--primary-foreground: oklch(0 0 0);
 	--secondary: oklch(0.159 0 0);

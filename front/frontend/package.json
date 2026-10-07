@@ -19,6 +19,7 @@
     "@dagrejs/dagre": "^3.0.0",
     "@fontsource-variable/geist": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-virtual": "^3.14.13",
     "@wailsio/runtime": "latest",
     "@xyflow/react": "^12.11.5",
     "class-variance-authority": "^0.7.1",

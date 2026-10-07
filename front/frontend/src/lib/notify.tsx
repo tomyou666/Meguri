@@ -10,6 +10,11 @@ import type { WorkspaceDiff } from '@/types/adapter';
 export const TOAST_DURATION_MS = 5_000;
 export const TOAST_ERROR_DURATION_MS = 10_000;
 
+/** 既知のバックエンド文言をユーザー向け日本語に差し替える */
+const KNOWN_ERROR_MESSAGES: Record<string, string> = {
+	'export preview session expired': messages.export.previewSessionExpired,
+};
+
 function toastDismissCancel(getToastId: () => string | number) {
 	return {
 		label: (
@@ -39,6 +44,27 @@ function DiffToastBadges({ summary }: { summary: WorkspaceDiff['summary'] }) {
 	);
 }
 
+/** Wails RuntimeError の JSON 文字列から message を取り出す */
+function extractRuntimeErrorMessage(raw: string): string | null {
+	const trimmed = raw.trim();
+	if (!trimmed.startsWith('{')) return null;
+	try {
+		const parsed = JSON.parse(trimmed) as { message?: unknown };
+		return typeof parsed.message === 'string' && parsed.message.trim()
+			? parsed.message.trim()
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+/** 通知に出す文言を読みやすく整形する */
+export function formatNotifyMessage(raw: string): string {
+	const extracted = extractRuntimeErrorMessage(raw) ?? raw.trim();
+	if (!extracted) return messages.error.unknown;
+	return KNOWN_ERROR_MESSAGES[extracted] ?? extracted;
+}
+
 function showNotifyToast(
 	type: 'error' | 'success',
 	title: string,
@@ -60,9 +86,11 @@ export function notifyError(
 ): void {
 	showNotifyToast(
 		'error',
-		title,
+		formatNotifyMessage(title),
 		TOAST_ERROR_DURATION_MS,
-		options?.description,
+		options?.description != null
+			? formatNotifyMessage(options.description)
+			: undefined,
 	);
 }
 
@@ -70,7 +98,14 @@ export function notifySuccess(
 	title: string,
 	options?: { description?: string },
 ): void {
-	showNotifyToast('success', title, TOAST_DURATION_MS, options?.description);
+	showNotifyToast(
+		'success',
+		title,
+		TOAST_DURATION_MS,
+		options?.description != null
+			? formatNotifyMessage(options.description)
+			: undefined,
+	);
 }
 
 export function notifyDiffDetected(

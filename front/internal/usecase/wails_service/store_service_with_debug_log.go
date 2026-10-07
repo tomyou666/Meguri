@@ -67,6 +67,35 @@ func (_d StoreServiceWithDebugLog) Bootstrap() (err error) {
 	return _d._base.Bootstrap()
 }
 
+// CancelExportSave は StoreServiceAPI を実装する。
+func (_d StoreServiceWithDebugLog) CancelExportSave() (err error) {
+	slog.Debug("usecase: StoreService.CancelExportSave start")
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		if elapsed < debugLogSlowThreshold {
+			return
+		}
+		slog.Debug("usecase: StoreService.CancelExportSave end", slog.Duration("elapsed", elapsed))
+	}()
+	return _d._base.CancelExportSave()
+}
+
+// ClearExportPreviewCache は StoreServiceAPI を実装する。
+func (_d StoreServiceWithDebugLog) ClearExportPreviewCache() {
+	slog.Debug("usecase: StoreService.ClearExportPreviewCache start")
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		if elapsed < debugLogSlowThreshold {
+			return
+		}
+		slog.Debug("usecase: StoreService.ClearExportPreviewCache end", slog.Duration("elapsed", elapsed))
+	}()
+	_d._base.ClearExportPreviewCache()
+	return
+}
+
 // DeleteResults は StoreServiceAPI を実装する。
 func (_d StoreServiceWithDebugLog) DeleteResults(workspaceID string, nodeIDs []string) (err error) {
 	slog.Debug("usecase: StoreService.DeleteResults start")
@@ -135,6 +164,34 @@ func (_d StoreServiceWithDebugLog) GetAppDefaults() (r1 json.RawMessage, err err
 		slog.Debug("usecase: StoreService.GetAppDefaults end", slog.Duration("elapsed", elapsed))
 	}()
 	return _d._base.GetAppDefaults()
+}
+
+// GetExportPreviewBodies は StoreServiceAPI を実装する。
+func (_d StoreServiceWithDebugLog) GetExportPreviewBodies(req model.ExportPreviewBodiesRequest) (e1 model.ExportPreviewBodiesResponse, err error) {
+	slog.Debug("usecase: StoreService.GetExportPreviewBodies start")
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		if elapsed < debugLogSlowThreshold {
+			return
+		}
+		slog.Debug("usecase: StoreService.GetExportPreviewBodies end", slog.Duration("elapsed", elapsed))
+	}()
+	return _d._base.GetExportPreviewBodies(req)
+}
+
+// GetExportPreviewMeta は StoreServiceAPI を実装する。
+func (_d StoreServiceWithDebugLog) GetExportPreviewMeta(req model.ExportPreviewMetaRequest) (e1 model.ExportPreviewMetaResponse, err error) {
+	slog.Debug("usecase: StoreService.GetExportPreviewMeta start")
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		if elapsed < debugLogSlowThreshold {
+			return
+		}
+		slog.Debug("usecase: StoreService.GetExportPreviewMeta end", slog.Duration("elapsed", elapsed))
+	}()
+	return _d._base.GetExportPreviewMeta(req)
 }
 
 // GetExportSession は StoreServiceAPI を実装する。
@@ -333,32 +390,18 @@ func (_d StoreServiceWithDebugLog) SaveAppDefaults(config json.RawMessage) (s1 m
 	return _d._base.SaveAppDefaults(config)
 }
 
-// SaveExportFile は StoreServiceAPI を実装する。
-func (_d StoreServiceWithDebugLog) SaveExportFile(content string, defaultExt string) (err error) {
-	slog.Debug("usecase: StoreService.SaveExportFile start")
+// SaveExport は StoreServiceAPI を実装する。
+func (_d StoreServiceWithDebugLog) SaveExport(req model.SaveExportRequest) (err error) {
+	slog.Debug("usecase: StoreService.SaveExport start")
 	start := time.Now()
 	defer func() {
 		elapsed := time.Since(start)
 		if elapsed < debugLogSlowThreshold {
 			return
 		}
-		slog.Debug("usecase: StoreService.SaveExportFile end", slog.Duration("elapsed", elapsed))
+		slog.Debug("usecase: StoreService.SaveExport end", slog.Duration("elapsed", elapsed))
 	}()
-	return _d._base.SaveExportFile(content, defaultExt)
-}
-
-// SaveExportZip は StoreServiceAPI を実装する。
-func (_d StoreServiceWithDebugLog) SaveExportZip(entries []model.ExportZipEntryDTO, defaultExt string) (err error) {
-	slog.Debug("usecase: StoreService.SaveExportZip start")
-	start := time.Now()
-	defer func() {
-		elapsed := time.Since(start)
-		if elapsed < debugLogSlowThreshold {
-			return
-		}
-		slog.Debug("usecase: StoreService.SaveExportZip end", slog.Duration("elapsed", elapsed))
-	}()
-	return _d._base.SaveExportZip(entries, defaultExt)
+	return _d._base.SaveExport(req)
 }
 
 // SaveNodeSettings は StoreServiceAPI を実装する。

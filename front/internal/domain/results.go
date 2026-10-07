@@ -46,6 +46,89 @@ func (s *ResultsService) GetNodeResult(ctx context.Context, workspaceID, nodeID 
 	return &dto, nil
 }
 
+// ExportNodeBody はエクスポート用のノード本文（1 形式のみ）。
+type ExportNodeBody struct {
+	// NodeID はグラフノード ID。
+	NodeID string
+	// URL は取得時点の URL。
+	URL string
+	// Body は markdown または html 本文。
+	Body string
+}
+
+// GetExportNodeBodies は指定形式の本文だけを nodeIDs 順に返す。
+//
+// format は "markdown" または "html"。
+// 結果が無い ID、または対象本文が空の ID はスキップする。
+func (s *ResultsService) GetExportNodeBodies(
+	ctx context.Context,
+	workspaceID string,
+	nodeIDs []string,
+	format string,
+) ([]ExportNodeBody, error) {
+	out := []ExportNodeBody{}
+	if len(nodeIDs) == 0 {
+		return out, nil
+	}
+	rows, err := s.repo.GetNodeResultMetasByNodeIDs(ctx, workspaceID, nodeIDs)
+	if err != nil {
+		return nil, err
+	}
+	byNode := latestSuccessByNode(rows)
+	ids := make([]string, 0, len(byNode))
+	for _, nodeID := range nodeIDs {
+		row, ok := byNode[nodeID]
+		if !ok || row.ID == nil {
+			continue
+		}
+		ids = append(ids, *row.ID)
+	}
+	bodies, err := s.repo.GetNodeResultBodies(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	byBody := bodiesByID(bodies)
+	for _, nodeID := range nodeIDs {
+		row, ok := byNode[nodeID]
+		if !ok {
+			continue
+		}
+		var body *model.NodeResultBody
+		if row.ID != nil {
+			if b, ok := byBody[*row.ID]; ok {
+				body = &b
+			}
+		}
+		text := exportBodyFrom(body, format)
+		if text == "" {
+			continue
+		}
+		out = append(out, ExportNodeBody{
+			NodeID: nodeID,
+			URL:    row.URL,
+			Body:   text,
+		})
+	}
+	return out, nil
+}
+
+// exportBodyFrom は本文から指定形式の文字列を取る。
+func exportBodyFrom(body *model.NodeResultBody, format string) string {
+	if body == nil {
+		return ""
+	}
+	if format == "html" {
+		if body.HTML != nil {
+			return *body.HTML
+		}
+		return ""
+	}
+	if body.Markdown != nil {
+		return *body.Markdown
+	}
+	return ""
+}
+
 // GetNodeResults は複数ノードの最新成功結果を返す。
 //
 // 返却順は nodeIDs の順。結果が無い ID はスキップする。

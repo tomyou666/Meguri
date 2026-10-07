@@ -24,11 +24,20 @@ type ExportWindowManager struct {
 	snapshot      model.ExportSessionRequest
 	hasSnapshot   bool
 	mu            sync.Mutex
+	// onClosing はプレビューウィンドウ閉鎖時のフック（保存中止など）。
+	onClosing func()
 }
 
 // NewExportWindowManager は ExportWindowManager を構築する。
 func NewExportWindowManager(app *application.App) *ExportWindowManager {
 	return &ExportWindowManager{app: app}
+}
+
+// SetOnClosing はプレビューウィンドウ閉鎖時のフックを登録する。
+func (m *ExportWindowManager) SetOnClosing(fn func()) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.onClosing = fn
 }
 
 // SetMainWindow はメインウィンドウを登録し、終了時にエクスポートウィンドウを閉じる。
@@ -104,8 +113,12 @@ func (m *ExportWindowManager) ensurePreviewWindowLocked() (*application.WebviewW
 	m.previewWindow = w
 	w.OnWindowEvent(events.Common.WindowClosing, func(*application.WindowEvent) {
 		m.mu.Lock()
+		onClosing := m.onClosing
 		m.previewWindow = nil
 		m.mu.Unlock()
+		if onClosing != nil {
+			onClosing()
+		}
 	})
 	return w, nil
 }

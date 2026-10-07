@@ -14,24 +14,22 @@ type ExportSettingsSidebarProps = {
 	settings: ExportMergeSettings;
 	onSettingsChange: (settings: ExportMergeSettings) => void;
 	checkedCount: number;
-	hasPreview: boolean;
 	previewLoading: boolean;
+	saving: boolean;
 	onPreviewStart: () => void;
 	onSave: () => void;
-	onCopy: () => void;
 };
 
 export function ExportSettingsSidebar({
 	settings,
 	onSettingsChange,
 	checkedCount,
-	hasPreview,
 	previewLoading,
+	saving,
 	onPreviewStart,
 	onSave,
-	onCopy,
 }: ExportSettingsSidebarProps) {
-	const actionsDisabled = checkedCount === 0;
+	const actionsDisabled = checkedCount === 0 || saving;
 
 	return (
 		<aside className='flex h-full w-full min-w-[14rem] flex-col border-border border-l bg-card'>
@@ -39,8 +37,8 @@ export function ExportSettingsSidebar({
 				{messages.export.settingsTitle}
 			</div>
 			<ScrollArea className='min-h-0 flex-1'>
-				<div className='space-y-4 p-3'>
-					<div className='space-y-1.5'>
+				<div className='flex flex-col gap-4 p-3'>
+					<div className='flex flex-col gap-1.5'>
 						<Label className='text-xs'>{messages.export.format}</Label>
 						<div className='flex gap-1'>
 							<Button
@@ -79,47 +77,28 @@ export function ExportSettingsSidebar({
 							{messages.export.splitSave}
 						</Label>
 					</div>
-					{settings.splitSave && (
-						<p className='text-[10px] text-muted-foreground'>
-							{messages.export.splitSaveHint}
-						</p>
-					)}
+					<p className='text-[10px] text-muted-foreground'>
+						{messages.export.splitSaveHint}
+					</p>
 
-					<div className='space-y-1.5'>
-						<Label htmlFor='export-separator' className='text-xs'>
-							{messages.export.separator}
-						</Label>
+					<div className='flex flex-col gap-1.5'>
+						<Label className='text-xs'>{messages.export.separator}</Label>
 						<Input
-							id='export-separator'
-							className='h-8 font-mono text-xs'
 							value={settings.separator}
-							disabled={settings.splitSave}
 							onChange={(e) =>
 								onSettingsChange({ ...settings, separator: e.target.value })
 							}
+							placeholder={DEFAULT_EXPORT_SEPARATOR}
+							className='h-8 font-mono text-xs'
 						/>
 						<p className='text-[10px] text-muted-foreground'>
 							{messages.export.separatorHint}
 						</p>
-						<Button
-							size='xs'
-							variant='ghost'
-							className='h-6 px-1 text-[10px]'
-							disabled={settings.splitSave}
-							onClick={() =>
-								onSettingsChange({
-									...settings,
-									separator: DEFAULT_EXPORT_SEPARATOR,
-								})
-							}
-						>
-							---
-						</Button>
 					</div>
 
 					<div className='flex items-center gap-2'>
 						<Checkbox
-							id='export-heading'
+							id='export-include-heading'
 							checked={settings.includeHeading}
 							onCheckedChange={(checked) =>
 								onSettingsChange({
@@ -128,13 +107,16 @@ export function ExportSettingsSidebar({
 								})
 							}
 						/>
-						<Label htmlFor='export-heading' className='font-normal text-xs'>
+						<Label
+							htmlFor='export-include-heading'
+							className='font-normal text-xs'
+						>
 							{messages.export.includeHeading}
 						</Label>
 					</div>
 
 					{settings.includeHeading && (
-						<div className='space-y-1.5'>
+						<div className='flex flex-col gap-1.5'>
 							<Label className='text-xs'>{messages.export.headingField}</Label>
 							<div className='flex gap-1'>
 								{(
@@ -165,8 +147,8 @@ export function ExportSettingsSidebar({
 				</div>
 			</ScrollArea>
 
-			<div className='space-y-2 border-border border-t p-3'>
-				{actionsDisabled && (
+			<div className='flex flex-col gap-2 border-border border-t p-3'>
+				{checkedCount === 0 && (
 					<p className='text-[10px] text-muted-foreground'>
 						{messages.export.noNodesChecked}
 					</p>
@@ -183,19 +165,10 @@ export function ExportSettingsSidebar({
 					size='sm'
 					variant='outline'
 					className='w-full'
-					disabled={actionsDisabled || !hasPreview || previewLoading}
+					disabled={actionsDisabled || previewLoading}
 					onClick={onSave}
 				>
 					{messages.export.save}
-				</Button>
-				<Button
-					size='sm'
-					variant='outline'
-					className='w-full'
-					disabled={actionsDisabled || !hasPreview || previewLoading}
-					onClick={onCopy}
-				>
-					{messages.export.copy}
 				</Button>
 			</div>
 		</aside>

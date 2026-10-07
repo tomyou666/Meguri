@@ -182,6 +182,104 @@ type ExportZipEntryDTO struct {
 	Content string `json:"content"`
 }
 
+// ExportPreviewMetaRequest はプレビュー行メタ取得リクエスト。
+type ExportPreviewMetaRequest struct {
+	// WorkspaceID は対象ワークスペース ID。
+	WorkspaceID string `json:"workspaceId"`
+	// NodeIDs は順序どおりのノード ID。
+	NodeIDs []string `json:"nodeIds"`
+	// Format は "markdown" または "html"。
+	Format string `json:"format"`
+	// Generation はフロントが進める世代。
+	Generation int64 `json:"generation"`
+}
+
+// ExportPreviewRowMetaDTO は本文なしの 1 行メタ。
+type ExportPreviewRowMetaDTO struct {
+	// ID は行 ID（ノードID:開始位置）。
+	ID string `json:"id"`
+	// NodeID はグラフノード ID。
+	NodeID string `json:"nodeId"`
+	// ByteLength は断片のバイト長。
+	ByteLength int `json:"byteLength"`
+	// IsFirst はそのノードの先頭行か。
+	IsFirst bool `json:"isFirst"`
+}
+
+// ExportPreviewMetaResponse は行メタ応答。
+type ExportPreviewMetaResponse struct {
+	// Generation は要求と同じ世代。
+	Generation int64 `json:"generation"`
+	// Rows は全行メタ（本文なし）。
+	Rows []ExportPreviewRowMetaDTO `json:"rows"`
+	// SkippedCount は結果なし・空本文で除外したノード数。
+	SkippedCount int `json:"skippedCount"`
+}
+
+// ExportPreviewBodiesRequest はプレビュー本文取得リクエスト。
+type ExportPreviewBodiesRequest struct {
+	// WorkspaceID は対象ワークスペース ID。
+	WorkspaceID string `json:"workspaceId"`
+	// Format は "markdown" または "html"。
+	Format string `json:"format"`
+	// Generation は行メタ取得時の世代。
+	Generation int64 `json:"generation"`
+	// StartIndex は取得開始行 index（含む）。
+	StartIndex int `json:"startIndex"`
+	// EndIndex は取得終了行 index（含まない）。
+	EndIndex int `json:"endIndex"`
+}
+
+// ExportPreviewRowBodyDTO は 1 行分の本文。
+type ExportPreviewRowBodyDTO struct {
+	// ID は行 ID。
+	ID string `json:"id"`
+	// NodeID はグラフノード ID。
+	NodeID string `json:"nodeId"`
+	// URL はプレビュー内リンクの基準 URL。
+	URL string `json:"url"`
+	// Body は断片本文。
+	Body string `json:"body"`
+}
+
+// ExportPreviewBodiesResponse は本文応答。
+type ExportPreviewBodiesResponse struct {
+	// Generation は要求と同じ世代。
+	Generation int64 `json:"generation"`
+	// StartIndex は応答の開始 index。
+	StartIndex int `json:"startIndex"`
+	// EndIndex は応答の終了 index（含まない）。
+	EndIndex int `json:"endIndex"`
+	// Rows は範囲内の本文。
+	Rows []ExportPreviewRowBodyDTO `json:"rows"`
+}
+
+// SaveExportRequest は Go 追記保存リクエスト。
+type SaveExportRequest struct {
+	// WorkspaceID は対象ワークスペース ID。
+	WorkspaceID string `json:"workspaceId"`
+	// NodeIDs は順序どおりのチェック済みノード ID。
+	NodeIDs []string `json:"nodeIds"`
+	// Format は "markdown" または "html"。
+	Format string `json:"format"`
+	// Separator はノード間区切り（エスケープ前）。
+	Separator string `json:"separator"`
+	// IncludeHeading は見出しを付けるか。
+	IncludeHeading bool `json:"includeHeading"`
+	// HeadingField は "url" または "label"。
+	HeadingField string `json:"headingField"`
+	// SplitSave は ZIP 分割保存か。
+	SplitSave bool `json:"splitSave"`
+}
+
+// ExportSaveProgressEvent は保存進捗イベント。
+type ExportSaveProgressEvent struct {
+	// Done は完了ノード数。
+	Done int `json:"done"`
+	// Total は対象ノード数。
+	Total int `json:"total"`
+}
+
 // NodeResultUpdatedEvent はノード結果手動編集後の同期イベント。
 type NodeResultUpdatedEvent struct {
 	WorkspaceID string         `json:"workspaceId"`
