@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+## [0.12.0]
+
 ### 変更
 
 - クロール実行の設定マージを全モードで app → workspace → ノード content に揃えた
