@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -142,6 +143,79 @@ func TestCrawler(t *testing.T) {
 		defer mu.Unlock()
 		assert.Equal(t, []string{srv.URL + "/links_with_pdf.html"}, collected,
 			"深度0なのでシードのみ取得される")
+	})
+
+	t.Run("正常系: PagePipeline が nil を返すと既定パイプラインで成功する", func(t *testing.T) {
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = false
+
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), nil, nil, nil)
+		var calls atomic.Int32
+		c.SetPagePipeline(func(context.Context, string) (*core.Pipeline, func(), error) {
+			calls.Add(1)
+			return nil, nil, nil
+		})
+
+		seed, _ := url.Parse(srv.URL + "/links_with_pdf.html")
+		stats, err := c.Run(context.Background(), []*url.URL{seed})
+
+		assert.NoError(t, err)
+		assert.Equal(t, int32(1), calls.Load())
+		assert.Equal(t, 1, stats.Succeeded)
+		assert.Equal(t, 0, stats.Failed)
+	})
+
+	t.Run("異常系: PagePipeline のエラーは取得失敗になる", func(t *testing.T) {
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = false
+
+		k := setupKernel(t, cfg)
+		c := core.NewCrawler(k, core.NewPipeline(k), nil, nil, nil)
+		c.SetPagePipeline(func(context.Context, string) (*core.Pipeline, func(), error) {
+			return nil, nil, fmt.Errorf("page config failed")
+		})
+
+		seed, _ := url.Parse(srv.URL + "/links_with_pdf.html")
+		stats, err := c.Run(context.Background(), []*url.URL{seed})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, stats.Failed)
+		assert.Equal(t, 0, stats.Succeeded)
+	})
+
+	t.Run("正常系: PagePipeline が返したパイプラインで取得する", func(t *testing.T) {
+		cfg := baseConfig()
+		cfg.Crawl.Enabled = false
+		k := setupKernel(t, cfg)
+
+		alt := baseConfig()
+		alt.Content.Selector = "article.target"
+		altK := setupKernel(t, alt)
+
+		var mu sync.Mutex
+		var html string
+		sink := func(r *model.Result) {
+			mu.Lock()
+			html = r.HTML
+			mu.Unlock()
+		}
+		c := core.NewCrawler(k, core.NewPipeline(k), nil, sink, nil)
+		var released atomic.Int32
+		c.SetPagePipeline(func(context.Context, string) (*core.Pipeline, func(), error) {
+			return core.NewPipeline(altK), func() { released.Add(1) }, nil
+		})
+
+		seed, _ := url.Parse(srv.URL + "/selector_target.html")
+		stats, err := c.Run(context.Background(), []*url.URL{seed})
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, stats.Succeeded)
+		assert.Equal(t, int32(1), released.Load())
+		mu.Lock()
+		defer mu.Unlock()
+		assert.Contains(t, html, "残るべき")
+		assert.NotContains(t, html, "NOT_TARGET_CONTENT")
 	})
 
 	t.Run("正常系: max_pages を尊重して打ち切られる", func(t *testing.T) {

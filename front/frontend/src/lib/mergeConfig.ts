@@ -53,8 +53,3 @@ export function mergeConfig(
 	}
 	return cfg;
 }
-
-/** モード2: アプリデフォルトのみ（WS/ノード上書きなし） */
-export function configForMode2(app: PartialConfig): AppConfig {
-	return mergeConfig(app);
-}

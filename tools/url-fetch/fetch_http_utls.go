@@ -11,14 +11,18 @@ import (
 )
 
 // newUTLSHTTP2Client は utls + HTTP/2 で HTTPS する http.Client を返す。
+//
+// Go 1.26 の http.Transport は DialTLSContext が返す非 *tls.Conn（utls）の
+// ConnectionState を見ないため HTTP/2 に上がれない。Go 1.27+ で
+// http.Transport に置き換える。
 func newUTLSHTTP2Client() *http.Client {
-	return &http.Client{
-		Transport: &http2.Transport{
-			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-				return dialUTLSChrome(ctx, network, addr)
-			},
-		},
+	//lint:ignore SA1019 utls needs http2.Transport until Go 1.27 ALPN-on-any-Conn
+	tr := &http2.Transport{}
+	//lint:ignore SA1019 utls needs http2.Transport.DialTLSContext until Go 1.27
+	tr.DialTLSContext = func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+		return dialUTLSChrome(ctx, network, addr)
 	}
+	return &http.Client{Transport: tr}
 }
 
 // newUTLSHTTP1Client は utls + HTTP/1.1 強制で HTTPS する http.Client を返す。

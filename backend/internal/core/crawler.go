@@ -53,7 +53,15 @@ type Crawler struct {
 	progress ProgressSink
 	// pause は一時停止制御（nil 可）。
 	pause *PauseController
+	// pagePipeline は URL ごとのパイプライン。nil なら pipeline を使う。
+	// 戻り値のパイプラインが nil のときも pipeline を使う。
+	pagePipeline PagePipelineFunc
 }
+
+// PagePipelineFunc は 1 URL のパイプラインを返す。
+// クロール上限の判定は Crawler 構築時の設定のまま。
+// release は非 nil なら Run のあと 1 回だけ呼ぶ。
+type PagePipelineFunc func(ctx context.Context, rawURL string) (pipeline *Pipeline, release func(), err error)
 
 // CrawlStats はクロールの最終サマリ。
 type CrawlStats struct {
@@ -140,6 +148,11 @@ func NewCrawler(k *Kernel, pipeline *Pipeline, robots RobotsChecker, sink Result
 // SetPauseController は一時停止制御を設定する。
 func (c *Crawler) SetPauseController(p *PauseController) {
 	c.pause = p
+}
+
+// SetPagePipeline は URL ごとのパイプライン解決を設定する。
+func (c *Crawler) SetPagePipeline(fn PagePipelineFunc) {
+	c.pagePipeline = fn
 }
 
 // job はクロールキュー内の 1 件分の作業単位。
@@ -412,8 +425,30 @@ func (c *Crawler) runOne(ctx context.Context, j job, enqueue func(*url.URL, int,
 		Depth:     j.depth,
 	})
 
+	pipeline := c.pipeline
+	if c.pagePipeline != nil {
+		p, release, perr := c.pagePipeline(ctx, urlStr)
+		if perr != nil {
+			slog.Warn("page pipeline failed", "url", urlStr, "err", perr.Error())
+			emitProgress(c.progress, ProgressEvent{
+				Kind:      ProgressFailed,
+				URL:       urlStr,
+				ParentURL: j.parentURL,
+				Depth:     j.depth,
+				Error:     perr.Error(),
+			})
+			return false, false
+		}
+		if release != nil {
+			defer release()
+		}
+		if p != nil {
+			pipeline = p
+		}
+	}
+
 	req := model.NewRequest(j.url, j.depth)
-	out, err := c.pipeline.Run(ctx, req)
+	out, err := pipeline.Run(ctx, req)
 	if err != nil {
 		slog.Warn("pipeline failed", "url", urlStr, "err", err.Error())
 		emitProgress(c.progress, ProgressEvent{

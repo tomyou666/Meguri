@@ -413,11 +413,13 @@ func (s *scraperService) runCrawl(ctx context.Context, req model.StartCrawlReque
 
 	opts := s.runOptions()
 	if opts != nil {
-		if baseCfg, err := runner.ParseUIConfig(req.AppDefaults); err == nil {
-			lim := runner.PrepareFetchLimiter(ctx, baseCfg, opts)
-			if opts.Cache != nil {
-				opts.Cache.SetFetchLimiter(lim)
-			}
+		baseCfg, err := state.limiterConfig()
+		if err != nil {
+			return err
+		}
+		lim := runner.PrepareFetchLimiter(ctx, baseCfg, opts)
+		if opts.Cache != nil {
+			opts.Cache.SetFetchLimiter(lim)
 		}
 	}
 
@@ -680,16 +682,51 @@ func (s *scraperService) emitLinkSkipped(
 	})
 }
 
-func (st *crawlState) mergedConfig(mode int32, node model.GraphNodeDTO) (*runner.Config, error) {
-	layers := []json.RawMessage{st.appDefaults}
-	if mode != 2 {
-		layers = append(layers, st.wsSettings)
-		nodeLayer, err := runner.FilterNodeUIConfigLayer(node.NodeSettings)
-		if err != nil {
-			return nil, err
-		}
-		layers = append(layers, nodeLayer)
+// limiterConfig は fetch limiter 用に app → workspace をマージする。ノード層は含めない。
+func (st *crawlState) limiterConfig() (*runner.Config, error) {
+	merged, err := runner.MergeUIConfigLayers(st.appDefaults, st.wsSettings)
+	if err != nil {
+		return nil, err
 	}
+	return runner.ParseUIConfig(merged)
+}
+
+// runConfig は探索全体の設定。app → workspace に、ノード content は載せない。
+func (st *crawlState) runConfig() (*runner.Config, error) {
+	return st.mergedConfig(model.GraphNodeDTO{})
+}
+
+// pageConfig は既存ノードに content 上書きがあるときだけ、その URL の設定を返す。
+// 未登録 URL と content のないノードは nil（ラン共通パイプライン）。
+func (st *crawlState) pageConfig(rawURL string) (*runner.Config, error) {
+	key := st.crawlURLKey(rawURL)
+	st.mu.Lock()
+	id, ok := st.urlToNode[key]
+	var node model.GraphNodeDTO
+	if ok {
+		node = st.nodeByID[id]
+	}
+	st.mu.Unlock()
+	if !ok {
+		return nil, nil
+	}
+	filtered, err := runner.FilterNodeUIConfigLayer(node.NodeSettings)
+	if err != nil {
+		return nil, err
+	}
+	if len(filtered) == 0 || string(filtered) == "{}" || string(filtered) == "null" {
+		return nil, nil
+	}
+	return st.mergedConfig(node)
+}
+
+// mergedConfig は app → workspace → node content をマージする。モードでは分岐しない。
+func (st *crawlState) mergedConfig(node model.GraphNodeDTO) (*runner.Config, error) {
+	nodeLayer, err := runner.FilterNodeUIConfigLayer(node.NodeSettings)
+	if err != nil {
+		return nil, err
+	}
+	layers := []json.RawMessage{st.appDefaults, st.wsSettings, nodeLayer}
 	merged, err := runner.MergeUIConfigLayers(layers...)
 	if err != nil {
 		return nil, err
@@ -732,11 +769,10 @@ func (s *scraperService) runMainBFS(
 		seedURL = ws.SeedURL
 	}
 
-	seedNode, ok := st.nodeByID[st.urlToNode[seedURL]]
+	_, ok := st.nodeByID[st.urlToNode[seedURL]]
 	if !ok {
 		for _, n := range ws.Nodes {
 			if n.URLNormalized == seedURL {
-				seedNode = n
 				ok = true
 				break
 			}
@@ -746,10 +782,11 @@ func (s *scraperService) runMainBFS(
 		return nil, mainReached, fmt.Errorf("seed node not found for %s", seedURL)
 	}
 
-	cfg, err := st.mergedConfig(req.Mode, seedNode)
+	cfg, err := st.runConfig()
 	if err != nil {
 		return nil, mainReached, err
 	}
+	cfg.Targets = []string{seedURL}
 	cfg.Crawl.Enabled = true
 	skipURLs := st.skipScrapeURLs()
 	cfg.Crawl.SkipScrapeURLs = skipURLs
@@ -767,6 +804,12 @@ func (s *scraperService) runMainBFS(
 			}
 		}
 		cfg.Crawl.SkipScrapeLinkMap = st.mergeSkipScrapeLinkMap(fromDB, skipURLs)
+	}
+
+	if opts != nil {
+		prev := opts.PageConfig
+		opts.PageConfig = st.pageConfig
+		defer func() { opts.PageConfig = prev }()
 	}
 
 	progress := func(ev runner.ProgressEvent) {
@@ -1024,7 +1067,7 @@ func (s *scraperService) scrapeOneNode(
 	node model.GraphNodeDTO,
 	opts *runner.RunOptions,
 ) error {
-	cfg, err := st.mergedConfig(req.Mode, node)
+	cfg, err := st.mergedConfig(node)
 	if err != nil {
 		return err
 	}

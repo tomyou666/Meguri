@@ -3,6 +3,7 @@ package usecase
 import (
 	"meguri/internal/core"
 	"meguri/internal/core/fetchlimit"
+	"meguri/internal/domain/model"
 )
 
 // PauseController はクロール一時停止制御（core.PauseController のエイリアス）。
@@ -21,4 +22,8 @@ type RunOptions struct {
 	Cache *ScrapeCache
 	// FetchLimiter は取得並列上限。nil の場合は PrepareFetchLimiter が生成する。
 	FetchLimiter *fetchlimit.FetchLimiter
+	// PageConfig は BFS 中の 1 URL 向けスクレイプ設定。
+	// nil を返すとラン共通 cfg のパイプラインを使う。
+	// クロール上限（depth / pages など）は戻り値ではなく RunWithConfig に渡した cfg を使う。
+	PageConfig func(rawURL string) (*model.Config, error)
 }

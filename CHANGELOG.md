@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+### 変更
+
+- クロール実行の設定マージを全モードで app → workspace → ノード content に揃えた
+  - モード2 も workspace とノード content を使う。表示は「選択ノードから開始」
+  - モード1/2 の探索上限はラン全体で app → workspace。ページごとの content は既存ノードがあればそれを使う
+  - fetch limiter は app → workspace をランに 1 回だけ使う。ネストしたオブジェクトはフィールド単位で重ねる
+
 ### 追加
 
 - エクスポートプレビューを TanStack Virtual と行メタ／本文 API に切り替え、巨大プレビューでもスクロールできるようした

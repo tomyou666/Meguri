@@ -71,6 +71,23 @@ func (c *Crawl) RunWithConfig(
 	if opts != nil && opts.Pause != nil {
 		crawler.SetPauseController(opts.Pause)
 	}
+	if opts != nil && opts.PageConfig != nil {
+		cache := opts.Cache
+		if cache == nil {
+			cache = NewScrapeCache()
+			defer cache.CloseAll()
+		}
+		if lim != nil {
+			cache.SetFetchLimiter(lim)
+		}
+		crawler.SetPagePipeline(func(ctx context.Context, rawURL string) (*core.Pipeline, func(), error) {
+			pageCfg, err := opts.PageConfig(rawURL)
+			if err != nil || pageCfg == nil {
+				return nil, nil, err
+			}
+			return cache.PipelineFor(ctx, pageCfg)
+		})
+	}
 	stats, err := crawler.Run(ctx, parsed)
 	if err != nil {
 		core.EmitProgress(progress, core.ProgressEvent{

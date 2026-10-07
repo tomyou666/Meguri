@@ -2,6 +2,9 @@ package usecase_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -105,6 +108,39 @@ func TestScrapeCache(t *testing.T) {
 		}
 
 		assert.Equal(t, 2, cache.EntryCountForTest())
+	})
+
+	t.Run("正常系: 使用中のエントリは LRU で閉じない", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write([]byte(`<html><body><main><p>cache-body</p></main></body></html>`))
+		}))
+		defer srv.Close()
+
+		cache := usecase.NewScrapeCacheWithMaxForTest(1)
+		defer cache.CloseAll()
+
+		ctx := context.Background()
+		held := testScrapeCfg()
+		other := testScrapeCfg()
+		other.Content.Selector = "article"
+
+		pipeline, releaseHeld, err := cache.PipelineFor(ctx, held)
+		require.NoError(t, err)
+		_, releaseOther, err := cache.PipelineFor(ctx, other)
+		require.NoError(t, err)
+		assert.Equal(t, 2, cache.EntryCountForTest())
+
+		u, err := url.Parse(srv.URL)
+		require.NoError(t, err)
+		out, err := pipeline.Run(ctx, model.NewRequest(u, 0))
+		require.NoError(t, err)
+		require.NotNil(t, out.Result)
+		assert.Contains(t, out.Result.Markdown, "cache-body")
+
+		releaseHeld()
+		assert.Equal(t, 1, cache.EntryCountForTest())
+		releaseOther()
 	})
 
 	t.Run("正常系: CloseAll で全エントリを破棄する", func(t *testing.T) {

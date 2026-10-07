@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -96,9 +97,30 @@ func mergeSection(base, override json.RawMessage) (json.RawMessage, error) {
 		return override, nil
 	}
 	for k, v := range o {
+		if existing, ok := b[k]; ok {
+			merged, err := mergeJSONValue(existing, v)
+			if err != nil {
+				return nil, err
+			}
+			b[k] = merged
+			continue
+		}
 		b[k] = v
 	}
 	return json.Marshal(b)
+}
+
+// mergeJSONValue はオブジェクト同士を再帰的にマージし、それ以外は override で置き換える。
+func mergeJSONValue(base, override json.RawMessage) (json.RawMessage, error) {
+	if jsonObject(base) && jsonObject(override) {
+		return mergeSection(base, override)
+	}
+	return override, nil
+}
+
+func jsonObject(raw json.RawMessage) bool {
+	trimmed := bytes.TrimSpace(raw)
+	return len(trimmed) > 0 && trimmed[0] == '{'
 }
 
 // ParseUIConfig はマージ済み UI JSON を backend model.Config に変換する。

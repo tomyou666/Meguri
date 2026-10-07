@@ -57,7 +57,7 @@ export const messages = {
 		stop: '停止',
 		formats: '保存形式',
 		mode1: '起点 URL から開始',
-		mode2: '選択ノードから（デフォルト設定）',
+		mode2: '選択ノードから開始',
 		mode3: '選択ノードから既存ノードのみ',
 		mode4: '選択ノードのみ取得（リンク探索なし）',
 		closeModeMenu: '実行モードメニューを閉じる',

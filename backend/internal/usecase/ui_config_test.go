@@ -42,6 +42,19 @@ func TestMergeUIConfigLayers(t *testing.T) {
 		assert.Equal(t, 1, cfg.Request.RetryCount)
 	})
 
+	t.Run("正常系: fetch_limits の未指定フィールドは app の値を残す", func(t *testing.T) {
+		app := json.RawMessage(`{"crawl":{"fetch_limits":{"http_max_inflight":3,"chromium_max_inflight":5,"auto_calibrate":false}}}`)
+		ws := json.RawMessage(`{"crawl":{"fetch_limits":{"http_max_inflight":9}}}`)
+
+		merged, err := usecase.MergeUIConfigLayers(app, ws)
+		require.NoError(t, err)
+		cfg, err := usecase.ParseUIConfig(merged)
+		require.NoError(t, err)
+		assert.Equal(t, 9, cfg.Crawl.FetchLimits.HTTPMaxInflight)
+		assert.Equal(t, 5, cfg.Crawl.FetchLimits.ChromiumMaxInflight)
+		assert.False(t, cfg.Crawl.FetchLimits.AutoCalibrate)
+	})
+
 	t.Run("正常系: fetch_limits をマージ結果に反映する", func(t *testing.T) {
 		raw := json.RawMessage(`{"crawl":{"fetch_limits":{"http_max_inflight":8,"chromium_max_inflight":3,"auto_calibrate":false}}}`)
 		cfg, err := usecase.ParseUIConfig(raw)
