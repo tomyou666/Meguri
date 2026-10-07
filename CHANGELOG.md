@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ### 修正
 
+- クロール mode 3 / 4 で `max_concurrency`・`request_delay`・`respect_robots_txt` と fetch limiter が実行に反映されるようにした（既存ノード取得をワーカープール化）
 - DB最適化（`node_results` の `content_hash` / `manually_edited` を巨大 TEXT より前へ移すマイグレーションを追加）
 - グラフクリック後も Ctrl+A / Cmd+A でノード全選択できるようにした
 - 脆弱性解消

@@ -947,7 +947,7 @@ func (s *scraperService) runMode3(
 	return s.scrapeExistingNodesInOrder(ctx, req, st, visit, opts, enqueued, succeeded, failed, skipped)
 }
 
-// runMode4 は明示 nodeIds の既存ノードのみを入力順に scrape する（リンク探索なし）。
+// runMode4 は明示 nodeIds の既存ノードのみを対象とする（訪問リストは入力順、取得完了は終了順）。
 func (s *scraperService) runMode4(
 	ctx context.Context,
 	req model.StartCrawlRequest,
@@ -973,7 +973,7 @@ func filterExistingNodeIDs(nodeIDs []string, nodeByID map[string]model.GraphNode
 	return visit
 }
 
-// scrapeExistingNodesInOrder は visit 順に既存ノードを scrape する（mode 3 / 4 共通）。
+// scrapeExistingNodesInOrder は visit 順の既存ノードをワーカープールで scrape する（mode 3 / 4 共通）。
 func (s *scraperService) scrapeExistingNodesInOrder(
 	ctx context.Context,
 	req model.StartCrawlRequest,
@@ -982,6 +982,12 @@ func (s *scraperService) scrapeExistingNodesInOrder(
 	opts *runner.RunOptions,
 	enqueued, succeeded, failed, skipped *int,
 ) error {
+	runCfg, err := st.runConfig()
+	if err != nil {
+		return err
+	}
+
+	work := make([]existingNodeWork, 0, len(visit))
 	for _, nodeID := range visit {
 		node, ok := st.nodeByID[nodeID]
 		if !ok {
@@ -1003,17 +1009,60 @@ func (s *scraperService) scrapeExistingNodesInOrder(
 			})
 			continue
 		}
-		*enqueued++
-		if err := s.scrapeOneNode(ctx, req, st, node, opts); err != nil {
-			if ctx.Err() != nil {
-				return err
-			}
-			*failed++
-		} else {
-			*succeeded++
-		}
+		work = append(work, existingNodeWork{nodeID: nodeID, node: node})
 	}
-	return nil
+	if len(work) == 0 {
+		return nil
+	}
+
+	allow, err := runner.NewRobotsAllowance(ctx, runCfg, opts)
+	if err != nil {
+		return err
+	}
+	defer allow.Close(ctx)
+
+	var countMu sync.Mutex
+	inc := func(p *int) {
+		countMu.Lock()
+		(*p)++
+		countMu.Unlock()
+	}
+
+	waitIfPaused := func(ctx context.Context) error {
+		if opts != nil && opts.Pause != nil {
+			return opts.Pause.WaitIfPaused(ctx)
+		}
+		return nil
+	}
+
+	return runExistingNodeScrapePool(ctx, existingNodeScrapePoolConfig{
+		workerN:      existingNodeWorkerCount(runCfg),
+		requestDelay: runCfg.Crawl.RequestDelay,
+		work:         work,
+		hooks: existingNodeScrapePoolHooks{
+			waitIfPaused: waitIfPaused,
+			robotsAllowed: func(ctx context.Context, rawURL string) bool {
+				return allow.Allowed(ctx, rawURL)
+			},
+			onRobotsSkip: func(ctx context.Context, nodeID, url string) {
+				inc(skipped)
+				s.persistNodeSkipped(ctx, req, nodeID)
+				s.emit(topicNodeSkipped, model.CrawlEventPayload{
+					WorkspaceID: req.WorkspaceID,
+					RunID:       req.RunID,
+					NodeID:      nodeID,
+					URL:         url,
+					Reason:      "robots",
+				})
+			},
+			onEnqueued: func() { inc(enqueued) },
+			scrape: func(ctx context.Context, node model.GraphNodeDTO) error {
+				return s.scrapeOneNode(ctx, req, st, node, opts)
+			},
+			onSucceeded: func() { inc(succeeded) },
+			onFailed:    func() { inc(failed) },
+		},
+	})
 }
 
 func (s *scraperService) runManualPass(
