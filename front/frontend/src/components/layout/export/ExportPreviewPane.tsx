@@ -1,12 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MarkdownViewToggle } from '@/components/layout/node-result/MarkdownResultView';
 import { messages } from '@/i18n/messages';
@@ -86,10 +79,6 @@ export function ExportPreviewPane({
 		overscan: 6,
 		getItemKey: (index) => rows[index]?.id ?? index,
 	});
-
-	useLayoutEffect(() => {
-		virtualizer.shouldAdjustScrollPositionOnItemSizeChange = () => true;
-	}, [virtualizer]);
 
 	useEffect(() => {
 		virtualizer.measure();
