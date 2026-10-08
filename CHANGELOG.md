@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/).
 
 ## [Unreleased]
 
+## [0.13.0]
+
 ### 修正
 
 - chromium PDF 取得が先行した 400 番台で打ち切らず、後続の PDF 本体を採用するようにした

@@ -1,6 +1,6 @@
 export const messages = {
 	appName: 'Meguri',
-	version: '0.12.0',
+	version: '0.13.0',
 	toast: {
 		dismissAria: '通知を閉じる',
 	},
